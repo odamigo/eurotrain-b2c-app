@@ -1,4 +1,5 @@
 ﻿import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TrainsController } from './trains/trains.controller';
@@ -11,9 +12,13 @@ import { PaymentModule } from './payment/payment.module';
 import { MyTripsModule } from './my-trips/my-trips.module';
 import { SecurityModule } from './security/security.module';
 import { PdfModule } from './pdf/pdf.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: 'localhost',
@@ -32,6 +37,7 @@ import { PdfModule } from './pdf/pdf.module';
     PaymentModule,
     MyTripsModule,
     PdfModule,
+    EmailModule,
   ],
   controllers: [AppController, TrainsController],
   providers: [AppService],

@@ -7,7 +7,7 @@ import {
   Train, ArrowLeft, User, Mail, Tag, CreditCard,
   Clock, ArrowRight, CheckCircle, Loader2, AlertCircle
 } from 'lucide-react';
-import { Journey, createBooking, validateCampaign, calculatePrice } from '@/lib/api/client';
+import { Journey, createBooking, validatePromoCode, calculatePrice } from '@/lib/api/client';
 
 function BookingContent() {
   const searchParams = useSearchParams();
@@ -82,7 +82,7 @@ function BookingContent() {
     setPromoMessage('');
     
     try {
-      const result = await validateCampaign(promoCode);
+      const result = await validatePromoCode(promoCode);
       setPromoValid(result.valid);
       
       if (result.valid && result.campaign && priceBreakdown) {

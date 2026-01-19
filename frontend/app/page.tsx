@@ -1,258 +1,564 @@
 'use client';
 
-import { useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import {
+  Train, MapPin, Calendar, Users, Search, ArrowRightLeft,
+  ChevronDown, X, Loader2, Clock, Star, Shield, CreditCard
+} from 'lucide-react';
+import { searchStations, Station } from '@/lib/api/client';
 
-export default function PaymentPage() {
-  const searchParams = useSearchParams();
+export default function HomePage() {
   const router = useRouter();
   
-  const orderId = searchParams.get('orderId') || '';
-  const amount = searchParams.get('amount') || '0';
-  const journey = searchParams.get('journey') || '';
+  // Form state
+  const [origin, setOrigin] = useState('');
+  const [destination, setDestination] = useState('');
+  const [departureDate, setDepartureDate] = useState('');
+  const [passengers, setPassengers] = useState({ adults: 1, children: 0 });
+  const [showPassengerDropdown, setShowPassengerDropdown] = useState(false);
+  const [mounted, setMounted] = useState(false);
   
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  
-  const [cardNumber, setCardNumber] = useState('');
-  const [expMonth, setExpMonth] = useState('');
-  const [expYear, setExpYear] = useState('');
-  const [cvv, setCvv] = useState('');
-  const [cardHolderName, setCardHolderName] = useState('');
-  const [customerEmail, setCustomerEmail] = useState('');
-  const [customerName, setCustomerName] = useState('');
+  // Autocomplete state
+  const [originSuggestions, setOriginSuggestions] = useState<Station[]>([]);
+  const [destinationSuggestions, setDestinationSuggestions] = useState<Station[]>([]);
+  const [selectedOrigin, setSelectedOrigin] = useState<Station | null>(null);
+  const [selectedDestination, setSelectedDestination] = useState<Station | null>(null);
+  const [showOriginSuggestions, setShowOriginSuggestions] = useState(false);
+  const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false);
+  const [isSearchingOrigin, setIsSearchingOrigin] = useState(false);
+  const [isSearchingDestination, setIsSearchingDestination] = useState(false);
 
-  const formatCardNumber = (value: string) => {
-    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-    const matches = v.match(/\d{4,16}/g);
-    const match = (matches && matches[0]) || '';
-    const parts = [];
-    for (let i = 0, len = match.length; i < len; i += 4) {
-      parts.push(match.substring(i, i + 4));
-    }
-    if (parts.length) {
-      return parts.join(' ');
-    } else {
-      return v;
-    }
-  };
+  // Refs for click outside
+  const originRef = useRef<HTMLDivElement>(null);
+  const destinationRef = useRef<HTMLDivElement>(null);
+  const passengerRef = useRef<HTMLDivElement>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+  // Set initial date only once on mount
+  useEffect(() => {
+    setMounted(true);
+    const today = new Date().toISOString().split('T')[0];
+    setDepartureDate(today);
+  }, []);
 
-    try {
-      const response = await fetch('http://localhost:3001/payment/initiate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          orderId,
-          amount: parseFloat(amount),
-          cardNumber: cardNumber.replace(/\s/g, ''),
-          expMonth,
-          expYear,
-          cvv,
-          cardHolderName,
-          customerEmail,
-          customerName,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        if (data.redirectUrl) {
-          // 3D Secure yönlendirmesi
-          window.location.href = data.redirectUrl;
-        } else {
-          // Direkt başarılı
-          router.push(`/payment/success?orderId=${orderId}`);
-        }
-      } else {
-        setError(data.message || 'Ödeme başarısız oldu');
+  // Click outside handler
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (originRef.current && !originRef.current.contains(event.target as Node)) {
+        setShowOriginSuggestions(false);
       }
-    } catch (err) {
-      setError('Bir hata oluştu. Lütfen tekrar deneyin.');
-    } finally {
-      setLoading(false);
+      if (destinationRef.current && !destinationRef.current.contains(event.target as Node)) {
+        setShowDestinationSuggestions(false);
+      }
+      if (passengerRef.current && !passengerRef.current.contains(event.target as Node)) {
+        setShowPassengerDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Search stations for autocomplete
+  const handleOriginSearch = async (query: string) => {
+    setOrigin(query);
+    setSelectedOrigin(null);
+    
+    if (query.length >= 2) {
+      setIsSearchingOrigin(true);
+      try {
+        const stations = await searchStations(query);
+        setOriginSuggestions(stations);
+        setShowOriginSuggestions(true);
+      } catch (error) {
+        console.error('İstasyon arama hatası:', error);
+        setOriginSuggestions([]);
+      } finally {
+        setIsSearchingOrigin(false);
+      }
+    } else {
+      setOriginSuggestions([]);
+      setShowOriginSuggestions(false);
     }
   };
+
+  const handleDestinationSearch = async (query: string) => {
+    setDestination(query);
+    setSelectedDestination(null);
+    
+    if (query.length >= 2) {
+      setIsSearchingDestination(true);
+      try {
+        const stations = await searchStations(query);
+        setDestinationSuggestions(stations);
+        setShowDestinationSuggestions(true);
+      } catch (error) {
+        console.error('İstasyon arama hatası:', error);
+        setDestinationSuggestions([]);
+      } finally {
+        setIsSearchingDestination(false);
+      }
+    } else {
+      setDestinationSuggestions([]);
+      setShowDestinationSuggestions(false);
+    }
+  };
+
+  // Select station
+  const selectOrigin = (station: Station) => {
+    setSelectedOrigin(station);
+    setOrigin(`${station.name}, ${station.city}`);
+    setShowOriginSuggestions(false);
+  };
+
+  const selectDestination = (station: Station) => {
+    setSelectedDestination(station);
+    setDestination(`${station.name}, ${station.city}`);
+    setShowDestinationSuggestions(false);
+  };
+
+  // Swap stations
+  const swapStations = () => {
+    const tempOrigin = origin;
+    const tempSelectedOrigin = selectedOrigin;
+    
+    setOrigin(destination);
+    setSelectedOrigin(selectedDestination);
+    setDestination(tempOrigin);
+    setSelectedDestination(tempSelectedOrigin);
+  };
+
+  // Passenger count handlers
+  const updatePassengers = (type: 'adults' | 'children', delta: number) => {
+    setPassengers(prev => ({
+      ...prev,
+      [type]: Math.max(type === 'adults' ? 1 : 0, Math.min(9, prev[type] + delta))
+    }));
+  };
+
+  // Form submit
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedOrigin || !selectedDestination || !departureDate) {
+      alert('Lütfen tüm alanları doldurun');
+      return;
+    }
+
+    const searchParams = new URLSearchParams({
+      origin: selectedOrigin.code,
+      destination: selectedDestination.code,
+      date: departureDate,
+      adults: passengers.adults.toString(),
+      children: passengers.children.toString(),
+    });
+
+    router.push(`/search?${searchParams.toString()}`);
+  };
+
+  // Popular routes
+  const popularRoutes = [
+    { from: 'Paris', to: 'Amsterdam', fromCode: 'FRPAR', toCode: 'NLAMS', price: '€39' },
+    { from: 'Paris', to: 'London', fromCode: 'FRPAR', toCode: 'GBLON', price: '€49' },
+    { from: 'Berlin', to: 'Prague', fromCode: 'DEBER', toCode: 'CZPRG', price: '€19' },
+    { from: 'Milano', to: 'Rome', fromCode: 'ITMIL', toCode: 'ITROM', price: '€29' },
+  ];
+
+  const handlePopularRoute = (route: typeof popularRoutes[0]) => {
+    setOrigin(route.from);
+    setDestination(route.to);
+    setSelectedOrigin({ code: route.fromCode, name: route.from, city: route.from, country: '' });
+    setSelectedDestination({ code: route.toCode, name: route.to, city: route.to, country: '' });
+  };
+
+  // Don't render until mounted to avoid hydration mismatch
+  if (!mounted) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 flex items-center justify-center">
+        <Loader2 className="w-12 h-12 text-white animate-spin" />
+      </main>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-lg mx-auto px-4">
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Ödeme</h1>
-          <p className="text-gray-600 mb-6">{journey}</p>
+    <main className="min-h-screen bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700">
+      {/* Header */}
+      <header className="absolute top-0 left-0 right-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-20">
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                <Train className="w-7 h-7 text-white" />
+              </div>
+              <span className="text-2xl font-bold text-white">EuroTrain</span>
+            </Link>
 
-          {/* Fiyat Özeti */}
-          <div className="bg-blue-50 rounded-lg p-4 mb-6">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700">Toplam Tutar</span>
-              <span className="text-2xl font-bold text-blue-600">€{amount}</span>
-            </div>
+            {/* Navigation */}
+            <nav className="hidden md:flex items-center gap-6">
+              <Link href="/my-trips" className="text-white/80 hover:text-white transition-colors">
+                Biletlerim
+              </Link>
+              <Link href="/admin" className="text-white/80 hover:text-white transition-colors">
+                Yönetim
+              </Link>
+            </nav>
           </div>
+        </div>
+      </header>
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-              {error}
-            </div>
-          )}
+      {/* Hero Section */}
+      <div className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto text-center mb-12">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
+            Avrupa&apos;yı Trenle Keşfedin
+          </h1>
+          <p className="text-xl text-white/80 max-w-2xl mx-auto">
+            30+ ülke, 10.000+ destinasyon. En uygun fiyatlarla tren bileti alın.
+          </p>
+        </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Kişisel Bilgiler */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Ad Soyad
-              </label>
-              <input
-                type="text"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Ad Soyad"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                E-posta
-              </label>
-              <input
-                type="email"
-                value={customerEmail}
-                onChange={(e) => setCustomerEmail(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="ornek@email.com"
-                required
-              />
-            </div>
-
-            <hr className="my-6" />
-
-            {/* Kart Bilgileri */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Kart Üzerindeki İsim
-              </label>
-              <input
-                type="text"
-                value={cardHolderName}
-                onChange={(e) => setCardHolderName(e.target.value.toUpperCase())}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent uppercase"
-                placeholder="KART SAHİBİNİN ADI"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Kart Numarası
-              </label>
-              <input
-                type="text"
-                value={cardNumber}
-                onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
-                placeholder="0000 0000 0000 0000"
-                maxLength={19}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Ay
+        {/* Search Form */}
+        <div className="max-w-4xl mx-auto">
+          <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-2xl p-6 md:p-8">
+            {/* Station Inputs */}
+            <div className="grid md:grid-cols-2 gap-4 mb-4 relative">
+              {/* Origin */}
+              <div ref={originRef} className="relative">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Nereden
                 </label>
-                <select
-                  value={expMonth}
-                  onChange={(e) => setExpMonth(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
+                <div className="relative">
+                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <input
+                    type="text"
+                    value={origin}
+                    onChange={(e) => handleOriginSearch(e.target.value)}
+                    onFocus={() => originSuggestions.length > 0 && setShowOriginSuggestions(true)}
+                    placeholder="Şehir veya istasyon"
+                    className="w-full pl-12 pr-10 py-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 placeholder-slate-400"
+                  />
+                  {isSearchingOrigin && (
+                    <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500 animate-spin" />
+                  )}
+                  {origin && !isSearchingOrigin && (
+                    <button
+                      type="button"
+                      onClick={() => { setOrigin(''); setSelectedOrigin(null); }}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+                
+                {/* Origin Suggestions */}
+                {showOriginSuggestions && originSuggestions.length > 0 && (
+                  <div className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-auto">
+                    {originSuggestions.map((station) => (
+                      <button
+                        key={station.code}
+                        type="button"
+                        onClick={() => selectOrigin(station)}
+                        className="w-full px-4 py-3 text-left hover:bg-slate-50 flex items-center gap-3 transition-colors"
+                      >
+                        <MapPin className="w-4 h-4 text-slate-400" />
+                        <div>
+                          <div className="font-medium text-slate-900">{station.name}</div>
+                          <div className="text-sm text-slate-500">{station.city}, {station.country}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Swap Button */}
+              <button
+                type="button"
+                onClick={swapStations}
+                className="absolute left-1/2 top-[52px] -translate-x-1/2 z-10 w-10 h-10 bg-white border-2 border-slate-200 rounded-full flex items-center justify-center hover:bg-slate-50 hover:border-blue-300 transition-all shadow-sm hidden md:flex"
+              >
+                <ArrowRightLeft className="w-4 h-4 text-slate-600" />
+              </button>
+
+              {/* Destination */}
+              <div ref={destinationRef} className="relative">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Nereye
+                </label>
+                <div className="relative">
+                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <input
+                    type="text"
+                    value={destination}
+                    onChange={(e) => handleDestinationSearch(e.target.value)}
+                    onFocus={() => destinationSuggestions.length > 0 && setShowDestinationSuggestions(true)}
+                    placeholder="Şehir veya istasyon"
+                    className="w-full pl-12 pr-10 py-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 placeholder-slate-400"
+                  />
+                  {isSearchingDestination && (
+                    <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500 animate-spin" />
+                  )}
+                  {destination && !isSearchingDestination && (
+                    <button
+                      type="button"
+                      onClick={() => { setDestination(''); setSelectedDestination(null); }}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+                
+                {/* Destination Suggestions */}
+                {showDestinationSuggestions && destinationSuggestions.length > 0 && (
+                  <div className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-auto">
+                    {destinationSuggestions.map((station) => (
+                      <button
+                        key={station.code}
+                        type="button"
+                        onClick={() => selectDestination(station)}
+                        className="w-full px-4 py-3 text-left hover:bg-slate-50 flex items-center gap-3 transition-colors"
+                      >
+                        <MapPin className="w-4 h-4 text-slate-400" />
+                        <div>
+                          <div className="font-medium text-slate-900">{station.name}</div>
+                          <div className="text-sm text-slate-500">{station.city}, {station.country}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Date and Passengers */}
+            <div className="grid md:grid-cols-2 gap-4 mb-6">
+              {/* Date */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Gidiş Tarihi
+                </label>
+                <div className="relative">
+                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <input
+                    type="date"
+                    value={departureDate}
+                    onChange={(e) => setDepartureDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full pl-12 pr-4 py-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                  />
+                </div>
+              </div>
+
+              {/* Passengers */}
+              <div ref={passengerRef} className="relative">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Yolcular
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowPassengerDropdown(!showPassengerDropdown)}
+                  className="w-full pl-12 pr-4 py-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 text-left flex items-center justify-between"
                 >
-                  <option value="">Ay</option>
-                  {Array.from({ length: 12 }, (_, i) => {
-                    const month = (i + 1).toString().padStart(2, '0');
-                    return (
-                      <option key={month} value={month}>
-                        {month}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
+                  <div className="flex items-center gap-2">
+                    <Users className="absolute left-4 w-5 h-5 text-slate-400" />
+                    <span className="ml-6">
+                      {passengers.adults} Yetişkin{passengers.children > 0 && `, ${passengers.children} Çocuk`}
+                    </span>
+                  </div>
+                  <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${showPassengerDropdown ? 'rotate-180' : ''}`} />
+                </button>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Yıl
-                </label>
-                <select
-                  value={expYear}
-                  onChange={(e) => setExpYear(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                >
-                  <option value="">Yıl</option>
-                  {Array.from({ length: 10 }, (_, i) => {
-                    const year = (new Date().getFullYear() + i).toString().slice(-2);
-                    return (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
+                {/* Passenger Dropdown */}
+                {showPassengerDropdown && (
+                  <div className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg p-4">
+                    {/* Adults */}
+                    <div className="flex items-center justify-between py-3">
+                      <div>
+                        <div className="font-medium text-slate-900">Yetişkin</div>
+                        <div className="text-sm text-slate-500">12+ yaş</div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => updatePassengers('adults', -1)}
+                          disabled={passengers.adults <= 1}
+                          className="w-8 h-8 rounded-full border border-slate-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
+                        >
+                          -
+                        </button>
+                        <span className="w-8 text-center font-medium">{passengers.adults}</span>
+                        <button
+                          type="button"
+                          onClick={() => updatePassengers('adults', 1)}
+                          disabled={passengers.adults >= 9}
+                          className="w-8 h-8 rounded-full border border-slate-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  CVV
-                </label>
-                <input
-                  type="text"
-                  value={cvv}
-                  onChange={(e) => setCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
-                  placeholder="123"
-                  maxLength={4}
-                  required
-                />
+                    {/* Children */}
+                    <div className="flex items-center justify-between py-3 border-t border-slate-100">
+                      <div>
+                        <div className="font-medium text-slate-900">Çocuk</div>
+                        <div className="text-sm text-slate-500">4-11 yaş</div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => updatePassengers('children', -1)}
+                          disabled={passengers.children <= 0}
+                          className="w-8 h-8 rounded-full border border-slate-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
+                        >
+                          -
+                        </button>
+                        <span className="w-8 text-center font-medium">{passengers.children}</span>
+                        <button
+                          type="button"
+                          onClick={() => updatePassengers('children', 1)}
+                          disabled={passengers.children >= 9}
+                          className="w-8 h-8 rounded-full border border-slate-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
+            {/* Search Button */}
             <button
               type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed mt-6"
+              className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl text-lg"
             >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  İşleniyor...
-                </span>
-              ) : (
-                `€${amount} Öde`
-              )}
+              <Search className="w-5 h-5" />
+              <span>Sefer Ara</span>
             </button>
           </form>
 
-          {/* Güvenlik Bilgisi */}
-          <div className="mt-6 flex items-center justify-center gap-2 text-sm text-gray-500">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-            256-bit SSL ile güvenli ödeme
+          {/* Popular Routes */}
+          <div className="mt-8">
+            <h3 className="text-white/80 text-sm font-medium mb-4 text-center">Popüler Rotalar</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {popularRoutes.map((route, index) => (
+                <button
+                  key={index}
+                  onClick={() => handlePopularRoute(route)}
+                  className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-left hover:bg-white/20 transition-colors group"
+                >
+                  <div className="flex items-center gap-2 text-white mb-1">
+                    <span className="font-medium">{route.from}</span>
+                    <ArrowRightLeft className="w-3 h-3 text-white/60" />
+                    <span className="font-medium">{route.to}</span>
+                  </div>
+                  <div className="text-white/60 text-sm">
+                    {route.price}&apos;den başlayan fiyatlar
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Features Section */}
+      <div className="bg-white py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl font-bold text-slate-900 text-center mb-12">
+            Neden EuroTrain?
+          </h2>
+          
+          <div className="grid md:grid-cols-4 gap-8">
+            <div className="text-center">
+              <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Train className="w-7 h-7 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">30+ Ülke</h3>
+              <p className="text-slate-600">Avrupa genelinde binlerce destinasyon</p>
+            </div>
+            
+            <div className="text-center">
+              <div className="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Shield className="w-7 h-7 text-green-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Güvenli Ödeme</h3>
+              <p className="text-slate-600">256-bit SSL şifreleme ile korumalı</p>
+            </div>
+            
+            <div className="text-center">
+              <div className="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Clock className="w-7 h-7 text-purple-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Anında Onay</h3>
+              <p className="text-slate-600">E-biletiniz hemen email&apos;inize gelir</p>
+            </div>
+            
+            <div className="text-center">
+              <div className="w-14 h-14 bg-orange-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Star className="w-7 h-7 text-orange-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">7/24 Destek</h3>
+              <p className="text-slate-600">Her zaman yanınızdayız</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="bg-slate-900 text-white py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <Train className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-xl font-bold">EuroTrain</span>
+              </div>
+              <p className="text-slate-400 text-sm">
+                Avrupa&apos;nın en güvenilir tren bileti platformu.
+              </p>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold mb-4">Hızlı Linkler</h4>
+              <ul className="space-y-2 text-slate-400 text-sm">
+                <li><Link href="/my-trips" className="hover:text-white transition-colors">Biletlerim</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">SSS</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">İletişim</Link></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold mb-4">Yasal</h4>
+              <ul className="space-y-2 text-slate-400 text-sm">
+                <li><Link href="#" className="hover:text-white transition-colors">Kullanım Koşulları</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">Gizlilik Politikası</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">KVKK</Link></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold mb-4">Ödeme Yöntemleri</h4>
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-8 h-8 text-slate-400" />
+                <span className="text-slate-400 text-sm">Visa, Mastercard, Troy</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="border-t border-slate-800 pt-8 text-center text-slate-400 text-sm">
+            <p>© 2026 EuroTrain. Tüm hakları saklıdır.</p>
+          </div>
+        </div>
+      </footer>
+    </main>
   );
 }
