@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -18,34 +18,34 @@ export class BookingsService {
 
   async create(createBookingDto: CreateBookingDto) {
     const basePrice = createBookingDto.price;
-
+    
     // Fiyat hesaplama
     const priceCalculation = this.pricingService.calculateFullPrice(
       basePrice,
       'EUR'
     );
-
+    
     let finalPrice = priceCalculation.total;
     let discount = 0;
     let campaignName: string | null = null;
-
+    
     // Promo code varsa indirim hesapla
     if (createBookingDto.promoCode) {
       try {
         const campaign = await this.campaignsService.findByCode(
           createBookingDto.promoCode
         );
-
+        
         // İndirim hesapla
         discount = this.campaignsService.calculateDiscount(
           campaign,
           basePrice,
           priceCalculation.serviceFee
         );
-
+        
         finalPrice = priceCalculation.total - discount;
         campaignName = campaign.name;
-
+        
         // Kampanya kullanım sayısını artır
         await this.campaignsService.incrementUsage(campaign.id);
       } catch (error) {
@@ -53,21 +53,20 @@ export class BookingsService {
         console.log('Invalid promo code:', error.message);
       }
     }
-
+    
     // Rezervasyon oluştur
     const booking = this.bookingsRepository.create({
       ...createBookingDto,
       price: finalPrice,
-      // YENİ ALANLAR - DTO'dan gelen değerleri aktar
-  departure_date: createBookingDto.departure_date,
-  departure_time: createBookingDto.departure_time,
-  arrival_time: createBookingDto.arrival_time,
-  train_number: createBookingDto.train_number,
-  operator: createBookingDto.operator,
+      departure_date: createBookingDto.departure_date,
+      departure_time: createBookingDto.departure_time,
+      arrival_time: createBookingDto.arrival_time,
+      train_number: createBookingDto.train_number,
+      operator: createBookingDto.operator,
     });
-
+    
     const savedBooking = await this.bookingsRepository.save(booking);
-
+    
     // Detaylı cevap döndür
     return {
       ...savedBooking,
@@ -88,6 +87,14 @@ export class BookingsService {
 
   findOne(id: number) {
     return this.bookingsRepository.findOne({ where: { id } });
+  }
+
+  findByPnr(pnr: string) {
+    return this.bookingsRepository.findOne({ where: { pnr } });
+  }
+
+  findByEmail(email: string) {
+    return this.bookingsRepository.find({ where: { customerEmail: email } });
   }
 
   async update(id: number, updateBookingDto: UpdateBookingDto) {

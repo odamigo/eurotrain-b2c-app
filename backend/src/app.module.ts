@@ -10,6 +10,7 @@ import { EraModule } from './era/era.module';
 import { PaymentModule } from './payment/payment.module';
 import { MyTripsModule } from './my-trips/my-trips.module';
 import { SecurityModule } from './security/security.module';
+import { PdfModule } from './pdf/pdf.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { SecurityModule } from './security/security.module';
     EraModule,
     PaymentModule,
     MyTripsModule,
+    PdfModule,
   ],
   controllers: [AppController, TrainsController],
   providers: [AppService],
