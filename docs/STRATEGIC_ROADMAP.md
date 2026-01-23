@@ -1,233 +1,171 @@
-﻿# EUROTRAIN B2C PLATFORM
-## KAPSAMLI DEGERLENDIRME RAPORU VE STRATEJIK YOL HARITASI
+﻿# 🚀 EUROTRAIN STRATEGIC ROADMAP
 
-**Tarih:** 19 Ocak 2026
-**Hazirlayan:** Teknik Ekip Degerlendirmesi
+**Son Güncelleme:** 24 Ocak 2026
 **Domain:** eurotrain.net
 **GitHub:** https://github.com/odamigo/eurotrain-b2c-app
 
 ---
 
-# BOLUM 1: SEKTOR ANALIZI VE REKABET DEGERLENDIRMESI
+## 📊 MEVCUT DURUM
 
-## 1.1 Rakip Analizi - En Iyi Ozellikler
-
-### TRAINLINE (Sektor Lideri)
-
-**Guclu Yonleri:**
-- Live Activities (iOS) - Gercek zamanli tren takibi
-- "Also valid on..." - Ayni biletin gecerli oldugu diger trenleri gosterme
-- 5 yildizli uygulama deneyimi
-- Mobil bilet + Apple Wallet entegrasyonu
-- Fiyat uyarilari (price alerts)
-- Temiz, minimalist tasarim
-
-**EuroTrain'e Uyarlanabilir:**
-- Real-time tren durumu bildirimleri
-- Alternatif tren onerileri
-- Fiyat degisim bildirimleri
+| Kategori | Tamamlanma | Not |
+|----------|------------|-----|
+| Backend API | %95 | Payment güncellendi |
+| Frontend | %90 | Payment sayfaları güncellendi |
+| Database | %95 | Payments tablosu genişletildi |
+| Güvenlik | %90 | JWT, Rate Limiting, 3D Secure |
+| Email | %80 | Resend aktif, domain doğrulama bekliyor |
+| Payment | %85 | Kod hazır, MSU credentials bekliyor |
+| **TOPLAM** | **%94** | |
 
 ---
 
-### OMIO
+## 🏆 RAKİP ANALİZİ
 
-**Guclu Yonleri:**
-- Coklu ulasim karsilastirma (tren, otobus, ucak, feri)
-- 37 ulke, 1000+ operator
-- Tek platformda odeme kaydi
-- Ogrenci indirimleri (%15 ilk rezervasyon)
-- Cevrimdisi bilet erisimi
-- Anlik canli guncellemeler
+### Trainline (Sektör Lideri)
+- Real-time tren takibi
+- Apple Wallet entegrasyonu
+- Fiyat uyarıları (price alerts)
+- "Bu bilet şu trenlerde de geçerli" özelliği
 
-**EuroTrain'e Uyarlanabilir:**
-- Musteri sadakat programi
-- Ogrenci/genc indirimleri
-- Coklu dil destegi
+### Omio
+- Çoklu ulaşım karşılaştırma
+- Öğrenci indirimleri
+- Çevrimdışı bilet erişimi
+- Sadakat programı
 
----
+### Rail Europe
+- Split ticketing (%50 tasarruf)
+- Orijinal taşıyıcı PDF biletleri
+- Via station seçimi
+- 250+ operatör
 
-### RAIL EUROPE
-
-**Guclu Yonleri:**
-- Split ticketing (Pricehack) - %50'ye varan tasarruf
-- 250+ operator baglantisi
-- Tek sepet ucreti (2.99-7.99 EUR)
-- Orijinal tasiyici PDF biletleri
-- Via station (aktarma noktasi) secimi
-- Loco2 teknolojisi altyapisi
-
-**EuroTrain'e Uyarlanabilir:**
-- Split ticketing ozelligi
-- Via station secimi
-- Orijinal tasiyici biletleri
+### EuroTrain Avantajları
+- Türkiye/Kıbrıs/Azerbaycan pazarı odaklı
+- TRY ile ödeme imkanı (TCMB kuru)
+- MCP Server ile AI agent desteği (yakında)
+- Hızlı ve modern UI/UX
 
 ---
 
-### LUFTHANSA / VIRGIN TRAINS
+## 📅 FAZ PLANI
 
-**Guclu Yonleri:**
-- Premium musteri deneyimi
-- Sadakat programlari (Miles & More)
-- Lounge erisimi
-- Kusursuz check-in deneyimi
+### FAZ 1: MVP TAMAMLAMA (Bu Hafta)
 
----
-
-## 1.2 Rakiplerden Alinacak En Iyi Ozellikler Ozeti
-
-| Kaynak | Ozellik | Oncelik |
-|--------|---------|---------|
-| Trainline | Real-time tren takibi | YUKSEK |
-| Trainline | "Also valid on..." | YUKSEK |
-| Omio | Ogrenci indirimleri | ORTA |
-| Omio | Cevrimdisi bilet | ORTA |
-| Rail Europe | Split ticketing | YUKSEK |
-| Rail Europe | Orijinal tasiyici PDF | YUKSEK |
-
----
-
-# BOLUM 2: 2025-2026 KRITIK TREND - MCP (AI AGENT BOOKING)
-
-## 2.1 Sektor Gelismeleri
-
-Kiwi.com, Sabre, Expedia gibi sirketler AI agent'larin direkt booking yapabilmesi icin MCP server'lar gelistiriyor.
-
-**Onemli Gelismeler:**
-- Kiwi.com 2025'te MCP server'ini baslatti
-- Sabre MCP entegrasyonu gelistiriyor
-- Expedia AI booking uzerinde calisiyor
-- 2026 sonunda AI uzerinden direkt booking yayginlasacak
-
-## 2.2 EuroTrain MCP Stratejisi
-
-**MCP Server Tools:**
-- searchTrains: Tren arama
-- getTrainDetails: Sefer detayi
-- createBooking: Rezervasyon olustur
-- getBookingStatus: Durum sorgula
-- cancelBooking: Iptal
-
-**Payten Hosted Page & MCP Uyumlulugu:**
-
-SORUN: Hosted Page, kullaniciyi Payten'in sayfasina yonlendiriyor. AI agent'lar redirect takip edemez.
-
-COZUM: FAZ 2'de Direct Post API'ye gecis. Simdilik Hosted Page web icin calisir, MCP geldiginde Direct Post ekleriz.
-
----
-
-# BOLUM 3: TEKNIK DEGERLENDIRME
-
-## 3.1 Mevcut Durum
-
-| Modul | Durum | Not |
-|-------|-------|-----|
-| Backend (NestJS) | %95 | Tum moduller hazir |
-| Frontend (Next.js) | %90 | Admin + kullanici |
-| Database | %100 | PostgreSQL calisior |
-| Auth/Security | %100 | JWT + Rate Limiting |
-| Email | %100 | Resend entegre |
-| PDF | %100 | pdfkit ile |
-| Payment | %80 | MSU kodu hazir, credentials yok |
-| ERA API | %50 | Mock data, gercek API yok |
-
-## 3.2 API Entegrasyonlari
-
-### Rail Europe API (ERA)
-- **Dokumantasyon:** https://docs.era.raileurope.com/docs/era-api-doc/
-- **Kullanim:** Sefer arama, rezervasyon, bilet
-- **Durum:** Mock data ile calisiyor
-- **Aksiyon:** Gercek API credentials alinacak
-
-### Payten MSU API
-- **Dokumantasyon:** https://merchantsafeunipay.com/msu/api/v2/doc
-- **Test URL:** https://test.merchantsafeunipay.com/msu/api/v2
-- **Destek:** destek.gateway@payten.com | 0212 319 0 678
-- **Durum:** Kod hazir, credentials bekleniyor
-
-### Resend Email API
-- **Dokumantasyon:** https://resend.com/docs
-- **Durum:** AKTIF (test modu)
-- **Aksiyon:** eurotrain.net domain dogrulamasi gerekli
-
----
-
-# BOLUM 4: ONCELIKLENDIRILMIS YOL HARITASI
-
-## FAZ 1: MVP TAMAMLAMA (Bu Hafta)
-
-| # | Gorev | Sure | Durum |
+| # | Görev | Süre | Durum |
 |---|-------|------|-------|
-| 1 | Email servisi kurulumu | 4 saat | TAMAMLANDI |
-| 2 | MSU credentials ekleme ve test | 2 saat | BEKLIYOR |
-| 3 | QR kod ekleme (PDF'e) | 3 saat | BEKLIYOR |
-| 4 | Mobile responsive duzeltmeleri | 6 saat | BEKLIYOR |
-| 5 | Resend domain dogrulama | 1 saat | BEKLIYOR |
+| 1 | Email servisi | 4 saat | ✅ TAMAMLANDI |
+| 2 | QR kodlu PDF bilet | 3 saat | ✅ TAMAMLANDI |
+| 3 | Payment gateway güncelleme | 4 saat | ✅ TAMAMLANDI |
+| 4 | Mobile responsive | 2 saat | ✅ TAMAMLANDI |
+| 5 | MSU credentials | - | ⏳ Payten'den bekleniyor |
+| 6 | TCMB kur entegrasyonu | 2 saat | 🔜 Sırada |
+| 7 | Settings modülü | 3 saat | 🔜 Sırada |
 
-## FAZ 2: PRODUCTION HAZIRLIK (2-3 Hafta)
+### FAZ 2: PRODUCTION HAZIRLIK (2 Hafta)
 
-| # | Gorev | Aciklama |
+| # | Görev | Açıklama |
 |---|-------|----------|
-| 6 | Orijinal tasiyici PDF'leri | ERA API'dan gercek bilet |
-| 7 | HTTPS sertifikasi | Let's Encrypt |
-| 8 | Helmet.js + guvenlik headers | XSS, CSRF korumasi |
-| 9 | Loading states (skeleton) | UX iyilestirme |
-| 10 | Error boundary components | Hata yonetimi |
-| 11 | CDN entegrasyonu | Cloudflare/Vercel |
-| 12 | Performance optimization | Core Web Vitals |
-| 13 | Direct Post API | MCP hazirlik |
+| 8 | Admin Settings sayfası | Kur, markup, terms yönetimi |
+| 9 | Terms & Privacy sayfaları | Yasal metinler |
+| 10 | Çoklu dil (i18n) | TR/EN desteği |
+| 11 | Resend domain doğrulama | eurotrain.net |
+| 12 | HTTPS sertifikası | Let's Encrypt |
+| 13 | Performance optimizasyonu | Core Web Vitals |
+| 14 | Error boundaries | Hata yönetimi |
 
-## FAZ 3: AI AGENT ENTEGRASYONU (1 Ay)
+### FAZ 3: AI AGENT ENTEGRASYONU (1 Ay)
 
-| # | Gorev | Aciklama |
+| # | Görev | Açıklama |
 |---|-------|----------|
-| 14 | MCP Server v1 | AI booking icin protokol |
-| 15 | searchTrains tool | Tren arama |
-| 16 | createBooking tool | Rezervasyon |
-| 17 | Claude/ChatGPT test | Entegrasyon testi |
+| 15 | MCP Server v1 | AI booking protokolü |
+| 16 | searchTrains tool | Tren arama |
+| 17 | createBooking tool | Rezervasyon |
+| 18 | Direct Post API | AI için redirect-free ödeme |
+| 19 | Claude/ChatGPT test | Entegrasyon testi |
 
-## FAZ 4: GROWTH FEATURES (Backlog)
+### FAZ 4: GROWTH FEATURES (Backlog)
 
 - Price alerts (fiyat bildirimleri)
 - Saved searches (favori rotalar)
 - Loyalty program (EuroTrain Points)
-- Split ticketing (%50 tasarruf)
-- Multi-language (i18n)
+- Split ticketing
 - Dark mode
 - PWA support
-- 2FA (iki faktorlu dogrulama)
-- Refund API
+- 2FA
+- Refund self-service
 
 ---
 
-# BOLUM 5: RISK ANALIZI
+## 💳 PAYMENT GATEWAY DETAYLARI
 
-## 5.1 Risk Faktorleri
+### Mevcut Durum (24 Ocak 2026)
+- ✅ Hosted Page entegrasyonu
+- ✅ 3D Secure zorunlu
+- ✅ Çoklu para birimi (EUR/USD/TRY)
+- ✅ Refund API (tam/kısmi iade)
+- ✅ Mock mode (test için)
+- ✅ Retry mekanizması (3 deneme)
+- ⏳ MSU credentials bekleniyor
 
-| Risk | Olasilik | Etki | Cozum |
-|------|----------|------|-------|
-| MSU credentials yok | Yuksek | Kritik | Payten ile iletisim |
-| Mock ERA data | Yuksek | Yuksek | ERA API basvurusu |
-| Domain dogrulama yok | Orta | Orta | Resend'de domain ekle |
-| Mobile uyumsuz | Dusuk | Yuksek | Responsive duzeltme |
+### Payten İletişim
+```
+Email: destek.gateway@payten.com
+Tel: 0212 319 0 678
+Talep: "MSU Hosted Page test ortamı için merchant credentials"
+```
 
-## 5.2 Kritik Uyarilar
-
-1. Email servisi olmadan magic link calismaz
-2. MSU credentials olmadan odeme alinamaz
-3. Mock data ile production'a cikilamaz
-4. Mobile uyumluluk eksikligi kullanici kaybettirir
+### MCP Uyumluluğu
+Hosted Page redirect kullanıyor - AI agent'lar redirect takip edemez.
+**Çözüm:** FAZ 3'te Direct Post API eklenecek.
 
 ---
 
-# BOLUM 6: BASARI METRIKLERI
+## 💱 KUR YÖNETİMİ (PLANLI)
 
-## Teknik Metrikler
-- Sayfa yukleme suresi < 3 saniye
-- API response time < 500ms
+### TCMB Entegrasyonu
+- Kaynak: TCMB Efektif Satış Kuru
+- URL: https://www.tcmb.gov.tr/kurlar/today.xml
+- Güncelleme: Saatlik cache
+- Fallback: Son bilinen kur
+
+### Markup Stratejisi
+- EUR: Orijinal fiyat (markup yok)
+- USD: TCMB kuru + %2.5 markup
+- TRY: TCMB kuru + %2.5 markup
+- Admin panelden düzenlenebilir
+
+### Kullanıcı Bildirimi
+"Orijinal para birimi dışında ödeme yapıldığında kur farkı uygulanmaktadır."
+
+---
+
+## 🌍 ÇOKLU DİL (PLANLI)
+
+### Desteklenecek Diller
+- 🇹🇷 Türkçe (varsayılan)
+- 🇬🇧 English
+- 🇩🇪 Deutsch (gelecekte)
+- 🇫🇷 Français (gelecekte)
+
+### Çevirilecek İçerikler
+- UI metinleri
+- Hata mesajları
+- Email şablonları
+- Terms & Conditions
+- Privacy Policy
+
+---
+
+## 📈 BAŞARI METRİKLERİ
+
+### Teknik
+- Sayfa yükleme < 3 saniye
+- API response < 500ms
 - Uptime > 99.5%
 - Error rate < 1%
 
-## Is Metrikleri
+### İş
 - Conversion rate > 3%
 - Cart abandonment < 70%
 - Customer satisfaction > 4.5/5
@@ -235,50 +173,44 @@ COZUM: FAZ 2'de Direct Post API'ye gecis. Simdilik Hosted Page web icin calisir,
 
 ---
 
-# BOLUM 7: ILETISIM BILGILERI
+## ⚠️ RİSK FAKTÖRLERİ
 
-## Payten Destek
-- **Email:** destek.gateway@payten.com
-- **Telefon:** 0212 319 0 678
-- **Talep:** "MSU Hosted Page test ortami icin merchant credentials"
+| Risk | Olasılık | Etki | Çözüm |
+|------|----------|------|-------|
+| MSU credentials gecikme | Orta | Kritik | Mock mode ile devam |
+| TCMB API erişim sorunu | Düşük | Orta | Fallback kurlar |
+| ERA API gecikmesi | Yüksek | Yüksek | Mock data ile devam |
+| Domain doğrulama | Düşük | Orta | Resend support |
 
-## Rail Europe
-- Partner portal uzerinden basvuru
+---
 
-## Resend
+## 📞 ÖNEMLİ İLETİŞİM
+
+### Payten
+- destek.gateway@payten.com
+- 0212 319 0 678
+
+### Rail Europe
+- Partner portal üzerinden
+
+### Resend
 - https://resend.com/support
-- Domain dogrulama: https://resend.com/domains
+
+### Natro (Hosting)
+- destek@natro.com
 
 ---
 
-# BOLUM 8: SONUC VE ONERILER
+## 🎯 SONRAKİ ADIMLAR
 
-## Guclu Yonler
-- Teknik altyapi saglam (%92 tamamlandi)
-- Modern teknoloji stack (NestJS, Next.js)
-- Guvenlik modulu hazir (JWT, Rate Limiting)
-- Email servisi aktif
-
-## Zayif Yonler
-- Odeme entegrasyonu eksik (credentials yok)
-- Gercek tren verisi yok (mock data)
-- Mobile uyumluluk test edilmedi
-
-## Acil Aksiyon Gerektiren
-1. Payten'den MSU test credentials al
-2. ERA API icin basvuru yap
-3. Resend domain dogrulamasi yap
-4. Mobile responsive testleri tamamla
-
-## Rekabet Avantaji Firsatlari
-1. Turkiye/Kibris/Azerbaycan Pazari - Yerel pazarda guclu konum
-2. MCP Entegrasyonu - Erken adaptor avantaji
-3. Orijinal Tasiyici Biletleri - Guven ve profesyonellik
+1. **Bugün:** TCMB kur entegrasyonu
+2. **Bugün:** Settings modülü (backend)
+3. **Yarın:** Admin Settings sayfası
+4. **Yarın:** Terms & Privacy sayfaları
+5. **Bu hafta:** MSU credentials ile gerçek test
+6. **Gelecek hafta:** i18n altyapısı
 
 ---
 
-**Rapor Sonu**
-
-**Son Guncelleme:** 19 Ocak 2026
-**Sonraki Review:** FAZ 1 tamamlandiginda
-**Hazirlayan:** Claude + Levent
+**Son Güncelleme:** 24 Ocak 2026 - 02:15
+**Hazırlayan:** Claude + Levent
