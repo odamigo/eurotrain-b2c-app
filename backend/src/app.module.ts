@@ -11,14 +11,13 @@ import { EraModule } from './era/era.module';
 import { PaymentModule } from './payment/payment.module';
 import { MyTripsModule } from './my-trips/my-trips.module';
 import { SecurityModule } from './security/security.module';
-import { PdfModule } from './pdf/pdf.module';
 import { EmailModule } from './email/email.module';
+import { PdfModule } from './pdf/pdf.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
+    ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: 'localhost',
@@ -36,8 +35,9 @@ import { EmailModule } from './email/email.module';
     EraModule,
     PaymentModule,
     MyTripsModule,
-    PdfModule,
     EmailModule,
+    PdfModule,
+    SettingsModule,
   ],
   controllers: [AppController, TrainsController],
   providers: [AppService],

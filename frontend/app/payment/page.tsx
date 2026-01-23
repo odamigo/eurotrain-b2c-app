@@ -5,13 +5,31 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Train, Shield, Lock, CreditCard, ArrowLeft,
-  CheckCircle, AlertCircle, Loader2, Globe, ChevronDown
+  CheckCircle, AlertCircle, Loader2, Globe, ChevronDown, Info
 } from 'lucide-react';
 
-const CURRENCIES = [
-  { code: 'EUR', symbol: '€', name: 'Euro', flag: '🇪🇺' },
-  { code: 'USD', symbol: '$', name: 'US Dollar', flag: '🇺🇸' },
-  { code: 'TRY', symbol: '₺', name: 'Türk Lirası', flag: '🇹🇷' },
+interface ExchangeRates {
+  EUR: number;
+  USD: number;
+  TRY: number;
+  USD_TO_EUR: number;
+  TRY_TO_EUR: number;
+  markup: number;
+  lastUpdated: string;
+  source: string;
+}
+
+interface Currency {
+  code: string;
+  symbol: string;
+  name: string;
+  flag: string;
+}
+
+const CURRENCIES: Currency[] = [
+  { code: 'EUR', symbol: '€', name: 'Euro', flag: 'EU' },
+  { code: 'USD', symbol: '$', name: 'US Dollar', flag: 'US' },
+  { code: 'TRY', symbol: '₺', name: 'Türk Lirası', flag: 'TR' },
 ];
 
 function PaymentContent() {
@@ -35,6 +53,29 @@ function PaymentContent() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showMarkupTooltip, setShowMarkupTooltip] = useState(false);
+  
+  // Exchange rates
+  const [rates, setRates] = useState<ExchangeRates | null>(null);
+  const [ratesLoading, setRatesLoading] = useState(true);
+
+  // Load exchange rates
+  useEffect(() => {
+    const fetchRates = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/settings/exchange-rates');
+        const data = await response.json();
+        if (data.success) {
+          setRates(data.rates);
+        }
+      } catch (error) {
+        console.error('Failed to fetch exchange rates:', error);
+      } finally {
+        setRatesLoading(false);
+      }
+    };
+    fetchRates();
+  }, []);
 
   // Load from sessionStorage
   useEffect(() => {
@@ -50,21 +91,43 @@ function PaymentContent() {
     }
   }, []);
 
-  // Currency conversion (mock rates)
+  // Currency conversion using real rates
   const getConvertedAmount = (currency: string): number => {
-    const rates: Record<string, number> = {
-      EUR: 1,
-      USD: 1.08,
-      TRY: 35.5,
-    };
-    return amount * rates[currency];
+    if (!rates) return amount;
+    
+    if (currency === 'EUR') return amount;
+    
+    if (currency === 'USD') {
+      // EUR fiyatı USD'ye çevir (markup dahil)
+      const baseUsdRate = 1 / rates.USD_TO_EUR;
+      const withMarkup = baseUsdRate * (1 + rates.markup / 100);
+      return Number((amount * withMarkup).toFixed(2));
+    }
+    
+    if (currency === 'TRY') {
+      // rates.TRY zaten markup dahil
+      return Number((amount * rates.TRY).toFixed(2));
+    }
+    
+    return amount;
+  };
+
+  // Get base amount without markup (for display)
+  const getBaseAmount = (currency: string): number => {
+    if (!rates) return amount;
+    
+    if (currency === 'EUR') return amount;
+    if (currency === 'USD') return Number((amount / rates.USD_TO_EUR).toFixed(2));
+    if (currency === 'TRY') return Number((amount * rates.TRY_TO_EUR).toFixed(2));
+    
+    return amount;
   };
 
   const getCurrencySymbol = (code: string): string => {
     return CURRENCIES.find(c => c.code === code)?.symbol || '€';
   };
 
-  const formatPrice = (value: number, currency: string): string => {
+  const formatPrice = (value: number): string => {
     return new Intl.NumberFormat('tr-TR', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
@@ -82,7 +145,6 @@ function PaymentContent() {
     setLoading(true);
     setError('');
 
-    // Save to sessionStorage
     sessionStorage.setItem('customerName', customerName);
     sessionStorage.setItem('customerEmail', customerEmail);
 
@@ -108,7 +170,6 @@ function PaymentContent() {
       const data = await response.json();
 
       if (data.success && data.redirectUrl) {
-        // Payten Hosted Page'e yönlendir
         window.location.href = data.redirectUrl;
       } else {
         setError(data.message || 'Ödeme başlatılamadı. Lütfen tekrar deneyin.');
@@ -123,6 +184,7 @@ function PaymentContent() {
   const convertedAmount = getConvertedAmount(selectedCurrency);
   const currencySymbol = getCurrencySymbol(selectedCurrency);
   const selectedCurrencyData = CURRENCIES.find(c => c.code === selectedCurrency);
+  const hasMarkup = selectedCurrency !== 'EUR';
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -228,50 +290,63 @@ function PaymentContent() {
                 {/* Para Birimi Seçimi */}
                 <div>
                   <h3 className="text-lg font-semibold text-slate-900 mb-4">Para Birimi</h3>
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-xl flex items-center justify-between hover:border-slate-300 transition-colors bg-white"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Globe className="w-5 h-5 text-slate-400" />
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl">{selectedCurrencyData?.flag}</span>
-                          <span className="font-semibold text-slate-900">{selectedCurrency}</span>
-                          <span className="text-slate-500">{selectedCurrencyData?.name}</span>
+                  
+                  {ratesLoading ? (
+                    <div className="flex items-center gap-2 text-slate-500">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Kurlar yükleniyor...</span>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
+                        className="w-full px-4 py-3 border border-slate-200 rounded-xl flex items-center justify-between hover:border-slate-300 transition-colors bg-white"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Globe className="w-5 h-5 text-slate-400" />
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded">{selectedCurrencyData?.flag}</span>
+                            <span className="font-semibold text-slate-900">{selectedCurrency}</span>
+                            <span className="text-slate-500">{selectedCurrencyData?.name}</span>
+                          </div>
                         </div>
-                      </div>
-                      <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${showCurrencyDropdown ? 'rotate-180' : ''}`} />
-                    </button>
+                        <div className="flex items-center gap-3">
+                          <span className="font-semibold text-slate-900">
+                            {currencySymbol}{formatPrice(convertedAmount)}
+                          </span>
+                          <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${showCurrencyDropdown ? 'rotate-180' : ''}`} />
+                        </div>
+                      </button>
 
-                    {showCurrencyDropdown && (
-                      <div className="absolute z-10 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
-                        {CURRENCIES.map((currency) => (
-                          <button
-                            key={currency.code}
-                            type="button"
-                            onClick={() => {
-                              setSelectedCurrency(currency.code);
-                              setShowCurrencyDropdown(false);
-                            }}
-                            className={`w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors ${
-                              selectedCurrency === currency.code ? 'bg-blue-50' : ''
-                            }`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <span className="text-xl">{currency.flag}</span>
-                              <span className="font-medium text-slate-900">{currency.code}</span>
-                              <span className="text-slate-500">{currency.name}</span>
-                            </div>
-                            <span className="font-semibold text-slate-900">
-                              {currency.symbol}{formatPrice(getConvertedAmount(currency.code), currency.code)}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                      {showCurrencyDropdown && (
+                        <div className="absolute z-10 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
+                          {CURRENCIES.map((currency) => (
+                            <button
+                              key={currency.code}
+                              type="button"
+                              onClick={() => {
+                                setSelectedCurrency(currency.code);
+                                setShowCurrencyDropdown(false);
+                              }}
+                              className={`w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors ${
+                                selectedCurrency === currency.code ? 'bg-blue-50' : ''
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className="text-xs font-bold bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded">{currency.flag}</span>
+                                <span className="font-medium text-slate-900">{currency.code}</span>
+                                <span className="text-slate-500">{currency.name}</span>
+                              </div>
+                              <span className="font-semibold text-slate-900">
+                                {currency.symbol}{formatPrice(getConvertedAmount(currency.code))}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Ödeme Yöntemi Bilgisi */}
@@ -319,7 +394,7 @@ function PaymentContent() {
                 {/* Submit Button */}
                 <button
                   type="submit"
-                  disabled={loading || !agreedToTerms}
+                  disabled={loading || !agreedToTerms || ratesLoading}
                   className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
                 >
                   {loading ? (
@@ -330,7 +405,7 @@ function PaymentContent() {
                   ) : (
                     <>
                       <Lock className="w-5 h-5" />
-                      <span>{currencySymbol}{formatPrice(convertedAmount, selectedCurrency)} Öde</span>
+                      <span>{currencySymbol}{formatPrice(convertedAmount)} Öde</span>
                     </>
                   )}
                 </button>
@@ -377,17 +452,51 @@ function PaymentContent() {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-slate-600">
                   <span>Bilet Ücreti</span>
-                  <span>{currencySymbol}{formatPrice(convertedAmount * 0.95, selectedCurrency)}</span>
+                  <span>€{formatPrice(amount * 0.95)}</span>
                 </div>
                 <div className="flex justify-between text-slate-600">
                   <span>Hizmet Bedeli</span>
-                  <span>{currencySymbol}{formatPrice(convertedAmount * 0.05, selectedCurrency)}</span>
+                  <span>€{formatPrice(amount * 0.05)}</span>
                 </div>
-                <div className="border-t border-slate-200 pt-3 flex justify-between">
-                  <span className="text-lg font-bold text-slate-900">Toplam</span>
-                  <span className="text-xl font-bold text-blue-600">
-                    {currencySymbol}{formatPrice(convertedAmount, selectedCurrency)}
-                  </span>
+                <div className="border-t border-slate-200 pt-3 flex justify-between items-start">
+                  <div className="flex items-center gap-1">
+                    <span className="text-lg font-bold text-slate-900">Toplam</span>
+                    {hasMarkup && rates && (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onMouseEnter={() => setShowMarkupTooltip(true)}
+                          onMouseLeave={() => setShowMarkupTooltip(false)}
+                          onClick={() => setShowMarkupTooltip(!showMarkupTooltip)}
+                          className="text-slate-400 hover:text-slate-600 transition-colors"
+                        >
+                          <Info className="w-4 h-4" />
+                        </button>
+                        {showMarkupTooltip && (
+                          <div className="absolute left-0 bottom-full mb-2 w-64 p-3 bg-slate-800 text-white text-xs rounded-lg shadow-lg z-20">
+                            <p className="mb-2">
+                              <strong>Orijinal fiyat:</strong> €{formatPrice(amount)}
+                            </p>
+                            <p className="mb-2">
+                              <strong>TCMB Kuru:</strong> 1 EUR = {selectedCurrency === 'TRY' ? `₺${formatPrice(rates.TRY_TO_EUR)}` : `$${formatPrice(1/rates.USD_TO_EUR)}`}
+                            </p>
+                            <p className="text-slate-300">
+                              Orijinal para birimi (EUR) dışında yapılan ödemelerde TCMB efektif satış kuru üzerine %{rates.markup} kur farkı uygulanmaktadır.
+                            </p>
+                            <div className="absolute left-3 top-full w-0 h-0 border-l-8 border-r-8 border-t-8 border-transparent border-t-slate-800"></div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xl font-bold text-blue-600">
+                      {currencySymbol}{formatPrice(convertedAmount)}
+                    </span>
+                    {hasMarkup && (
+                      <p className="text-xs text-slate-400">≈ €{formatPrice(amount)}</p>
+                    )}
+                  </div>
                 </div>
               </div>
 
