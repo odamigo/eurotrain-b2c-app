@@ -550,4 +550,424 @@ export class EraExchangeService {
 
 ---
 
-**Bu doküman ERA API resmi diyagramlarından oluşturulmuştur.**
+## 🚃 10. DESTEKLENEN TAŞIYICILAR (CARRIERS)
+
+### Özet Tablo
+
+| Carrier | Ülke | Tren Tipi | Koltuk Rez. | İade | Değişim |
+|---------|------|-----------|-------------|------|---------|
+| **RDG** | 🇬🇧 UK | Mainline, Regional | Yok | ✅ | ✅ |
+| **RegioJet** | 🇨🇿 Çekya+ | Day/Night | Dahil | ✅ | ✅ |
+| **RENFE** | 🇪🇸 İspanya | AVE, Alvia | Zorunlu | ✅ | ✅ |
+| **RHB** | 🇨🇭 İsviçre | Panoramik | Dahil | ✅ | ✅ |
+| **SBB** | 🇨🇭 İsviçre | IC, IR | Yok/Harici | ✅ | ❌ |
+| **STS** | 🇨🇭 İsviçre | Pass | - | ✅ | ✅ |
+| **Trenitalia** | 🇮🇹 İtalya | Frecce, IC | Zorunlu | ✅ | ✅ |
+| **Trenitalia Pass** | 🇮🇹 İtalya | Pass | Ücretsiz | ✅ | ✅ |
+
+---
+
+### 🇬🇧 RDG (Rail Delivery Group) - UK
+
+**Genel Bilgi:**
+- 20+ UK tren operatörünü temsil eder
+- İngiltere, İskoçya, Galler genelinde
+- Havalimanı bağlantıları: Heathrow Express, Gatwick Express
+
+**Kabin Sınıfları:**
+| Standard | Comfort | Premier |
+|----------|---------|---------|
+| 2nd Class | 1st Class | - |
+
+**Yolcu Tipleri:** Adult, Senior, Youth
+
+**Bilet Türleri:**
+| Tür | İade | Değişim | Not |
+|-----|------|---------|-----|
+| Advance | ❌ | Kalkıştan önce | En ucuz, trene özel |
+| Off-Peak | £5 ücret | ✅ | Esnek, off-peak saatler |
+| Anytime | £5 ücret | ✅ | Tam esnek, tüm gün |
+
+**Zaman Limitleri:**
+- Offer expiration: 15 dk
+- Hold TTL: 30 dk
+- Grace period: YOK
+
+**Biletleme:**
+- PAH (Print At Home) varsayılan
+- TOD (Ticket On Departure) otomatik seçilir (PAH yoksa)
+
+**Örnek Rotalar:**
+```
+London King Cross → Edinburgh (GB:london_kings_cross → GB:edinburgh)
+London Euston → Manchester (GB:london_euston → GB:manchester_piccadilly)
+London Paddington → Oxford (GB:london_paddington → GB:oxford)
+```
+
+---
+
+### 🇨🇿 RegioJet - Orta/Doğu Avrupa
+
+**Genel Bilgi:**
+- Çek özel tren operatörü (sarı trenler)
+- Çekya, Avusturya, Slovakya, Macaristan, Polonya, Hırvatistan
+- Gece trenleri dahil
+
+**Kabin Sınıfları (Uluslararası):**
+| Standard | Comfort | Premier |
+|----------|---------|---------|
+| Regular, Low Cost | Relax | Business, 1st Class |
+
+**Gece Treni Sınıfları:**
+- Standard Couchette (6 kişilik)
+- Relax Couchette (4 kişilik)
+- Relax Couchette Women (kadınlara özel)
+- Private Compartment
+
+**Yolcu Tipleri:**
+- Infant: 0-5 yaş
+- Child: 6-12 yaş
+- Youth: 13-17 yaş
+- Adult: 18-64 yaş
+- Senior: 65+ yaş
+
+**Zaman Limitleri:**
+- Offer expiration: 15 dk
+- Hold TTL: 15 dk
+- Grace period: **24 saat** ✨
+
+**Özellikler:**
+- ✅ Koltuk rezervasyonu fiyata dahil
+- ✅ E-bilet (PDF + QR kod)
+- ⚠️ Gece treni: 20 dk önce istasyonda olun
+
+**Örnek Rotalar:**
+```
+Prague → Brno (CZ:prague → CZ:brno_hl_n)
+Vienna → Prague (AT:vienna → CZ:prague)
+Prague → Krakow (CZ:prague → PL:krakow)
+```
+
+---
+
+### 🇪🇸 RENFE - İspanya
+
+**Genel Bilgi:**
+- İspanya devlet demiryolları
+- Avrupa'nın en büyük yüksek hızlı ağı
+- 80,000+ şehir çifti
+
+**Tren Tipleri:**
+- **AVE** - Yüksek hız (300 km/h)
+- **Alvia** - Yüksek hız + konvansiyonel
+- **Euromed** - Akdeniz hattı
+- **Avant** - Bölgesel yüksek hız
+
+**Kabin Sınıfları:**
+| Standard | Comfort | Premier |
+|----------|---------|---------|
+| Estandar | Confort | - |
+
+**Yolcu Tipleri:**
+- Infant: 0-3 yaş
+- Child: 4-13 yaş
+- Youth: 14-25 yaş
+- Adult: 26-59 yaş
+- Senior: 60+ yaş
+
+**Bilet Türleri:**
+| Tür | Sınıf | Açıklama |
+|-----|-------|----------|
+| Básico | Estandar | En düşük fiyat |
+| Elige | Estandar/Confort | Esnek seçim |
+| Premium | Confort | Yemek + lounge |
+
+**Zaman Limitleri:**
+- Offer expiration: 30 dk
+- Hold TTL: 30 dk
+- Grace period: Günün sonuna kadar (CET)
+
+**⚠️ ZORUNLU BİLGİLER:**
+```typescript
+// RENFE için tüm yolcularda zorunlu:
+{
+  phone: string;           // Telefon numarası
+  documentNumber: string;  // Pasaport/kimlik no
+  documentExpiry: string;  // Belge son kullanma
+  documentCountry: string; // Belge ülkesi
+}
+```
+
+**Özellikler:**
+- ✅ Cercanías (banliyö) ücretsiz dahil
+- ⚠️ AVE: Biniş kapısı 2 dk önce kapanır
+- ⚠️ Aktarma: Aynı istasyon 60 dk, farklı istasyon 90 dk
+
+**Örnek Rotalar:**
+```
+Barcelona Sants → Madrid Atocha (ES:barcelona_sants → ES:madrid_atocha)
+Madrid → Sevilla (ES:madrid_atocha → ES:sevilla_santa_justa)
+Granada → Barcelona (ES:granada → ES:barcelona_sants)
+```
+
+---
+
+### 🇨🇭 RHB (Rhätische Bahn) - İsviçre Panoramik
+
+**Genel Bilgi:**
+- Glacier Express ve Bernina Express
+- Premium panoramik trenler
+- Yıl boyu (kışın azaltılmış sefer)
+
+**Rotalar:**
+- **Glacier Express:** St. Moritz ↔ Zermatt
+- **Bernina Express:** Chur ↔ Tirano
+
+**Kabin Sınıfları:**
+| Standard | Comfort | Premier |
+|----------|---------|---------|
+| 2nd Class | 1st Class | Excellence |
+
+**Yolcu Tipleri:**
+- Free children: 0-5 yaş
+- Youth: 6-15 yaş
+- Adult: 16+ yaş
+
+**Zaman Limitleri:**
+- Offer expiration: 30 dk
+- Hold TTL: 15 dk
+- Grace period: YOK
+- Booking horizon: 6 ay (Glacier Express: 100 gün)
+
+**Özellikler:**
+- ✅ Koltuk rezervasyonu fiyata DAHİL
+- ✅ `externalReservation: false` → "Koltuk rezervasyonu dahil" göster
+
+**Örnek Rotalar:**
+```
+Tirano → Zermatt (IT:tirano → CH:zermatt)
+St. Moritz → Zermatt (CH:st_moritz → CH:zermatt)
+Chur → Tirano (CH:chur → IT:tirano)
+```
+
+---
+
+### 🇨🇭 SBB (Swiss Federal Railways) - İsviçre
+
+**Genel Bilgi:**
+- İsviçre'nin en büyük demiryolu
+- Ulusal trafik %40'ı
+- Bölgesel operatörler dahil
+
+**Kabin Sınıfları:**
+| Standard | Comfort | Premier |
+|----------|---------|---------|
+| 2nd Class | 1st Class | - |
+
+**Yolcu Tipleri:**
+- Free children: 0-5 yaş (yetişkinle)
+- Youth: 6-15 yaş (%50 indirim)
+- Adult: 16+ yaş
+
+**Özel Kural:** 12-15 yaş biletli genç → 4 çocuk (0-5) ücretsiz
+Adult (16+) → 8 çocuk (0-5) ücretsiz
+
+**Bilet Türleri:**
+| Tür | İade | Değişim | Not |
+|-----|------|---------|-----|
+| Point-to-Point | ✅ | ✅ | Tam esnek |
+| Supersaver | ❌ | ❌ | İndirimli, trene özel |
+| Saver Day Pass | ❌ | ❌ | Dinamik fiyat, tüm gün |
+| Day Pass | ✅ | ✅ | Half-Fare Card gerekli |
+
+**Zaman Limitleri:**
+- Offer expiration: 1 saat
+- Hold TTL: 30 dk
+- Grace period: **20 dakika** ✨
+
+**⚠️ Koltuk Rezervasyonu:**
+- SBB'de koltuk rezervasyonu YOK
+- Panoramik trenlerde ZORUNLU ama harici
+- `externalReservation: true` → "Koltuk rezervasyonu zorunlu, yerinde alın" göster
+
+**Örnek Rotalar:**
+```
+Zurich → Lucerne (CH:zurich_hb → CH:lucerne)
+Zurich → Bern (CH:zurich_hb → CH:bern)
+Zurich → Interlaken (CH:zurich_hb → CH:interlaken_ost)
+```
+
+---
+
+### 🇨🇭 STS (Swiss Travel System) - İsviçre Pass'ları
+
+**Genel Bilgi:**
+- Tren, otobüs, tekne - hepsi bir arada
+- Kişisel, devredilemez
+- Geçerlilik süresi boyunca sınırsız seyahat
+
+**Kabin Sınıfları:**
+| Standard | Comfort | Premier |
+|----------|---------|---------|
+| 2nd Class | 1st Class | - |
+
+**Yolcu Tipleri:**
+- Children: 0-15 yaş
+- Youth: 16-24 yaş
+- Adults: 25-59 yaş
+- Seniors: 60+ yaş
+
+**Ürünler:**
+| Ürün | Geçerlilik |
+|------|------------|
+| Swiss Travel Pass | 3, 4, 6, 8, 15 gün ardışık |
+| Swiss Travel Pass Flex | 1 ay içinde 3, 4, 6, 8, 15 gün |
+| Swiss Half Fare Card | 1 ay, %50 indirim |
+| Swiss Family Card | Ücretsiz (6-15 yaş çocuklar için) |
+
+**İndirimli Ürünler:**
+- Regional Pass Berner Oberland
+- Swiss Mountain Excursion (Jungfraujoch, Matterhorn, vb.)
+
+---
+
+### 🇮🇹 Trenitalia - İtalya
+
+**Genel Bilgi:**
+- İtalya devlet demiryolları
+- Yurtiçi + Avusturya, Fransa, Almanya, İsviçre
+- Yüksek hız + bölgesel
+
+**Tren Tipleri:**
+- **Frecciarossa (FR)** - 300 km/h, premium
+- **Frecciargento (FA)** - Yüksek hız, eğimli
+- **Frecciabianca (FB)** - Uzun mesafe
+- **Intercity (IC)** - Orta/uzun mesafe
+- **Intercity Notte (ICN)** - Gece treni
+- **Regionale** - Bölgesel
+
+**Kabin Sınıfları:**
+| Standard | Comfort | Premier |
+|----------|---------|---------|
+| 2a Classe, Standard | 1a Classe, Business | Executive |
+
+**Yolcu Tipleri:**
+- Infant: 0-3 yaş
+- Child: 4-14 yaş
+- Adult: 15+ yaş
+
+**Zaman Limitleri:**
+- Offer expiration: 30 dk
+- Hold TTL: 30 dk
+- Grace period: **30 dakika** ✨
+
+**Aftersales:**
+- ✅ Refund
+- ✅ Exchange
+- ✅ Edit travelers (Trenitalia özel!)
+- ✅ Exchange with route change (Trenitalia özel!)
+
+**⚠️ ZORUNLU CHECK-IN:**
+```
+Bölgesel trenlerde CHECK-IN ZORUNLU!
+Lead traveler email'ine Trenitalia direkt mail atar.
+```
+
+**⚠️ İtalyan Pazarı İçin:**
+- Fatura (fattura) talebi: PREBOOKED durumda
+- Yolcu bilgisi değişikliği: Onay sonrası mümkün
+
+**Örnek Rotalar:**
+```
+Roma Termini → Firenze (IT:roma_termini → IT:firenze_s_m_n)
+Milano → Venezia (IT:milano_centrale → IT:venezia_s_lucia)
+Napoli → Roma (IT:napoli_centrale → IT:roma_termini)
+```
+
+---
+
+### 🇮🇹 Trenitalia Pass - Yabancı Turistler
+
+**Genel Bilgi:**
+- Sadece İtalya dışında ikamet edenler için
+- Belirli sayıda yolculuk hakkı
+- Koltuk rezervasyonu ücretsiz ama zorunlu
+
+**Kabin Sınıfları:**
+| Standard | Comfort |
+|----------|---------|
+| Easy (2nd) | 1st/2nd |
+
+**Yolcu Tipleri:**
+- Youth: 12-27 yaş
+- Adult: 28-59 yaş
+- Senior: 60+ yaş
+- Children 0-3: Ücretsiz (koltuk yok)
+- Children 4-11: Yetişkin başına 2 ücretsiz
+
+**Pass Seçenekleri:**
+| Yolculuk | Geçerlilik |
+|----------|------------|
+| 3 | 7 gün |
+| 4 | 7 gün |
+| 7 | 15 gün |
+| 10 | 30 gün |
+
+**Zaman Limitleri:**
+- Aktivasyon: Satın almadan 11 ay içinde
+- Grace period: YOK
+- İade: İlk yolculuk rezervasyonuna kadar (%20 kesinti)
+
+**⚠️ Pasaport Zorunlu:**
+```typescript
+{
+  documentType: "PASSPORT",
+  documentNumber: string,
+  // ...
+}
+```
+
+**Geçerli Trenler:**
+- Frecce (tümü)
+- Frecce + Freccialink
+- Intercity
+- Intercity Notte
+- Eurocity (İtalya-İsviçre iç)
+
+**⚠️ Koltuk Rezervasyonu:**
+Şu an API üzerinden yapılamıyor - müşteriyi Trenitalia istasyonu veya web sitesine yönlendir.
+
+---
+
+## 🎯 CARRIER'A GÖRE FRONTEND GÖSTERİMLERİ
+
+### Koltuk Rezervasyonu Mesajları:
+```typescript
+if (product.externalReservation === false) {
+  // RHB (Glacier/Bernina)
+  showMessage("✅ Koltuk rezervasyonu dahildir");
+}
+
+if (product.externalReservation === true) {
+  // SBB Panoramik
+  showMessage("⚠️ Koltuk rezervasyonu zorunludur, istasyonda veya operatör sitesinde alınız");
+}
+```
+
+### Check-in Uyarısı (Trenitalia):
+```typescript
+if (carrier === "TRENITALIA") {
+  showMessage("📧 Bazı trenlerde check-in zorunludur. Lead yolcu email adresinin doğru olduğundan emin olun.");
+}
+```
+
+### RENFE Zorunlu Alanlar:
+```typescript
+if (carrier === "RENFE") {
+  requiredFields = ["phone", "documentNumber", "documentExpiry", "documentCountry"];
+}
+```
+
+---
+
+**Bu doküman ERA API resmi dokümantasyonundan derlenmiştir.**

@@ -1,168 +1,295 @@
-# 🚂 EUROTRAIN - NEREDE KALDIK?
+# 🚂 EUROTRAIN - YOL HARİTASI VE MEVCUT DURUM
 
-**Son Güncelleme:** 25 Ocak 2026 - 02:30
-**Durum:** %96 Tamamlandı
-**Domain:** eurotrain.net
-**GitHub:** https://github.com/odamigo/eurotrain-b2c-app
+**Son Güncelleme:** 24 Ocak 2026
+**Versiyon:** 2.0 - ERA API Entegrasyonu Öncesi
 
 ---
 
-## ✅ TAMAMLANAN MODÜLLER
+## 📍 MEVCUT DURUM ÖZETİ
 
-### Backend (NestJS)
-- ✅ Bookings, Pricing, Campaigns, ERA, My Trips
-- ✅ Payment (MSU Hosted Page, Refund, 3D Secure)
-- ✅ Security (JWT, Rate Limiting, Logging)
-- ✅ Email (Resend), PDF (QR kodlu e-bilet)
-- ✅ **Settings Modülü** - TCMB kur, markup, terms/privacy
+### ✅ Tamamlanan Modüller
 
-### Frontend (Next.js)
-- ✅ Ana sayfa, Arama, Booking, My Trips
-- ✅ Admin panel (login, dashboard, kampanyalar)
-- ✅ **Admin Settings sayfası** - Kur yönetimi, markup, legal içerik
-- ✅ **Payment sayfası** - TCMB kur, para birimi seçimi, tooltip
+| Modül | Backend | Frontend | Notlar |
+|-------|---------|----------|--------|
+| **Homepage** | - | ✅ | Arama formu çalışıyor |
+| **Station Autocomplete** | ✅ Mock | ✅ | ERA formatına uyarlanacak |
+| **Journey Search** | ✅ Mock | ✅ | ERA formatına uyarlanacak |
+| **Booking Create** | ✅ | ✅ | ERA akışına göre yeniden yazılacak |
+| **Payment (Payten/MSU)** | ✅ | ✅ | Mock mode çalışıyor |
+| **My Trips** | ✅ | ✅ | Magic link çalışıyor |
+| **Admin Panel** | ✅ | ✅ | JWT auth çalışıyor |
+| **Campaigns** | ✅ | ✅ | Promo code sistemi |
+| **Settings** | ✅ | ✅ | TCMB döviz kuru entegre |
+| **PDF E-Ticket** | ✅ | - | pdfkit ile |
+| **Email** | ⚠️ Skeleton | - | Henüz aktif değil |
 
-### Database (PostgreSQL)
-- ✅ booking, campaign, payments, era_bookings
-- ✅ admin_users, settings tablolar
+### ⚠️ Kritik Eksikler
 
----
-
-## 🔧 SON YAPILAN İŞLER (25 Ocak 2026)
-
-### Rail Europe ERA API Dokümantasyonu
-- ✅ OpenAPI spec dosyaları indirildi (7 dosya)
-- ✅ `docs/raileurope-api/ERA-API-DOCUMENTATION.md` oluşturuldu (1114 satır)
-- ✅ Authentication endpoint belirlendi: `POST /oauth2/token`
-- ✅ Tüm endpoint'ler dokümante edildi (Places, Search, Bookings, Checkout)
-- ✅ Data modelleri ve TypeScript interface'leri eklendi
-- ✅ Booking flow state machine dokümante edildi
-
-### Çıkarılan API Bilgileri
-```
-Auth URL: https://authent-sandbox.era.raileurope.com/oauth2/token
-API URL:  https://api-sandbox.era.raileurope.com
-Method:   OAuth2 client_credentials
-```
-
-### OpenAPI Spec Dosyaları
-```
-docs/raileurope-api/openapi-specs/
-├── authentication_oas3.yml
-├── places_oas3.yml
-├── point-to-point-search_oas3.yml
-├── passes-search_oas3.yml
-├── bookings_oas3.yml
-├── health_oas3.yml
-└── products_oas3.yml
-```
+1. **ERA API Entegrasyonu YOK** - Tüm veriler mock
+2. **Sandbox Credentials YOK** - Bekleniyor
+3. **Gerçek Ödeme YOK** - MSU credentials bekleniyor
+4. **i18n YOK** - Sadece Türkçe hardcoded
+5. **Legal Sayfalar YOK** - Terms, Privacy, Cookies
 
 ---
 
-## 🔜 SIRADA NE VAR?
+## 🏗️ BACKEND YAPISAL ANALİZ
 
-### Öncelik 1 - Rail Europe Entegrasyonu
-- [ ] **Rail Europe'dan sandbox credentials al** (client_id, client_secret)
-- [ ] ERA service'i gerçek API yapısına güncelle
-- [ ] Authentication flow implement et
-- [ ] Mock server ile test et
+### Mevcut Modüller (`backend/src/`)
 
-### Öncelik 2 - Eksik Parçalar
-- [ ] MSU/Payten credentials (panel: management@odamigo.com)
-- [ ] Terms & Privacy frontend sayfaları
-- [ ] Email domain doğrulama (Resend)
+```
+src/
+├── app.module.ts          ← Ana modül
+├── main.ts                ← Entry point
+├── bookings/              ← Rezervasyon (yeniden yazılacak)
+├── campaigns/             ← Kampanya yönetimi ✅
+├── email/                 ← Email servisi (skeleton)
+├── era/                   ← ERA entegrasyonu (mock) ⚠️
+├── my-trips/              ← Bilet takip ✅
+├── payment/               ← Ödeme (Payten) ✅
+├── pdf/                   ← E-bilet PDF ✅
+├── pricing/               ← Fiyat hesaplama ✅
+├── security/              ← Auth, JWT, Guards ✅
+├── settings/              ← Ayarlar, TCMB ✅
+├── stations/              ← (boş klasör)
+└── trains/                ← (kullanılmıyor)
+```
 
-### Öncelik 3 - İyileştirmeler
-- [ ] Çoklu dil (i18n)
-- [ ] Mobile responsiveness
-- [ ] MCP server implementasyonu
+### ERA Modülü Analizi (`src/era/`)
+
+**Mevcut Dosyalar:**
+- `era.controller.ts` - Custom endpoint'ler (ERA API'ye uymuyor!)
+- `era-mock.service.ts` - Mock data üretici
+- `era.module.ts` - Sadece mock service bağlı
+- `dto/search-journey.dto.ts` - Custom format (ERA'ya uymuyor!)
+- `entities/booking.entity.ts` - EraBooking entity (kısmen uyuyor)
+
+**SORUN:** Mevcut yapı ERA API'ye uymuyor. Yeniden tasarım gerekli.
+
+### Booking Entity Analizi (`src/bookings/`)
+
+**Mevcut alanlar:**
+- Temel: id, customerName, customerEmail, fromStation, toStation, price, status
+- My Trips: magic_token, pnr, train_number, coach, seat, times
+- ERA: era_booking_reference, era_pnr, era_carrier, era_amounts
+
+**EKSİK:** ERA API'nin döndüğü tüm alanlar (offers, products, conditions, travelers)
 
 ---
 
-## 📁 ÖNEMLİ DOSYALAR
+## 🎨 FRONTEND YAPISAL ANALİZ
 
-### Rail Europe API
+### Mevcut Sayfalar (`frontend/app/`)
+
 ```
-docs/raileurope-api/
-├── ERA-API-DOCUMENTATION.md     ← Kapsamlı API dokümantasyonu
-└── openapi-specs/               ← OpenAPI YAML dosyaları
+app/
+├── page.tsx               ← Homepage ✅
+├── layout.tsx             ← Root layout
+├── globals.css            ← Global styles
+├── Header.tsx             ← Header component
+├── search/                ← Arama sonuçları
+│   ├── page.tsx           ← Sonuç listesi
+│   ├── SearchForm.tsx     ← Arama formu
+│   ├── StationAutocomplete.tsx ← İstasyon arama
+│   ├── JourneyCard.tsx    ← Sefer kartı
+│   └── PopularRoutes.tsx  ← Popüler rotalar
+├── booking/
+│   └── page.tsx           ← Rezervasyon formu
+├── payment/
+│   ├── page.tsx           ← Ödeme sayfası
+│   ├── success/           ← Başarılı ödeme
+│   └── error/             ← Hatalı ödeme
+├── my-trips/
+│   └── page.tsx           ← Biletlerim
+├── admin/
+│   ├── page.tsx           ← Dashboard
+│   ├── login/             ← Admin giriş
+│   ├── bookings/          ← Rezervasyonlar
+│   ├── campaigns/         ← Kampanyalar
+│   ├── settings/          ← Ayarlar
+│   └── components/        ← Admin UI
+└── ui/                    ← shadcn components
 ```
 
-### Backend ERA Service
-```
-backend/src/era/
-├── era.service.ts               ← Mock data, gerçek API'ye güncellenecek
-├── era.controller.ts
-└── era.module.ts
-```
+### Frontend Sorunları
 
-### Ayarlar Modülü
-```
-backend/src/settings/
-├── settings.service.ts          ← TCMB kur çekme
-├── settings.controller.ts       ← Public + Admin endpoints
-└── entities/setting.entity.ts
-```
+1. **API Client** (`lib/api/client.ts`) - ERA formatına uymuyor
+2. **Journey tipi** - ERA offers/products yapısına uymuyor
+3. **Booking flow** - ERA 6 adımlı akışa uymuyor
+4. **Hardcoded Türkçe** - i18n altyapısı yok
 
 ---
 
-## 🔑 KRİTİK BİLGİLER
+## 🎯 YENİDEN TASARIM PLANI
 
-### Rail Europe API (Bekliyor)
-```
-Auth URL: https://authent-sandbox.era.raileurope.com/oauth2/token
-API URL:  https://api-sandbox.era.raileurope.com
-Client ID: ??? (Rail Europe'dan alınacak)
-Client Secret: ??? (Rail Europe'dan alınacak)
-Point of Sale: ??? (Rail Europe'dan alınacak)
+### Faz 1: ERA API Altyapısı (1-2 hafta)
+
+#### 1.1 TypeScript Interfaces (Gün 1-2)
+```typescript
+// src/era/interfaces/
+├── era-auth.interface.ts      // Token response
+├── era-places.interface.ts    // Station/City types
+├── era-search.interface.ts    // Offers, Products, Legs
+├── era-booking.interface.ts   // Booking, Items, Travelers
+├── era-checkout.interface.ts  // Prebook, Confirm
+├── era-ticket.interface.ts    // Ticket, PDF
+├── era-refund.interface.ts    // Refund quotation/confirm
+└── era-common.interface.ts    // Shared types (Price, Condition)
 ```
 
-### MSU/Payten (Bekliyor)
-```
-Panel: management@odamigo.com / Odam1go@2026
-API Credentials: Panel'den bulunamadı - Payten'e sorulacak
+#### 1.2 ERA Services (Gün 3-7)
+```typescript
+// src/era/services/
+├── era-auth.service.ts        // Token yönetimi (60 dk cache)
+├── era-places.service.ts      // Autocomplete + cache
+├── era-search.service.ts      // P2P search + pagination
+├── era-booking.service.ts     // Create, update travelers
+├── era-checkout.service.ts    // Prebook, confirm, hold
+├── era-ticket.service.ts      // Print tickets
+└── era-refund.service.ts      // Quotation, confirm
 ```
 
-### Mevcut Test Bilgileri
+#### 1.3 Provider Interface (Gün 7)
+```typescript
+// src/providers/
+├── provider.interface.ts      // ITrainProvider
+├── rail-europe.provider.ts    // ERA implementasyonu
+└── provider.module.ts         // Provider registry
 ```
-Admin: admin@eurotrain.com / admin123
-JWT Secret: .env dosyasında
-TCMB API: Çalışıyor (saatlik cache)
+
+### Faz 2: Backend Refactoring (1 hafta)
+
+#### 2.1 Yeni DTO'lar
+- ERA API request/response formatında
+- class-validator ile validation
+- Swagger decorators
+
+#### 2.2 Yeni Controller'lar
 ```
+POST /api/search/journeys      → ERA search
+GET  /api/places/autocomplete  → ERA places
+POST /api/bookings             → ERA booking create
+PUT  /api/bookings/:id/travelers
+POST /api/bookings/:id/prebook
+POST /api/bookings/:id/confirm
+POST /api/bookings/:id/print
+POST /api/bookings/:id/refund
+```
+
+#### 2.3 Database Schema Güncelleme
+- Booking entity: ERA fields eklenmeli
+- New entity: BookingItem (multi-leg support)
+- New entity: Traveler (yolcu bilgileri)
+
+### Faz 3: Frontend Refactoring (1-2 hafta)
+
+#### 3.1 API Client Güncelleme
+```typescript
+// lib/api/
+├── era-client.ts          // ERA endpoints
+├── types/                 // TypeScript types
+│   ├── search.types.ts
+│   ├── booking.types.ts
+│   └── common.types.ts
+└── hooks/                 // React Query hooks
+    ├── useSearch.ts
+    ├── useBooking.ts
+    └── usePlaces.ts
+```
+
+#### 3.2 Sayfa Güncellemeleri
+- Search: Offers/Products gösterimi
+- Booking: 6 adımlı flow (traveler → prebook → payment → confirm)
+- Traveler form: Carrier'a göre zorunlu alanlar
+
+#### 3.3 i18n Altyapısı
+```
+lib/i18n/
+├── locales/
+│   ├── tr.json
+│   └── en.json
+├── config.ts
+└── useTranslation.ts
+```
+
+### Faz 4: Sandbox Entegrasyonu (1 hafta)
+
+- Mock → Real API geçişi
+- Environment variables
+- Error handling
+- Rate limiting
+- Logging
+
+### Faz 5: Production Hazırlık (1 hafta)
+
+- Legal sayfalar (Terms, Privacy, Cookies)
+- Cookie consent banner
+- GDPR compliance
+- Performance optimization
+- Security audit
 
 ---
 
-## 🧪 TEST
+## 📋 HEMEN YAPILACAKLAR (ÖNCELİK SIRASI)
 
-```powershell
-# Backend
-cd C:\dev\eurotrain-b2c-app\backend
-npm run start:dev
+### 1. ERA Interfaces (BUGÜN)
+OpenAPI spec'lerden TypeScript interface'leri oluştur.
 
-# Frontend  
-cd C:\dev\eurotrain-b2c-app\frontend
-npm run dev
+### 2. ERA Auth Service
+Token yönetimi - 60 dk cache, auto-refresh.
 
-# Test URLs
-# Frontend: http://localhost:3000
-# Backend: http://localhost:3001
-# Admin: http://localhost:3000/admin
-# Settings: http://localhost:3000/admin/settings
-# Kur API: http://localhost:3001/settings/exchange-rates
-```
+### 3. ERA Places Service
+Autocomplete + tüm istasyonlar cache.
+
+### 4. ERA Search Service
+P2P search + pagination.
+
+### 5. Provider Interface
+Gelecekte multi-provider için altyapı.
 
 ---
 
-## 📋 HIZLI BAŞLANGIÇ (Yeni Chat İçin)
+## 🔧 TEKNİK BORÇ LİSTESİ
 
-Yeni chat'te şunu söyle:
-```
-EuroTrain projesi - Rail Europe ERA API entegrasyonu.
-docs/raileurope-api/ERA-API-DOCUMENTATION.md dosyasını oluşturmuştuk.
-Şimdi client_id ve client_secret almam lazım Rail Europe'dan.
-Sonra era.service.ts'i gerçek API'ye güncelleyeceğiz.
-```
+| Sorun | Öncelik | Çözüm |
+|-------|---------|-------|
+| Mock data everywhere | 🔴 Kritik | ERA API entegrasyonu |
+| Hardcoded Türkçe | 🟡 Yüksek | i18n implementasyonu |
+| No input validation | 🟡 Yüksek | class-validator + frontend |
+| No error boundaries | 🟡 Yüksek | React error boundaries |
+| No loading skeletons | 🟢 Orta | Skeleton components |
+| No offline support | 🟢 Düşük | PWA / Service Worker |
 
 ---
 
-**Sonraki hedef:** Rail Europe sandbox credentials → ERA service güncelleme
+## 📁 DOSYA REFERANSLARI
+
+### Dokümantasyon
+- `docs/raileurope-api/ERA_API_FLOWS.md` - Akış diyagramları + carrier bilgileri
+- `docs/ERA_INTEGRATION_STRATEGY.md` - Entegrasyon stratejisi
+- `docs/raileurope-api/openapi-specs/` - OpenAPI YAML dosyaları
+
+### Önemli Kod Dosyaları
+- `backend/src/era/` - ERA modülü (yeniden yazılacak)
+- `backend/src/bookings/` - Booking modülü
+- `backend/src/payment/` - Ödeme modülü
+- `frontend/app/search/` - Arama sayfası
+- `frontend/app/booking/` - Rezervasyon sayfası
+
+---
+
+## ⚠️ UNUTMA
+
+1. **Her oturumda bu dosyayı oku**
+2. **Kod yazmadan önce interface'leri tanımla**
+3. **Mock mode'u koru, real mode için flag ekle**
+4. **Teknik borç biriktirme**
+5. **Commit mesajları anlamlı olsun**
+
+---
+
+## 🚀 SONRAKİ ADIM
+
+**ERA TypeScript Interfaces oluştur** - OpenAPI spec'lerden otomatik generate et veya manuel yaz.
+
+Başlamak için: `docs/raileurope-api/openapi-specs/` klasöründeki YAML dosyalarını incele.

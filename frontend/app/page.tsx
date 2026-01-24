@@ -7,7 +7,25 @@ import {
   Train, MapPin, Calendar, Users, Search, ArrowRightLeft,
   ChevronDown, X, Loader2, Clock, Star, Shield, CreditCard
 } from 'lucide-react';
-import { searchStations, Station } from '@/lib/api/client';
+import { searchPlaces, EraPlace } from '@/lib/api/era-client';
+
+// Station type for backward compatibility
+interface Station {
+  code: string;
+  name: string;
+  city: string;
+  country: string;
+}
+
+// Convert EraPlace to Station
+function placeToStation(place: EraPlace): Station {
+  return {
+    code: place.code,
+    name: place.label,
+    city: place.localLabel || place.label,
+    country: place.country?.label || '',
+  };
+}
 
 export default function HomePage() {
   const router = useRouter();
@@ -60,7 +78,7 @@ export default function HomePage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Search stations for autocomplete
+  // Search stations for autocomplete - UPDATED for ERA API
   const handleOriginSearch = async (query: string) => {
     setOrigin(query);
     setSelectedOrigin(null);
@@ -68,7 +86,8 @@ export default function HomePage() {
     if (query.length >= 2) {
       setIsSearchingOrigin(true);
       try {
-        const stations = await searchStations(query);
+        const places = await searchPlaces(query, { size: 8 });
+        const stations = places.map(placeToStation);
         setOriginSuggestions(stations);
         setShowOriginSuggestions(true);
       } catch (error) {
@@ -90,7 +109,8 @@ export default function HomePage() {
     if (query.length >= 2) {
       setIsSearchingDestination(true);
       try {
-        const stations = await searchStations(query);
+        const places = await searchPlaces(query, { size: 8 });
+        const stations = places.map(placeToStation);
         setDestinationSuggestions(stations);
         setShowDestinationSuggestions(true);
       } catch (error) {
@@ -187,21 +207,19 @@ export default function HomePage() {
       <header className="absolute top-0 left-0 right-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
-            {/* Logo */}
             <Link href="/" className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                <Train className="w-7 h-7 text-white" />
+              <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                <Train className="w-5 h-5 text-white" />
               </div>
               <span className="text-2xl font-bold text-white">EuroTrain</span>
             </Link>
-
-            {/* Navigation */}
-            <nav className="hidden md:flex items-center gap-6">
+            
+            <nav className="flex items-center gap-6">
               <Link href="/my-trips" className="text-white/80 hover:text-white transition-colors">
                 Biletlerim
               </Link>
-              <Link href="/admin" className="text-white/80 hover:text-white transition-colors">
-                Yönetim
+              <Link href="/admin/login" className="text-white/80 hover:text-white transition-colors">
+                Admin
               </Link>
             </nav>
           </div>
@@ -209,24 +227,21 @@ export default function HomePage() {
       </header>
 
       {/* Hero Section */}
-      <div className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto text-center mb-12">
+      <div className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
             Avrupa&apos;yı Trenle Keşfedin
           </h1>
-          <p className="text-xl text-white/80 max-w-2xl mx-auto">
-            30+ ülke, 10.000+ destinasyon. En uygun fiyatlarla tren bileti alın.
+          <p className="text-xl text-white/80 mb-12">
+            30+ ülke, binlerce destinasyon. En uygun fiyatlarla tren bileti alın.
           </p>
-        </div>
 
-        {/* Search Form */}
-        <div className="max-w-4xl mx-auto">
+          {/* Search Form */}
           <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-2xl p-6 md:p-8">
-            {/* Station Inputs */}
-            <div className="grid md:grid-cols-2 gap-4 mb-4 relative">
+            <div className="grid md:grid-cols-2 gap-4 mb-4">
               {/* Origin */}
               <div ref={originRef} className="relative">
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2 text-left">
                   Nereden
                 </label>
                 <div className="relative">
@@ -237,33 +252,24 @@ export default function HomePage() {
                     onChange={(e) => handleOriginSearch(e.target.value)}
                     onFocus={() => originSuggestions.length > 0 && setShowOriginSuggestions(true)}
                     placeholder="Şehir veya istasyon"
-                    className="w-full pl-12 pr-10 py-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 placeholder-slate-400"
+                    className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   {isSearchingOrigin && (
-                    <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500 animate-spin" />
-                  )}
-                  {origin && !isSearchingOrigin && (
-                    <button
-                      type="button"
-                      onClick={() => { setOrigin(''); setSelectedOrigin(null); }}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
+                    <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 animate-spin" />
                   )}
                 </div>
                 
                 {/* Origin Suggestions */}
                 {showOriginSuggestions && originSuggestions.length > 0 && (
-                  <div className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-auto">
-                    {originSuggestions.map((station) => (
+                  <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-lg border border-slate-200 max-h-60 overflow-y-auto">
+                    {originSuggestions.map((station, index) => (
                       <button
-                        key={station.code}
+                        key={station.code + index}
                         type="button"
                         onClick={() => selectOrigin(station)}
-                        className="w-full px-4 py-3 text-left hover:bg-slate-50 flex items-center gap-3 transition-colors"
+                        className="w-full px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors text-left"
                       >
-                        <MapPin className="w-4 h-4 text-slate-400" />
+                        <MapPin className="w-5 h-5 text-slate-400" />
                         <div>
                           <div className="font-medium text-slate-900">{station.name}</div>
                           <div className="text-sm text-slate-500">{station.city}, {station.country}</div>
@@ -274,18 +280,18 @@ export default function HomePage() {
                 )}
               </div>
 
-              {/* Swap Button */}
+              {/* Swap Button - Mobile Hidden */}
               <button
                 type="button"
                 onClick={swapStations}
-                className="absolute left-1/2 top-[52px] -translate-x-1/2 z-10 w-10 h-10 bg-white border-2 border-slate-200 rounded-full flex items-center justify-center hover:bg-slate-50 hover:border-blue-300 transition-all shadow-sm hidden md:flex"
+                className="hidden md:flex absolute left-1/2 top-[140px] -translate-x-1/2 w-10 h-10 bg-white border border-slate-200 rounded-full items-center justify-center hover:bg-slate-50 transition-colors z-10 shadow-sm"
               >
                 <ArrowRightLeft className="w-4 h-4 text-slate-600" />
               </button>
 
               {/* Destination */}
               <div ref={destinationRef} className="relative">
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2 text-left">
                   Nereye
                 </label>
                 <div className="relative">
@@ -296,33 +302,24 @@ export default function HomePage() {
                     onChange={(e) => handleDestinationSearch(e.target.value)}
                     onFocus={() => destinationSuggestions.length > 0 && setShowDestinationSuggestions(true)}
                     placeholder="Şehir veya istasyon"
-                    className="w-full pl-12 pr-10 py-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 placeholder-slate-400"
+                    className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   {isSearchingDestination && (
-                    <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500 animate-spin" />
-                  )}
-                  {destination && !isSearchingDestination && (
-                    <button
-                      type="button"
-                      onClick={() => { setDestination(''); setSelectedDestination(null); }}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
+                    <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 animate-spin" />
                   )}
                 </div>
                 
                 {/* Destination Suggestions */}
                 {showDestinationSuggestions && destinationSuggestions.length > 0 && (
-                  <div className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-auto">
-                    {destinationSuggestions.map((station) => (
+                  <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-lg border border-slate-200 max-h-60 overflow-y-auto">
+                    {destinationSuggestions.map((station, index) => (
                       <button
-                        key={station.code}
+                        key={station.code + index}
                         type="button"
                         onClick={() => selectDestination(station)}
-                        className="w-full px-4 py-3 text-left hover:bg-slate-50 flex items-center gap-3 transition-colors"
+                        className="w-full px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors text-left"
                       >
-                        <MapPin className="w-4 h-4 text-slate-400" />
+                        <MapPin className="w-5 h-5 text-slate-400" />
                         <div>
                           <div className="font-medium text-slate-900">{station.name}</div>
                           <div className="text-sm text-slate-500">{station.city}, {station.country}</div>
@@ -334,12 +331,11 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Date and Passengers */}
             <div className="grid md:grid-cols-2 gap-4 mb-6">
               {/* Date */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Gidiş Tarihi
+                <label className="block text-sm font-medium text-slate-700 mb-2 text-left">
+                  Tarih
                 </label>
                 <div className="relative">
                   <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -348,33 +344,31 @@ export default function HomePage() {
                     value={departureDate}
                     onChange={(e) => setDepartureDate(e.target.value)}
                     min={new Date().toISOString().split('T')[0]}
-                    className="w-full pl-12 pr-4 py-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                    className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
               </div>
 
               {/* Passengers */}
               <div ref={passengerRef} className="relative">
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2 text-left">
                   Yolcular
                 </label>
                 <button
                   type="button"
                   onClick={() => setShowPassengerDropdown(!showPassengerDropdown)}
-                  className="w-full pl-12 pr-4 py-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 text-left flex items-center justify-between"
+                  className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left flex items-center justify-between"
                 >
-                  <div className="flex items-center gap-2">
-                    <Users className="absolute left-4 w-5 h-5 text-slate-400" />
-                    <span className="ml-6">
-                      {passengers.adults} Yetişkin{passengers.children > 0 && `, ${passengers.children} Çocuk`}
-                    </span>
-                  </div>
-                  <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${showPassengerDropdown ? 'rotate-180' : ''}`} />
+                  <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <span>
+                    {passengers.adults} Yetişkin{passengers.children > 0 && `, ${passengers.children} Çocuk`}
+                  </span>
+                  <ChevronDown className="w-5 h-5 text-slate-400" />
                 </button>
-
+                
                 {/* Passenger Dropdown */}
                 {showPassengerDropdown && (
-                  <div className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg p-4">
+                  <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-lg border border-slate-200 p-4">
                     {/* Adults */}
                     <div className="flex items-center justify-between py-3">
                       <div>

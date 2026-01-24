@@ -5,16 +5,142 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Train, ArrowLeft, Calendar, Users, ArrowRight, 
-  Loader2, AlertCircle, SlidersHorizontal 
+  Loader2, AlertCircle, SlidersHorizontal, Clock,
+  RefreshCw, ChevronDown
 } from 'lucide-react';
-import { searchJourneys, Journey, JourneySearchResult } from '@/lib/api/client';
-import { JourneyCard } from '@/components/search/JourneyCard';
+import { 
+  searchJourneys, 
+  toJourneyArray,
+  formatTime,
+  formatDate,
+  formatDuration,
+  formatPrice,
+  parseDuration,
+  EraSearchResponse,
+  Journey,
+} from '@/lib/api/era-client';
 
+// Journey Card Component
+function JourneyCard({ 
+  journey, 
+  onSelect 
+}: { 
+  journey: Journey; 
+  onSelect: (journey: Journey) => void;
+}) {
+  const durationStr = formatDuration(journey.durationMinutes);
+  
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-all duration-200">
+      <div className="p-6">
+        <div className="flex items-center justify-between">
+          {/* Left: Times and Route */}
+          <div className="flex items-center gap-8">
+            {/* Departure */}
+            <div className="text-center">
+              <div className="text-2xl font-bold text-slate-900">
+                {formatTime(journey.departure)}
+              </div>
+              <div className="text-sm text-slate-500 mt-1">
+                {journey.origin.city}
+              </div>
+            </div>
+
+            {/* Duration Arrow */}
+            <div className="flex flex-col items-center px-4">
+              <div className="text-xs text-slate-400 mb-1">{durationStr}</div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-slate-300"></div>
+                <div className="w-20 h-0.5 bg-slate-300"></div>
+                <ArrowRight className="w-4 h-4 text-slate-400" />
+              </div>
+              <div className="text-xs text-slate-400 mt-1">
+                {journey.segments.length > 1 
+                  ? `${journey.segments.length - 1} aktarma` 
+                  : 'Direkt'}
+              </div>
+            </div>
+
+            {/* Arrival */}
+            <div className="text-center">
+              <div className="text-2xl font-bold text-slate-900">
+                {formatTime(journey.arrival)}
+              </div>
+              <div className="text-sm text-slate-500 mt-1">
+                {journey.destination.city}
+              </div>
+            </div>
+          </div>
+
+          {/* Center: Train Info */}
+          <div className="flex items-center gap-4">
+            <div className="text-center">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-sm font-medium">
+                  {journey.trainType || 'Tren'}
+                </span>
+              </div>
+              <div className="text-sm text-slate-500 mt-1">
+                {journey.operator}
+              </div>
+              {journey.trainNumber && (
+                <div className="text-xs text-slate-400">
+                  {journey.trainNumber}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Price and Action */}
+          <div className="text-right">
+            <div className="text-2xl font-bold text-slate-900">
+              {formatPrice(journey.price.amount, journey.price.currency)}
+            </div>
+            <div className="text-sm text-slate-500 mb-3">
+              {journey.comfortCategory === 'standard' ? 'Standart' : 
+               journey.comfortCategory === 'comfort' ? 'Konfor' : 'Premium'}
+            </div>
+            <button
+              onClick={() => onSelect(journey)}
+              className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white 
+                         font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700
+                         transition-all duration-200"
+            >
+              Seç
+            </button>
+          </div>
+        </div>
+
+        {/* Bottom: Features */}
+        <div className="flex items-center gap-4 mt-4 pt-4 border-t border-slate-100">
+          {journey.isRefundable && (
+            <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded">
+              ✓ İade edilebilir
+            </span>
+          )}
+          {journey.isExchangeable && (
+            <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+              ✓ Değiştirilebilir
+            </span>
+          )}
+          {journey.flexibility?.label && (
+            <span className="text-xs text-slate-500">
+              {journey.flexibility.label}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Main Search Results Content
 function SearchResultsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   
-  const [results, setResults] = useState<JourneySearchResult | null>(null);
+  const [searchResponse, setSearchResponse] = useState<EraSearchResponse | null>(null);
+  const [journeys, setJourneys] = useState<Journey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -38,14 +164,16 @@ function SearchResultsContent() {
         setIsLoading(true);
         setError(null);
         
-        const data = await searchJourneys({
+        const response = await searchJourneys({
           origin,
           destination,
           departureDate: date,
-          passengers: { adults, children },
+          adults,
+          children,
         });
         
-        setResults(data);
+        setSearchResponse(response);
+        setJourneys(toJourneyArray(response));
       } catch (err) {
         console.error('Search error:', err);
         setError('Seferler yüklenirken bir hata oluştu. Lütfen tekrar deneyin.');
@@ -59,23 +187,28 @@ function SearchResultsContent() {
 
   // Handle journey selection
   const handleSelectJourney = (journey: Journey) => {
-    // Store journey in sessionStorage for booking page
+    // Store in sessionStorage for booking page
     sessionStorage.setItem('selectedJourney', JSON.stringify(journey));
+    sessionStorage.setItem('searchResponse', JSON.stringify(searchResponse));
     sessionStorage.setItem('passengers', JSON.stringify({ adults, children }));
     
     // Navigate to booking page
-    router.push(`/booking?journeyId=${journey.id}`);
+    router.push(`/booking?offerId=${journey.id}&searchId=${searchResponse?.id}`);
   };
 
   // Format date for display
   const formatDisplayDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('tr-TR', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('tr-TR', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
+    } catch {
+      return dateStr;
+    }
   };
 
   return (
@@ -108,17 +241,32 @@ function SearchResultsContent() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             {/* Route Info */}
             <div className="flex items-center gap-4">
-              {results && (
+              {searchResponse && (
                 <>
                   <div className="text-center">
-                    <div className="text-2xl font-bold">{results.origin.city}</div>
-                    <div className="text-sm text-blue-200">{results.origin.name}</div>
+                    <div className="text-2xl font-bold">
+                      {searchResponse.origin?.label || origin}
+                    </div>
+                    <div className="text-sm text-blue-200">
+                      {searchResponse.origin?.country?.label || ''}
+                    </div>
                   </div>
                   <ArrowRight className="w-6 h-6 text-blue-200" />
                   <div className="text-center">
-                    <div className="text-2xl font-bold">{results.destination.city}</div>
-                    <div className="text-sm text-blue-200">{results.destination.name}</div>
+                    <div className="text-2xl font-bold">
+                      {searchResponse.destination?.label || destination}
+                    </div>
+                    <div className="text-sm text-blue-200">
+                      {searchResponse.destination?.country?.label || ''}
+                    </div>
                   </div>
+                </>
+              )}
+              {!searchResponse && !isLoading && (
+                <>
+                  <div className="text-2xl font-bold">{origin}</div>
+                  <ArrowRight className="w-6 h-6 text-blue-200" />
+                  <div className="text-2xl font-bold">{destination}</div>
                 </>
               )}
             </div>
@@ -168,16 +316,16 @@ function SearchResultsContent() {
         )}
 
         {/* Results */}
-        {results && !isLoading && !error && (
+        {!isLoading && !error && journeys.length > 0 && (
           <>
             {/* Results Header */}
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-xl font-bold text-slate-900">
-                  {results.journeys.length} Sefer Bulundu
+                  {journeys.length} Sefer Bulundu
                 </h2>
                 <p className="text-slate-500 text-sm">
-                  En ucuz fiyatlar gösterilmektedir
+                  Fiyatlar kişi başı gösterilmektedir
                 </p>
               </div>
               
@@ -188,37 +336,37 @@ function SearchResultsContent() {
             </div>
 
             {/* Journey List */}
-            {results.journeys.length > 0 ? (
-              <div className="space-y-4">
-                {results.journeys.map((journey) => (
-                  <JourneyCard
-                    key={journey.id}
-                    journey={journey}
-                    passengers={{ adults, children }}
-                    onSelect={handleSelectJourney}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-20">
-                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Train className="w-8 h-8 text-slate-400" />
-                </div>
-                <h3 className="text-xl font-semibold text-slate-900 mb-2">
-                  Sefer Bulunamadı
-                </h3>
-                <p className="text-slate-600 mb-6">
-                  Bu tarih ve güzergah için uygun sefer bulunamamıştır.
-                </p>
-                <Link
-                  href="/"
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-block"
-                >
-                  Farklı Tarih Dene
-                </Link>
-              </div>
-            )}
+            <div className="space-y-4">
+              {journeys.map((journey) => (
+                <JourneyCard
+                  key={journey.id}
+                  journey={journey}
+                  onSelect={handleSelectJourney}
+                />
+              ))}
+            </div>
           </>
+        )}
+
+        {/* No Results */}
+        {!isLoading && !error && journeys.length === 0 && searchResponse && (
+          <div className="text-center py-20">
+            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Train className="w-8 h-8 text-slate-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-slate-900 mb-2">
+              Sefer Bulunamadı
+            </h3>
+            <p className="text-slate-600 mb-6">
+              Bu tarih ve güzergah için uygun sefer bulunamamıştır.
+            </p>
+            <Link
+              href="/"
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-block"
+            >
+              Farklı Tarih Dene
+            </Link>
+          </div>
         )}
       </div>
     </main>
