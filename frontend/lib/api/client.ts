@@ -508,3 +508,104 @@ export function formatTime(dateTimeString: string): string {
 export function formatPrice(price: number, currency: string = 'EUR'): string {
   return `€${price.toFixed(2)}`;
 }
+// ==================== CAMPAIGN API EXTENDED ====================
+
+export const campaignApi = {
+  getAll: async (): Promise<Campaign[]> => {
+    const response = await fetch(`${API_URL}/campaigns`);
+    if (!response.ok) throw new Error('Kampanyalar yüklenemedi');
+    return response.json();
+  },
+
+  getById: async (id: number): Promise<Campaign> => {
+    const response = await fetch(`${API_URL}/campaigns/${id}`);
+    if (!response.ok) throw new Error('Kampanya bulunamadı');
+    return response.json();
+  },
+
+  create: async (data: Partial<Campaign>): Promise<Campaign> => {
+    const response = await fetch(`${API_URL}/campaigns`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Kampanya oluşturulamadı');
+    return response.json();
+  },
+
+  update: async (id: number, data: Partial<Campaign>): Promise<Campaign> => {
+    const response = await fetch(`${API_URL}/campaigns/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Kampanya güncellenemedi');
+    return response.json();
+  },
+
+  delete: async (id: number): Promise<void> => {
+    const response = await fetch(`${API_URL}/campaigns/${id}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Kampanya silinemedi');
+  },
+};
+
+// ==================== BOOKING API EXTENDED ====================
+
+export const bookingApi = {
+  getAll: async (): Promise<Booking[]> => {
+    const response = await fetch(`${API_URL}/bookings`);
+    if (!response.ok) throw new Error('Rezervasyonlar yüklenemedi');
+    return response.json();
+  },
+
+  getById: async (id: number): Promise<Booking> => {
+    const response = await fetch(`${API_URL}/bookings/${id}`);
+    if (!response.ok) throw new Error('Rezervasyon bulunamadı');
+    return response.json();
+  },
+
+  create: async (data: CreateBookingParams): Promise<Booking> => {
+    const response = await fetch(`${API_URL}/bookings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Rezervasyon oluşturulamadı');
+    return response.json();
+  },
+
+  update: async (id: number, data: Partial<Booking>): Promise<Booking> => {
+    const response = await fetch(`${API_URL}/bookings/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Rezervasyon güncellenemedi');
+    return response.json();
+  },
+};
+
+// ==================== CREATE CAMPAIGN DTO ====================
+
+export interface CreateCampaignDto {
+  name: string;
+  code?: string;
+  description?: string;
+  type?: string;
+  discountType: 'PERCENTAGE' | 'FIXED' | 'PERCENT';
+  discountValue: number;
+  discountCurrency?: string;
+  discountTarget?: string;
+  maxDiscountAmount?: number;
+  minOrderAmount?: number;
+  stackable?: boolean;
+  priority?: number;
+  usageLimit?: number;
+  usagePerUser?: number;
+  refundable?: boolean;
+  startDate?: string;
+  endDate?: string;
+  active?: boolean;
+}

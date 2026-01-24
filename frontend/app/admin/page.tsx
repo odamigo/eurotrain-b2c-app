@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { StatsCard } from './components';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { campaignApi, bookingApi, Campaign, Booking } from '@/lib/api/client';
+import { getCampaigns, getBookings, Campaign, Booking } from '@/lib/api/client';
 import { Tag, CalendarCheck, TrendingUp, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
@@ -16,8 +16,8 @@ export default function AdminDashboard() {
     async function fetchData() {
       try {
         const [campaignsData, bookingsData] = await Promise.all([
-          campaignApi.getAll().catch(() => []),
-          bookingApi.getAll().catch(() => []),
+          getCampaigns().catch(() => []),
+          getBookings().catch(() => []),
         ]);
         setCampaigns(campaignsData);
         setBookings(bookingsData);
@@ -30,7 +30,7 @@ export default function AdminDashboard() {
     fetchData();
   }, []);
 
-  const activeCampaigns = campaigns.filter((c) => c.active).length;
+  const activeCampaigns = campaigns.filter((c) => c.isActive).length;
   const totalRevenue = bookings.reduce((sum, b) => sum + Number(b.price), 0);
   const confirmedBookings = bookings.filter((b) => b.status === 'CONFIRMED').length;
 
@@ -142,12 +142,12 @@ export default function AdminDashboard() {
             <CardTitle className="text-lg">Aktif Kampanyalar</CardTitle>
           </CardHeader>
           <CardContent>
-            {campaigns.filter((c) => c.active).length === 0 ? (
+            {campaigns.filter((c) => c.isActive).length === 0 ? (
               <p className="text-slate-500 text-center py-8">Aktif kampanya yok</p>
             ) : (
               <div className="space-y-4">
                 {campaigns
-                  .filter((c) => c.active)
+                  .filter((c) => c.isActive)
                   .slice(0, 5)
                   .map((campaign) => (
                     <div
@@ -162,12 +162,12 @@ export default function AdminDashboard() {
                       </div>
                       <div className="text-right">
                         <p className="font-semibold text-green-600">
-                          {campaign.discountType === 'PERCENTAGE'
+                          {campaign.discountType === 'PERCENT'
                             ? `%${campaign.discountValue}`
                             : `€${campaign.discountValue}`}
                         </p>
                         <p className="text-xs text-slate-500">
-                          {campaign.currentUsageCount} kullanım
+                          {campaign.usedCount} kullanım
                         </p>
                       </div>
                     </div>
