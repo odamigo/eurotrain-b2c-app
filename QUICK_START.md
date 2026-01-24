@@ -1,4 +1,4 @@
-﻿# EUROTRAIN QUICK START
+# 🚀 EUROTRAIN QUICK START
 
 **Son Güncelleme:** 24 Ocak 2026
 **Domain:** eurotrain.net
@@ -37,7 +37,7 @@ npm run dev
 | Admin Settings | http://localhost:3000/admin/settings |
 | Biletlerim | http://localhost:3000/my-trips |
 | API | http://localhost:3001 |
-| Health Check | http://localhost:3001/health |
+| ERA Status | http://localhost:3001/era/status |
 
 ---
 
@@ -49,9 +49,39 @@ Email: admin@eurotrain.com
 
 ---
 
-## API TEST KOMUTLARI
+## 🚂 ERA API TEST KOMUTLARI
 
-### Döviz Kurları (YENİ)
+### İstasyon Arama
+```powershell
+Invoke-RestMethod -Uri "http://localhost:3001/era/places/autocomplete?query=paris" | ConvertTo-Json
+```
+
+### Sefer Arama
+```powershell
+$body = @{
+    origin = "FRPAR"
+    destination = "GBLON"
+    departureDate = "2025-02-15T09:00:00"
+    adults = 1
+} | ConvertTo-Json
+Invoke-RestMethod -Uri "http://localhost:3001/era/search" -Method POST -Body $body -ContentType "application/json" | ConvertTo-Json -Depth 5
+```
+
+### ERA Status (Mock/Live)
+```powershell
+Invoke-RestMethod -Uri "http://localhost:3001/era/status" | ConvertTo-Json
+```
+
+### Tüm İstasyonlar
+```powershell
+Invoke-RestMethod -Uri "http://localhost:3001/era/places" | ConvertTo-Json -Depth 3
+```
+
+---
+
+## 💱 SETTINGS API TEST KOMUTLARI
+
+### Döviz Kurları
 ```powershell
 Invoke-RestMethod -Uri "http://localhost:3001/settings/exchange-rates" | ConvertTo-Json
 ```
@@ -61,46 +91,66 @@ Invoke-RestMethod -Uri "http://localhost:3001/settings/exchange-rates" | Convert
 Invoke-RestMethod -Uri "http://localhost:3001/settings/convert?amount=100&from=EUR&to=TRY"
 ```
 
-### Email Gönderimi
-```powershell
-Invoke-RestMethod -Uri "http://localhost:3001/email/test" -Method POST -ContentType "application/json" -Body '{"email":"levent@duck.com"}'
-```
+---
 
-### Health Check
-```powershell
-Invoke-RestMethod -Uri "http://localhost:3001/health"
-Invoke-RestMethod -Uri "http://localhost:3001/health/detailed"
-```
+## 🔐 ADMIN API TEST KOMUTLARI
 
-### Admin Login
+### Login & Token Al
 ```powershell
 $login = Invoke-RestMethod -Uri "http://localhost:3001/auth/login" -Method POST -ContentType "application/json" -Body '{"email":"admin@eurotrain.com","password":"admin123"}'
 $token = $login.access_token
+$headers = @{ "Authorization" = "Bearer $token"; "Content-Type" = "application/json" }
 ```
 
-### Admin ile Markup Güncelle
+### Markup Güncelle
 ```powershell
-$headers = @{ "Authorization" = "Bearer $token"; "Content-Type" = "application/json" }
 Invoke-RestMethod -Uri "http://localhost:3001/settings/admin/markup" -Method PUT -Headers $headers -Body '{"markup": 3}'
 ```
 
 ---
 
-## ENVIRONMENT VARIABLES (.env)
+## ENVIRONMENT VARIABLES
 
-Backend klasöründe `.env` dosyası:
-```
+### Backend `.env`
+```env
+# Database
 DB_HOST=localhost
 DB_PORT=5432
 DB_USERNAME=eurotrain
 DB_PASSWORD=dev123
 DB_DATABASE=eurotrain_db
+
+# Auth
 JWT_SECRET=eurotrain-secret-key-2026
+
+# Email
 RESEND_API_KEY=re_xxxxxxxxxxxxx
+
+# Frontend
 FRONTEND_URL=http://localhost:3000
+
+# ERA API (Mock Mode)
+ERA_AUTH_URL=https://authent-sandbox.era.raileurope.com
+ERA_API_URL=https://api-sandbox.era.raileurope.com
+ERA_CLIENT_ID=
+ERA_CLIENT_SECRET=
+ERA_POINT_OF_SALE=EUROTRAIN
+ERA_MOCK_MODE=true
 ```
 
-⚠️ **ÖNEMLİ:** JWT_SECRET değeri kod ile aynı olmalı!
+---
+
+## 🚂 DESTEKLENEN ROTALAR (Mock)
+
+| Rota | Carrier | Süre | Fiyat |
+|------|---------|------|-------|
+| Paris → London | EUROSTAR | 2s 16dk | €89+ |
+| Paris → Amsterdam | THALYS | 3s 15dk | €89+ |
+| Paris → Brussels | THALYS | 1s 22dk | €69+ |
+| Roma → Milano | TRENITALIA | 2s 55dk | €69+ |
+| Berlin → Munich | ICE | 4s | €89+ |
+| Madrid → Barcelona | AVE | 2s 35dk | €69+ |
+| Zurich → Geneva | SBB | 2s 50dk | €79+ |
 
 ---
 
@@ -113,36 +163,29 @@ docker start eurotrain-db
 
 ### "Port already in use"
 ```powershell
-Get-Process -Id (Get-NetTCPConnection -LocalPort 3001).OwningProcess | Stop-Process -Force
+taskkill /F /IM node.exe
 ```
 
+### "UNKNOWN" carrier görünüyor
+Mock service güncel değil. En son `era-mock.service.ts` dosyasını kontrol et.
+
 ### "Unauthorized" hatası (401)
-1. JWT_SECRET'ın .env'de `eurotrain-secret-key-2026` olduğundan emin ol
+1. JWT_SECRET'ın .env'de doğru olduğundan emin ol
 2. Backend'i yeniden başlat
 3. Admin'den çıkış yap, tekrar giriş yap
 
-### Rate Limit aşıldı (429)
-1 dakika bekle veya backend'i yeniden başlat.
-
-### Email gönderilemiyor
-- Resend API key kontrol et (.env dosyası)
-- Domain doğrulanmadan sadece levent@duck.com'a gönderilebilir
-
 ---
 
-## MODÜLLER
+## 📋 TEST CHECKLIST
 
-| Modül | Endpoint | Açıklama |
-|-------|----------|----------|
-| Auth | /auth/* | Admin login, JWT |
-| Bookings | /bookings/* | Rezervasyon CRUD |
-| ERA | /era/* | Tren arama |
-| Payment | /payment/* | MSU ödeme |
-| My Trips | /my-trips/* | Bilet görüntüleme |
-| Email | /email/* | Email gönderimi |
-| PDF | /pdf/* | E-bilet PDF |
-| Settings | /settings/* | Kur, markup, terms |
-| Health | /health/* | Sistem durumu |
+```
+□ Backend çalışıyor mu? (http://localhost:3001/health)
+□ ERA status mock mu? (http://localhost:3001/era/status)
+□ İstasyon arama çalışıyor mu?
+□ Sefer arama sonuç dönüyor mu?
+□ Carrier isimleri doğru mu? (EUROSTAR, TGV, vb.)
+□ Frontend açılıyor mu? (http://localhost:3000)
+```
 
 ---
 
