@@ -1,0 +1,536 @@
+openapi: 3.0.1
+info:
+  title: Places
+  description: Places services
+  contact:
+    url: 'https://rail-europe.stoplight.io/'
+  version: '1.0'
+servers:
+  - url: 'https://api-sandbox.era.raileurope.com'
+security:
+  - bearerAuth: []
+tags:
+  - name: places
+paths:
+  /places/autocomplete:
+    get:
+      tags:
+        - places
+      summary: Retrieve places with autocompletion
+      description: 'Retrieve the places (cities and stations) available for your point of sale with autocompletion : more details on HOW TO use this endpoint [here](docs/how-to/initialization/places.md).'
+      operationId: getPlacesAutocompletePlaces
+      parameters:
+        - $ref: '#/components/parameters/PointOfSale'
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum:
+              - city
+              - station
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: boost
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - city
+              - station
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TranslatedPlace'
+              examples:
+                Autocomplete places example when typing "bar":
+                  $ref: '#/components/examples/autocomplete-places'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+  /places:
+    get:
+      tags:
+        - places
+      summary: Retrieve all places
+      description: |-
+        Retrieve all the places (cities and stations) available. We strongly recommend you Cache the response data locally, and update this it: either only when necessary, or periodically (every fortnight or monthly are acceptable). 
+
+        More details on HOW TO use this endpoint [here](docs/how-to/initialization/places.md).
+      operationId: getPlacesRetrieveAllPlaces
+      parameters:
+        - $ref: '#/components/parameters/PointOfSale'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TranslatedPlace'
+              examples:
+                Retrieve All Places:
+                  $ref: '#/components/examples/retrieve-all-places'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+components:
+  schemas:
+    Location:
+      title: Location
+      type: object
+      properties:
+        lat:
+          type: number
+          format: double
+        lon:
+          type: number
+          format: double
+    TranslatedCountry:
+      title: TranslatedCountry
+      type: object
+      properties:
+        code:
+          type: string
+        label:
+          type: string
+        localLabel:
+          type: string
+    TranslatedPlace:
+      title: TranslatedPlace
+      allOf:
+        - $ref: '#/components/schemas/Era-common_Oas3_Resource'
+        - type: object
+          properties:
+            type:
+              type: string
+            code:
+              type: string
+            uicCode:
+              type: string
+              description: International union of railways code
+            label:
+              type: string
+            localLabel:
+              type: string
+            country:
+              $ref: '#/components/schemas/TranslatedCountry'
+            timezone:
+              type: string
+            location:
+              $ref: '#/components/schemas/Location'
+            ticketOffice:
+              type: boolean
+              x-stoplight:
+                id: 4jnjpsz81w037
+              nullable: true
+            ticketMachine:
+              type: boolean
+              x-stoplight:
+                id: 4ig4p2tmipts3
+              nullable: true
+    Era-common_Oas3_CauseError:
+      title: CauseError
+      type: object
+      properties:
+        code:
+          type: string
+        details:
+          type: array
+          items:
+            type: string
+        label:
+          type: string
+        type:
+          type: string
+          enum:
+            - technical
+            - functional
+    Era-common_Oas3_Resource:
+      title: Resource
+      type: object
+      properties:
+        id:
+          type: string
+        errors:
+          type: array
+          readOnly: true
+          items:
+            $ref: '#/components/schemas/Era-common_Oas3_ResourceError'
+        warnings:
+          type: array
+          readOnly: true
+          items:
+            $ref: '#/components/schemas/Era-common_Oas3_ResourceError'
+    Era-common_Oas3_ResourceError:
+      title: ResourceError
+      type: object
+      properties:
+        causes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Era-common_Oas3_CauseError'
+        code:
+          type: string
+        details:
+          type: array
+          items:
+            type: string
+        label:
+          type: string
+        type:
+          type: string
+          enum:
+            - technical
+            - functional
+  examples:
+    retrieve-all-places:
+      summary: Response example from retrieve all places
+      value:
+        - id: uMDSd2MKLJ9YxiFdEQBZ
+          type: city
+          code: 'ES:barcelona'
+          label: Barcelona (All stations)
+          localLabel: Barcelona (Todas)
+          country:
+            code: ES
+            label: Spain
+            localLabel: España
+          location:
+            lat: 41.379335
+            lon: 2.139477
+          timezone: Europe/Madrid
+          ticketOffice: null
+          ticketMachine: null
+        - id: 4EZwAG0BrostpvBN_PHg
+          type: station
+          code: 'ES:barcelona_sants'
+          uicCode: '7171801'
+          label: Barcelona Sants
+          localLabel: Barcelona Sants
+          country:
+            code: ES
+            label: Spain
+            localLabel: España
+          location:
+            lat: 41.3789776813
+            lon: 2.1399713363
+          timezone: Europe/Madrid
+          ticketOffice: null
+          ticketMachine: null
+        - id: wUdxAG0BrostpvBNHTTO
+          type: station
+          code: 'IT:barcellona_castroreale'
+          uicCode: '8312041'
+          label: Barcellona-Castroreale
+          localLabel: Barcellona-Castroreale
+          country:
+            code: IT
+            label: Italy
+            localLabel: Italy
+          location:
+            lat: 38.154732
+            lon: 15.20101
+          timezone: Europe/Rome
+          ticketOffice: null
+          ticketMachine: null
+        - id: mUdxAG0BrostpvBNGB1K
+          type: station
+          code: 'FR:barcelonne_du_gers'
+          uicCode: '8767105'
+          label: Barcelonne du Gers
+          localLabel: Barcelonne du Gers
+          country:
+            code: FR
+            label: France
+            localLabel: France
+          location:
+            lat: 43.701184
+            lon: -0.233719
+          timezone: Europe/Paris
+          ticketOffice: null
+          ticketMachine: null
+        - id: z0ZwAG0BrostpvBN_PHg
+          type: station
+          code: 'ES:barcelona_sant_andreu_comtal'
+          uicCode: '7179004'
+          label: Barcelona Sant Andreu Comtal
+          localLabel: Barcelona Sant Andreu Comtal
+          country:
+            code: ES
+            label: Spain
+            localLabel: España
+          location:
+            lat: 41.435632228
+            lon: 2.1933691717
+          timezone: Europe/Madrid
+          ticketOffice: null
+          ticketMachine: null
+        - id: y0ZwAG0BrostpvBN_PLg
+          type: station
+          code: 'ES:barcelona_estacio_de_franca'
+          uicCode: '7179400'
+          label: Barcelona Estacio de França
+          localLabel: Barcelona Estacio de França
+          country:
+            code: ES
+            label: Spain
+            localLabel: España
+          location:
+            lat: 41.3839833895
+            lon: 2.186588725
+          timezone: Europe/Madrid
+          ticketOffice: null
+          ticketMachine: null
+        - id: g0dxAG0BrostpvBNGB1K
+          type: station
+          code: 'ES:o_barco_de_valdeorras'
+          uicCode: '7120211'
+          label: O Barco de Valdeorras
+          localLabel: O Barco de Valdeorras
+          country:
+            code: ES
+            label: Spain
+            localLabel: España
+          location:
+            lat: 42.4182757348
+            lon: -6.9850620792
+          timezone: Europe/Madrid
+          ticketOffice: null
+          ticketMachine: null
+        - id: hEdxAG0BrostpvBNCA4i
+          type: station
+          code: 'FR:barchetta'
+          uicCode: '8776192'
+          label: Barchetta
+          localLabel: Barchetta
+          country:
+            code: FR
+            label: France
+            localLabel: France
+          location:
+            lat: 42.508171
+            lon: 9.372638
+          timezone: Europe/Paris
+          ticketOffice: null
+          ticketMachine: null
+        - id: WMgteYQBPJ9YxiFSPE42
+          type: station
+          code: 'FR:paris'
+          uicCode: '8776192'
+          label: Paris
+          localLabel: Paris
+          country:
+            code: FR
+            label: France
+            localLabel: France
+          location:
+            lat: 48.861496
+            lon: 2.33368
+          timezone: Europe/Paris
+          ticketOffice: null
+          ticketMachine: null
+    autocomplete-places:
+      summary: Autocomplete places response when typing "bar"
+      value:
+        - id: uMDSd2MKLJ9YxiFdEQBZ
+          type: city
+          code: 'ES:barcelona'
+          label: Barcelona (All stations)
+          localLabel: Barcelona (Todas)
+          country:
+            code: ES
+            label: Spain
+            localLabel: España
+          location:
+            lat: 41.379335
+            lon: 2.139477
+          timezone: Europe/Madrid
+          ticketOffice: null
+          ticketMachine: null
+        - id: 4EZwAG0BrostpvBN_PHg
+          type: station
+          code: 'ES:barcelona_sants'
+          uicCode: '7171801'
+          label: Barcelona Sants
+          localLabel: Barcelona Sants
+          country:
+            code: ES
+            label: Spain
+            localLabel: España
+          location:
+            lat: 41.3789776813
+            lon: 2.1399713363
+          timezone: Europe/Madrid
+          ticketOffice: null
+          ticketMachine: null
+        - id: wUdxAG0BrostpvBNHTTO
+          type: station
+          code: 'IT:barcellona_castroreale'
+          uicCode: '8312041'
+          label: Barcellona-Castroreale
+          localLabel: Barcellona-Castroreale
+          country:
+            code: IT
+            label: Italy
+            localLabel: Italy
+          location:
+            lat: 38.154732
+            lon: 15.20101
+          timezone: Europe/Rome
+          ticketOffice: null
+          ticketMachine: null
+        - id: mUdxAG0BrostpvBNGB1K
+          type: station
+          code: 'FR:barcelonne_du_gers'
+          uicCode: '8767105'
+          label: Barcelonne du Gers
+          localLabel: Barcelonne du Gers
+          country:
+            code: FR
+            label: France
+            localLabel: France
+          location:
+            lat: 43.701184
+            lon: -0.233719
+          timezone: Europe/Paris
+          ticketOffice: null
+          ticketMachine: null
+        - id: z0ZwAG0BrostpvBN_PHg
+          type: station
+          code: 'ES:barcelona_sant_andreu_comtal'
+          uicCode: '7179004'
+          label: Barcelona Sant Andreu Comtal
+          localLabel: Barcelona Sant Andreu Comtal
+          country:
+            code: ES
+            label: Spain
+            localLabel: España
+          location:
+            lat: 41.435632228
+            lon: 2.1933691717
+          timezone: Europe/Madrid
+          ticketOffice: null
+          ticketMachine: null
+        - id: y0ZwAG0BrostpvBN_PLg
+          type: station
+          code: 'ES:barcelona_estacio_de_franca'
+          uicCode: '7179400'
+          label: Barcelona Estacio de França
+          localLabel: Barcelona Estacio de França
+          country:
+            code: ES
+            label: Spain
+            localLabel: España
+          location:
+            lat: 41.3839833895
+            lon: 2.186588725
+          timezone: Europe/Madrid
+          ticketOffice: null
+          ticketMachine: null
+        - id: g0dxAG0BrostpvBNGB1K
+          type: station
+          code: 'ES:o_barco_de_valdeorras'
+          uicCode: '7120211'
+          label: O Barco de Valdeorras
+          localLabel: O Barco de Valdeorras
+          country:
+            code: ES
+            label: Spain
+            localLabel: España
+          location:
+            lat: 42.4182757348
+            lon: -6.9850620792
+          timezone: Europe/Madrid
+          ticketOffice: null
+          ticketMachine: null
+        - id: hEdxAG0BrostpvBNCA4i
+          type: station
+          code: 'FR:barchetta'
+          uicCode: '8776192'
+          label: Barchetta
+          localLabel: Barchetta
+          country:
+            code: FR
+            label: France
+            localLabel: France
+          location:
+            lat: 42.508171
+            lon: 9.372638
+          timezone: Europe/Paris
+          ticketOffice: null
+          ticketMachine: null
+  responses:
+    '400':
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Era-common_Oas3_ResourceError'
+          examples:
+            Bad request error:
+              summary: Bad request error
+              value:
+                code: era-request-validation-error
+                label: Request validation error
+                details:
+                  - Missing request header 'X-Point-Of-Sale' for method parameter of type String
+    '404':
+      description: Resource Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Era-common_Oas3_ResourceError'
+          examples:
+            Resource not found:
+              summary: Resource not found error
+              value:
+                code: era-offers-unknown-offers-search
+                label: No offer search found with given identifier
+                details:
+                  - 47210c6c-85bf-4121-ab06-7ae61d0513c01
+    '500':
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Era-common_Oas3_ResourceError'
+          examples:
+            Internal server error:
+              summary: Internal Server Error
+              value:
+                code: era-technical-error
+                label: Technical error
+                details:
+                  - An unexpected error occurred
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: 'You can directly use this [endpoint](reference/authentication.oas3.yml/paths/~1oauth2~1token/post) to generate your token.'
+  parameters:
+    PointOfSale:
+      name: X-Point-Of-Sale
+      in: header
+      description: Point of sale code
+      required: true
+      schema:
+        type: string

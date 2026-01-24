@@ -1,0 +1,133 @@
+openapi: 3.0.1
+info:
+  title: Authentication
+  description: Authentication services
+  contact:
+    url: 'https://rail-europe.stoplight.io/'
+  version: '1.0'
+servers:
+  - url: 'https://authent-sandbox.era.raileurope.com'
+tags:
+  - name: authentication
+paths:
+  /oauth2/token:
+    post:
+      tags:
+        - authentication
+      summary: Retrieve an access token
+      description: 'Retrieve an access token: : more details on HOW TO use this endpoint [here](docs/how-to/initialization/authentication.md).'
+      operationId: postAuthentication
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                grant_type:
+                  type: string
+                  description: 'authorization type, only client_credentials is supported'
+                  default: client_credentials
+                client_id:
+                  type: string
+                client_secret:
+                  type: string
+              required:
+                - grant_type
+                - client_id
+                - client_secret
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OauthResponse'
+        '400':
+          $ref: '#/components/responses/Era-common_Oas3_400'
+        '500':
+          $ref: '#/components/responses/Era-common_Oas3_500'
+components:
+  schemas:
+    OauthResponse:
+      title: OauthResponse
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: The token you need to provide for every call
+          example: eyJz93a...k4laUWw
+        token_type:
+          type: string
+          description: 'The token type, should only be bearer token'
+          example: Bearer
+        expires_in:
+          type: string
+          description: Duration of time the access token is granted
+          example: '3600'
+    CauseError:
+      title: CauseError
+      type: object
+      properties:
+        code:
+          type: string
+        details:
+          type: array
+          items:
+            type: string
+        label:
+          type: string
+        type:
+          type: string
+          enum:
+            - technical
+            - functional
+    ResourceError:
+      title: ResourceError
+      type: object
+      properties:
+        causes:
+          type: array
+          items:
+            $ref: '#/components/schemas/CauseError'
+        code:
+          type: string
+        details:
+          type: array
+          items:
+            type: string
+        label:
+          type: string
+        type:
+          type: string
+          enum:
+            - technical
+            - functional
+  responses:
+    Era-common_Oas3_400:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ResourceError'
+          examples:
+            Bad request error:
+              summary: Bad request error
+              value:
+                code: era-request-validation-error
+                label: Request validation error
+                details:
+                  - Missing request header 'X-Point-Of-Sale' for method parameter of type String
+    Era-common_Oas3_500:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ResourceError'
+          examples:
+            Internal server error:
+              summary: Internal Server Error
+              value:
+                code: era-technical-error
+                label: Technical error
+                details:
+                  - An unexpected error occurred

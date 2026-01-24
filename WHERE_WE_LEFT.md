@@ -1,6 +1,6 @@
-﻿# 🚂 EUROTRAIN - NEREDE KALDIK?
+# 🚂 EUROTRAIN - NEREDE KALDIK?
 
-**Son Güncelleme:** 24 Ocak 2026 - 03:00
+**Son Güncelleme:** 25 Ocak 2026 - 02:30
 **Durum:** %96 Tamamlandı
 **Domain:** eurotrain.net
 **GitHub:** https://github.com/odamigo/eurotrain-b2c-app
@@ -14,108 +14,155 @@
 - ✅ Payment (MSU Hosted Page, Refund, 3D Secure)
 - ✅ Security (JWT, Rate Limiting, Logging)
 - ✅ Email (Resend), PDF (QR kodlu e-bilet)
-- ✅ Settings - TCMB kur, markup, terms/privacy
+- ✅ **Settings Modülü** - TCMB kur, markup, terms/privacy
 
 ### Frontend (Next.js)
 - ✅ Ana sayfa, Arama, Booking, My Trips
-- ✅ Admin panel (login, dashboard, kampanyalar, rezervasyonlar)
-- ✅ Payment sayfası - TCMB kur, para birimi seçimi
-- ✅ **Admin Settings sayfası** - Kur güncelleme, markup, kullanım koşulları
+- ✅ Admin panel (login, dashboard, kampanyalar)
+- ✅ **Admin Settings sayfası** - Kur yönetimi, markup, legal içerik
+- ✅ **Payment sayfası** - TCMB kur, para birimi seçimi, tooltip
+
+### Database (PostgreSQL)
+- ✅ booking, campaign, payments, era_bookings
+- ✅ admin_users, settings tablolar
 
 ---
 
-## 🔧 SON YAPILAN İŞLER (24 Ocak 2026)
+## 🔧 SON YAPILAN İŞLER (25 Ocak 2026)
 
-### Admin Settings Sayfası (Tamamlandı!)
-- ✅ TCMB döviz kurları görüntüleme (EUR/TRY, USD/EUR)
-- ✅ "Kurları Güncelle" butonu (TCMB'den anlık çekme)
-- ✅ Markup oranı ayarlama ve kaydetme
-- ✅ Kullanım Koşulları (Markdown) düzenleme
-- ✅ Gizlilik Politikası (Markdown) düzenleme
-- ✅ JWT token hatası düzeltildi (.env secret uyumsuzluğu)
+### Rail Europe ERA API Dokümantasyonu
+- ✅ OpenAPI spec dosyaları indirildi (7 dosya)
+- ✅ `docs/raileurope-api/ERA-API-DOCUMENTATION.md` oluşturuldu (1114 satır)
+- ✅ Authentication endpoint belirlendi: `POST /oauth2/token`
+- ✅ Tüm endpoint'ler dokümante edildi (Places, Search, Bookings, Checkout)
+- ✅ Data modelleri ve TypeScript interface'leri eklendi
+- ✅ Booking flow state machine dokümante edildi
 
-### Düzeltilen Sorun
-- `.env` dosyasındaki JWT_SECRET ile kod içindeki fallback secret farklıydı
-- `eurotrain-super-secret-key-change-in-production` → `eurotrain-secret-key-2026` olarak düzeltildi
+### Çıkarılan API Bilgileri
+```
+Auth URL: https://authent-sandbox.era.raileurope.com/oauth2/token
+API URL:  https://api-sandbox.era.raileurope.com
+Method:   OAuth2 client_credentials
+```
 
----
-
-## 🔌 API ENDPOİNTLERİ
-
-### Settings (Public)
-| Method | Endpoint | Açıklama |
-|--------|----------|----------|
-| GET | /settings/exchange-rates | TCMB kurları |
-| GET | /settings/convert | Kur dönüşümü |
-| GET | /settings/terms | Kullanım koşulları |
-| GET | /settings/privacy | Gizlilik politikası |
-
-### Settings (Admin - JWT Gerekli)
-| Method | Endpoint | Açıklama |
-|--------|----------|----------|
-| GET | /settings/admin/all | Tüm ayarlar |
-| PUT | /settings/admin/markup | Markup güncelle |
-| PUT | /settings/admin/terms | Terms güncelle |
-| PUT | /settings/admin/privacy | Privacy güncelle |
-| POST | /settings/admin/exchange-rates/refresh | Kurları yenile |
+### OpenAPI Spec Dosyaları
+```
+docs/raileurope-api/openapi-specs/
+├── authentication_oas3.yml
+├── places_oas3.yml
+├── point-to-point-search_oas3.yml
+├── passes-search_oas3.yml
+├── bookings_oas3.yml
+├── health_oas3.yml
+└── products_oas3.yml
+```
 
 ---
 
 ## 🔜 SIRADA NE VAR?
 
-### Öncelik 1 (Bu Hafta)
-- [ ] Terms & Privacy frontend sayfaları (/terms, /privacy)
-- [ ] MSU credentials (Payten'den test bilgileri alma)
-- [ ] Mobile responsive iyileştirmeler
+### Öncelik 1 - Rail Europe Entegrasyonu
+- [ ] **Rail Europe'dan sandbox credentials al** (client_id, client_secret)
+- [ ] ERA service'i gerçek API yapısına güncelle
+- [ ] Authentication flow implement et
+- [ ] Mock server ile test et
 
-### Öncelik 2 (Gelecek Hafta)
-- [ ] Çoklu dil (i18n) - TR/EN
-- [ ] Resend domain doğrulama (eurotrain.net)
-- [ ] Real ERA API entegrasyonu
+### Öncelik 2 - Eksik Parçalar
+- [ ] MSU/Payten credentials (panel: management@odamigo.com)
+- [ ] Terms & Privacy frontend sayfaları
+- [ ] Email domain doğrulama (Resend)
 
-### Öncelik 3 (Gelecek Ay)
-- [ ] MCP Server (AI agent entegrasyonu)
-- [ ] Natro VPS deployment
-- [ ] HTTPS sertifikası
-
----
-
-## 🧪 TEST LİNKLERİ
-
-| Sayfa | URL |
-|-------|-----|
-| Ana Sayfa | http://localhost:3000 |
-| Admin Panel | http://localhost:3000/admin |
-| Admin Login | http://localhost:3000/admin/login |
-| **Admin Settings** | http://localhost:3000/admin/settings |
-| Kur API | http://localhost:3001/settings/exchange-rates |
-| Health Check | http://localhost:3001/health |
-
-### Admin Giriş
-```
-Email: admin@eurotrain.com
-Şifre: admin123
-```
+### Öncelik 3 - İyileştirmeler
+- [ ] Çoklu dil (i18n)
+- [ ] Mobile responsiveness
+- [ ] MCP server implementasyonu
 
 ---
 
-## ⚙️ ÖNEMLİ NOTLAR
+## 📁 ÖNEMLİ DOSYALAR
 
-### JWT Secret
-`.env` dosyasında ve kodda aynı olmalı:
+### Rail Europe API
 ```
-JWT_SECRET=eurotrain-secret-key-2026
+docs/raileurope-api/
+├── ERA-API-DOCUMENTATION.md     ← Kapsamlı API dokümantasyonu
+└── openapi-specs/               ← OpenAPI YAML dosyaları
 ```
 
-### TCMB Kur Bilgisi
-- Kaynak: TCMB Efektif Satış Kuru
-- Cache: 1 saat
-- Fallback: Son bilinen kur veya sabit değer
+### Backend ERA Service
+```
+backend/src/era/
+├── era.service.ts               ← Mock data, gerçek API'ye güncellenecek
+├── era.controller.ts
+└── era.module.ts
+```
 
-### Markup
-- EUR: %0 (orijinal fiyat)
-- USD/TRY: %2.5 (admin'den değiştirilebilir)
+### Ayarlar Modülü
+```
+backend/src/settings/
+├── settings.service.ts          ← TCMB kur çekme
+├── settings.controller.ts       ← Public + Admin endpoints
+└── entities/setting.entity.ts
+```
 
 ---
 
-**Sonraki hedef:** Terms & Privacy sayfaları
+## 🔑 KRİTİK BİLGİLER
+
+### Rail Europe API (Bekliyor)
+```
+Auth URL: https://authent-sandbox.era.raileurope.com/oauth2/token
+API URL:  https://api-sandbox.era.raileurope.com
+Client ID: ??? (Rail Europe'dan alınacak)
+Client Secret: ??? (Rail Europe'dan alınacak)
+Point of Sale: ??? (Rail Europe'dan alınacak)
+```
+
+### MSU/Payten (Bekliyor)
+```
+Panel: management@odamigo.com / Odam1go@2026
+API Credentials: Panel'den bulunamadı - Payten'e sorulacak
+```
+
+### Mevcut Test Bilgileri
+```
+Admin: admin@eurotrain.com / admin123
+JWT Secret: .env dosyasında
+TCMB API: Çalışıyor (saatlik cache)
+```
+
+---
+
+## 🧪 TEST
+
+```powershell
+# Backend
+cd C:\dev\eurotrain-b2c-app\backend
+npm run start:dev
+
+# Frontend  
+cd C:\dev\eurotrain-b2c-app\frontend
+npm run dev
+
+# Test URLs
+# Frontend: http://localhost:3000
+# Backend: http://localhost:3001
+# Admin: http://localhost:3000/admin
+# Settings: http://localhost:3000/admin/settings
+# Kur API: http://localhost:3001/settings/exchange-rates
+```
+
+---
+
+## 📋 HIZLI BAŞLANGIÇ (Yeni Chat İçin)
+
+Yeni chat'te şunu söyle:
+```
+EuroTrain projesi - Rail Europe ERA API entegrasyonu.
+docs/raileurope-api/ERA-API-DOCUMENTATION.md dosyasını oluşturmuştuk.
+Şimdi client_id ve client_secret almam lazım Rail Europe'dan.
+Sonra era.service.ts'i gerçek API'ye güncelleyeceğiz.
+```
+
+---
+
+**Sonraki hedef:** Rail Europe sandbox credentials → ERA service güncelleme

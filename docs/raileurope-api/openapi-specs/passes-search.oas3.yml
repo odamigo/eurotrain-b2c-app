@@ -1,0 +1,1203 @@
+openapi: 3.0.1
+info:
+  title: Passes offers
+  description: Offers Passes API
+  contact:
+    url: 'https://rail-europe.stoplight.io/'
+  version: '1.0'
+servers:
+  - url: 'https://api-sandbox.era.raileurope.com'
+security:
+  - bearerAuth: []
+tags:
+  - name: offers-passes
+paths:
+  /offers/passes/searches:
+    post:
+      tags:
+        - offers-passes
+      summary: Search for pass offers
+      description: |-
+        Search for pass offers: more details on HOW TO use this endpoint [here](docs/how-to/search/search-offers.md) AND [here](docs/how-to/search/display-offers.md).
+
+        The list of valid input countries can be found [here](https://raw.githubusercontent.com/raileurope/era-api-documentation/version/1.0/documents/railpass_list_of_valid_country_codes.csv).
+      operationId: postOffersPassesSearch
+      parameters:
+        - $ref: '#/components/parameters/PointOfSale'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              title: PassesOffersSearchRequest
+              required:
+                - place
+                - travelers
+                - validityStartDate
+              type: object
+              properties:
+                place:
+                  $ref: '#/components/schemas/Place'
+                travelers:
+                  minItems: 1
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Traveler'
+                validityStartDate:
+                  type: string
+                  format: date
+                originCountry:
+                  $ref: '#/components/schemas/Place'
+            examples:
+              Search for eurail passes:
+                $ref: '#/components/examples/search-request-eurail-passes-offers'
+              Search for swiss passes:
+                $ref: '#/components/examples/search-request-swiss-passes-offers'
+      responses:
+        '201':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PassesOffersSearch'
+              examples:
+                Search for eurail offers:
+                  $ref: '#/components/examples/search-response-for-eurail-passes-offers'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+  '/offers/passes/searches/{searchId}':
+    get:
+      tags:
+        - offers-passes
+      summary: Retrieve pass offers search results
+      description: 'Retrieve the result of a search for pass offers: more details on HOW TO use this endpoint [here](docs/how-to/search/display-offers.md).'
+      operationId: getOffersPassesRetrieveSearchById
+      parameters:
+        - $ref: '#/components/parameters/PointOfSale'
+        - name: searchId
+          in: path
+          description: Search ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PassesOffersSearch'
+              examples:
+                Eurail passes offers search:
+                  $ref: '#/components/examples/search-response-for-eurail-passes-offers'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+  '/offers/passes/searches/{searchId}/offers/{offerId}':
+    get:
+      tags:
+        - offers-passes
+      summary: Retrieve a pass offer
+      description: 'Retrieve a pass offer: more details on HOW TO use this endpoint [here](docs/how-to/search/display-offers.md).'
+      operationId: getOffersPassesRetrieveOfferById
+      parameters:
+        - $ref: '#/components/parameters/PointOfSale'
+        - name: searchId
+          in: path
+          description: Search ID
+          required: true
+          schema:
+            type: string
+        - name: offerId
+          in: path
+          description: Offer ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PassesOfferFlattenView'
+              examples:
+                Eurail pass:
+                  $ref: '#/components/examples/search-response-for-eurail-passes-offers'
+                Swiss pass:
+                  $ref: '#/components/examples/search-response-for-swiss-pass-offer'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+  /offers/passes/discount:
+    get:
+      summary: Retrieve discount products applicable to passes
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Era-common_Oas3_Discount'
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+      operationId: searchDiscount
+      x-stoplight:
+        id: n9two2peqja2q
+      parameters:
+        - schema:
+            type: string
+          in: header
+          description: Point of sale code
+          name: X-Point-Of-Sale
+        - schema:
+            type: string
+            enum:
+              - RAILPASS
+              - RAILCARD
+          in: query
+          name: type
+          allowEmptyValue: true
+          description: dicount type (RAILPASS or RAILCARD)
+        - schema:
+            type: string
+            example: 'SBB, STS'
+          in: query
+          name: carrier
+          description: 'carrier code '
+          allowEmptyValue: true
+      description: "If the parameters are empty, the entire discount list will be returned.\r\nYou can then cache it for future use."
+components:
+  schemas:
+    TravelerType:
+      title: TravelerType
+      type: string
+      description: 'Authorized values: ADULT, SENIOR, YOUTH & CHILD'
+    PassOffer:
+      title: PassOffer
+      description: |-
+        TYPE = "pass-offer"
+
+        * 'validityDuration': always filled
+        * 'numberOfTravelDays': filled only if the travel days are not consecutive
+        * 'numberOfTrips': filled only if the product is selected by a number of trips
+        * 'activationDuration': filled only if the pass can be activated during a period of time after the sale
+        * 'validityPeriod': filled when the first travel day is settled during the sale (STS)
+        * 'activationPeriod': filled when the first travel day is settled after the sale (EURAIL)
+      allOf:
+        - type: object
+          properties:
+            conditions:
+              type: array
+              items:
+                $ref: '#/components/schemas/PassCondition'
+            expirationDate:
+              type: string
+              format: date-time
+            tags:
+              type: array
+              items:
+                type: string
+            travelClass:
+              $ref: '#/components/schemas/PassTravelClass'
+            travelerPassOffers:
+              type: array
+              items:
+                $ref: '#/components/schemas/TravelerPassOffer'
+            type:
+              type: string
+              readOnly: true
+              default: pass-offer
+            travelerInformationRequired:
+              $ref: '#/components/schemas/TravelerInformationRequired'
+            prices:
+              $ref: '#/components/schemas/Era-common_Oas3_Prices'
+            label:
+              type: string
+            validityDuration:
+              type: string
+            validityPeriod:
+              $ref: '#/components/schemas/PassPeriod'
+            numberOfTravelDays:
+              type: integer
+            numberOfTrips:
+              type: integer
+            activationDuration:
+              type: string
+            activationPeriod:
+              $ref: '#/components/schemas/PassPeriod'
+            location:
+              type: string
+            ticketingOptions:
+              type: array
+              description: The ticketing options available for this offer.
+              items:
+                $ref: '#/components/schemas/Era-common_Oas3_TicketingOption'
+        - $ref: '#/components/schemas/Era-common_Oas3_Resource'
+    PassesOffersSearch:
+      title: PassesOffersSearch
+      allOf:
+        - type: object
+          properties:
+            offers:
+              type: array
+              items:
+                $ref: '#/components/schemas/PassOffer'
+            place:
+              $ref: '#/components/schemas/Place'
+            products:
+              type: array
+              items:
+                $ref: '#/components/schemas/PassProduct'
+            travelers:
+              type: array
+              items:
+                $ref: '#/components/schemas/Traveler'
+            validityStartDate:
+              type: string
+              format: date
+        - $ref: '#/components/schemas/Era-common_Oas3_Resource'
+    Place:
+      title: Place
+      required:
+        - code
+      type: object
+      properties:
+        code:
+          type: string
+        label:
+          type: string
+    Card:
+      title: Card
+      type: object
+      required:
+        - code
+        - type
+      properties:
+        code:
+          type: string
+          enum:
+            - STP1
+            - STP2
+            - SBB_HALF_FARE
+        number:
+          type: string
+        type:
+          type: string
+          enum:
+            - TRAVEL_PASS
+            - REDUCTION_CARD
+      description: |-
+        There must be only 1 card per traveler. It's not possible to use cards of type REDUCTION_CARD (railcards and TRAVEL_PASS (railpass) in the same Search, even for separate travelers. If several travelers in a same Search, all of them should have the same railpass or railcard.
+        * Codes for type TRAVEL_PASS : `STP1`, `STP2`
+        * Codes for type REDUCTION_CARD : `SBB_HALF_FARE`
+    Traveler:
+      title: Traveler
+      required:
+        - age
+      type: object
+      properties:
+        age:
+          minimum: 0
+          type: integer
+          description: Age of the traveler at the time of the travel
+          format: int32
+        id:
+          type: string
+        type:
+          $ref: '#/components/schemas/TravelerType'
+        cards:
+          maxItems: 1
+          type: array
+          items:
+            $ref: '#/components/schemas/Card'
+    TravelerPassOffer:
+      title: TravelerPassOffer
+      type: object
+      properties:
+        prices:
+          $ref: '#/components/schemas/Era-common_Oas3_Prices'
+        travelerId:
+          type: string
+        productCode:
+          type: string
+        passTravelClass:
+          $ref: '#/components/schemas/PassTravelClass'
+    PassProduct:
+      title: PassProduct
+      type: object
+      properties:
+        type:
+          type: string
+          readOnly: true
+          default: pass
+        code:
+          type: string
+        label:
+          type: string
+        fare:
+          $ref: '#/components/schemas/PassFare'
+        supplier:
+          type: string
+        marketingCarrier:
+          type: string
+        places:
+          type: array
+          items:
+            type: string
+      description: TYPE = "pass"
+    PassFare:
+      title: PassFare
+      type: object
+      properties:
+        validityDuration:
+          type: string
+        numberOfTravelDays:
+          type: number
+        numberOfTrips:
+          type: number
+        activationDuration:
+          type: string
+      description: |-
+        * 'validityDuration': always filled
+        * 'numberOfTravelDays': filled only if the travel days are not consecutive
+        * 'numberOfTrips': filled only if the product is selected by a number of trips
+        * 'activationDuration': filled only if the pass can be activated during a period of time after the sale
+    PassTravelClass:
+      title: PassTravelClass
+      type: object
+      properties:
+        code:
+          type: string
+        label:
+          type: string
+        providerLabel:
+          type: string
+        comfortCategory:
+          $ref: '#/components/schemas/PassComfort'
+    PassComfort:
+      title: PassComfort
+      type: object
+      properties:
+        code:
+          type: string
+          enum:
+            - STANDARD
+            - COMFORT
+        label:
+          type: string
+    PassesOfferFlattenView:
+      title: PassesOfferFlattenView
+      allOf:
+        - $ref: '#/components/schemas/PassOffer'
+        - type: object
+          properties:
+            products:
+              type: array
+              items:
+                $ref: '#/components/schemas/PassProduct'
+            travelers:
+              type: array
+              items:
+                $ref: '#/components/schemas/Traveler'
+    PassCondition:
+      title: PassCondition
+      type: object
+      properties:
+        condition:
+          type: string
+        type:
+          $ref: '#/components/schemas/PassConditionType'
+    PassPeriod:
+      title: PassPeriod
+      type: object
+      properties:
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+    PassConditionType:
+      title: PassConditionType
+      type: string
+      enum:
+        - CARD_INTRODUCTION
+        - CARD_LABEL
+        - GLOBAL_INTRODUCTION
+        - GLOBAL_INTRODUCTION_DETAILS
+        - GLOBAL_DESCRIPTION
+        - BONUSES
+        - INCLUDES
+        - PASS_SALES
+        - PASS_RANGE_SALES
+        - SUPPLIER_SALES
+        - RAILEUROPE_SALES
+        - CARD_SALES
+        - PAXTYPE_SALES
+        - PASS_RANGE_AFTER_SALES
+        - SUPPLIER_AFTER_SALES
+        - RAILEUROPE_AFTER_SALES
+        - TICKETING_METHOD
+    TravelerInformationRequired:
+      title: TravelerInformationRequired
+      type: object
+      required:
+        - defaultTravelerInformationRequirements
+        - leadTravelerInformationRequirements
+        - travelerInformationEligibleToCheckInLater
+      properties:
+        defaultTravelerInformationRequirements:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/Era-common_Oas3_TravelerInformationRequirement'
+              - $ref: '#/components/schemas/Era-common_Oas3_TravelerInformationTravelDocumentRequirement'
+        defaultTravelerInformationRequired:
+          type: array
+          deprecated: true
+          description: 'Deprecated, please use defaultTravelerInformationRequirements instead'
+          items:
+            $ref: '#/components/schemas/Era-common_Oas3_TravelerInformation'
+        leadTravelerInformationRequirements:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/Era-common_Oas3_TravelerInformationRequirement'
+              - $ref: '#/components/schemas/Era-common_Oas3_TravelerInformationTravelDocumentRequirement'
+        leadTravelerInformationRequired:
+          type: array
+          deprecated: true
+          description: 'Deprecated, please use leadTravelerInformationRequirements instead'
+          items:
+            $ref: '#/components/schemas/Era-common_Oas3_TravelerInformation'
+    Era-common_Oas3_AbstractTravelerInformationRequirement:
+      title: AbstractTravelerInformationRequirement
+      type: object
+      properties:
+        name:
+          $ref: '#/components/schemas/Era-common_Oas3_TravelerInformation'
+    Era-common_Oas3_Amount:
+      title: Amount
+      type: object
+      properties:
+        value:
+          type: number
+        currency:
+          type: string
+    Era-common_Oas3_AmountsToDisplay:
+      title: AmountsToDisplay
+      x-stoplight:
+        id: krwxic91r2rjp
+      type: object
+      properties:
+        amount:
+          $ref: '#/components/schemas/Era-common_Oas3_Amount'
+        partnerCommission:
+          $ref: '#/components/schemas/Era-common_Oas3_PartnerCommission'
+    Era-common_Oas3_Billing:
+      title: Billing
+      type: object
+      properties:
+        billingPrice:
+          $ref: '#/components/schemas/Era-common_Oas3_BillingPrice'
+        partnerCommission:
+          $ref: '#/components/schemas/Era-common_Oas3_PartnerCommission'
+    Era-common_Oas3_BillingPrice:
+      title: BillingPrice
+      type: object
+      properties:
+        amount:
+          $ref: '#/components/schemas/Era-common_Oas3_Amount'
+    Era-common_Oas3_CauseError:
+      title: CauseError
+      type: object
+      properties:
+        code:
+          type: string
+        details:
+          type: array
+          items:
+            type: string
+        label:
+          type: string
+        type:
+          type: string
+          enum:
+            - technical
+            - functional
+    Era-common_Oas3_Discount:
+      title: Discount
+      x-stoplight:
+        id: kfrnwptiv9u3n
+      type: object
+      properties:
+        key:
+          type: string
+          x-stoplight:
+            id: 91i2mnonfrukk
+        carrier:
+          type: string
+          x-stoplight:
+            id: 0s3tjshdmby3c
+        label:
+          type: string
+          x-stoplight:
+            id: kulpugvpi4xoa
+        discountIdRequired:
+          type: boolean
+          x-stoplight:
+            id: jlct4ludmsbec
+        type:
+          x-stoplight:
+            id: 9cur9z0g6sh20
+          enum:
+            - RAILPASS
+            - RAILCARD
+    Era-common_Oas3_DocumentType:
+      title: DocumentType
+      type: string
+      enum:
+        - PASSPORT
+        - DNI
+        - NIE
+        - EU
+    Era-common_Oas3_PartnerCommission:
+      title: PartnerCommission
+      type: object
+      properties:
+        amount:
+          $ref: '#/components/schemas/Era-common_Oas3_Amount'
+    Era-common_Oas3_Prices:
+      title: Prices
+      type: object
+      properties:
+        billings:
+          type: array
+          items:
+            $ref: '#/components/schemas/Era-common_Oas3_Billing'
+        selling:
+          $ref: '#/components/schemas/Era-common_Oas3_Selling'
+        amountsToDisplay:
+          $ref: '#/components/schemas/Era-common_Oas3_AmountsToDisplay'
+    Era-common_Oas3_Resource:
+      title: Resource
+      type: object
+      properties:
+        id:
+          type: string
+        errors:
+          type: array
+          readOnly: true
+          items:
+            $ref: '#/components/schemas/Era-common_Oas3_ResourceError'
+        warnings:
+          type: array
+          readOnly: true
+          items:
+            $ref: '#/components/schemas/Era-common_Oas3_ResourceError'
+    Era-common_Oas3_ResourceError:
+      title: ResourceError
+      type: object
+      properties:
+        causes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Era-common_Oas3_CauseError'
+        code:
+          type: string
+        details:
+          type: array
+          items:
+            type: string
+        label:
+          type: string
+        type:
+          type: string
+          enum:
+            - technical
+            - functional
+    Era-common_Oas3_Selling:
+      title: Selling
+      type: object
+      properties:
+        sellingPrice:
+          $ref: '#/components/schemas/Era-common_Oas3_SellingPrice'
+        partnerCommission:
+          $ref: '#/components/schemas/Era-common_Oas3_PartnerCommission'
+    Era-common_Oas3_SellingPrice:
+      title: SellingPrice
+      type: object
+      properties:
+        amount:
+          $ref: '#/components/schemas/Era-common_Oas3_Amount'
+    Era-common_Oas3_TicketingOption:
+      title: TicketingOption
+      type: object
+      properties:
+        code:
+          type: string
+          enum:
+            - PAH
+            - TOD
+            - ETK
+            - TICKETLESS
+            - MPASS
+            - RETRIEVE_VIA_LINK
+      description: |
+        A ticketing option represents how to obtain the tickets for a booking item (point-to-point or pass).
+    Era-common_Oas3_TravelerInformation:
+      title: TravelerInformation
+      type: string
+      description: 'PASSPORT is now deprecated, please use TRAVEL_DOCUMENT and his different options'
+      enum:
+        - TITLE
+        - FIRST_NAME
+        - LAST_NAME
+        - DATE_OF_BIRTH
+        - COUNTRY_OF_RESIDENCE
+        - EMAIL
+        - PHONE_NUMBER
+        - REDUCTION_CARD_ID
+        - TRAVEL_DOCUMENT
+        - PASSPORT
+    Era-common_Oas3_TravelerInformationRequirement:
+      title: TravelerInformationRequirement
+      description: TYPE = "traveler-information"
+      allOf:
+        - $ref: '#/components/schemas/Era-common_Oas3_AbstractTravelerInformationRequirement'
+        - type: object
+          properties:
+            type:
+              type: string
+              readOnly: true
+              default: traveler-information
+    Era-common_Oas3_TravelerInformationTravelDocumentOptionRequirement:
+      title: TravelerInformationTravelDocumentOptionRequirement
+      type: object
+      properties:
+        name:
+          $ref: '#/components/schemas/Era-common_Oas3_DocumentType'
+    Era-common_Oas3_TravelerInformationTravelDocumentRequirement:
+      title: TravelerInformationTravelDocumentRequirement
+      description: TYPE = "travel-document-traveler-information"
+      allOf:
+        - $ref: '#/components/schemas/Era-common_Oas3_AbstractTravelerInformationRequirement'
+        - type: object
+          properties:
+            type:
+              type: string
+              readOnly: true
+              default: travel-document-traveler-information
+            options:
+              type: array
+              items:
+                $ref: '#/components/schemas/Era-common_Oas3_TravelerInformationTravelDocumentOptionRequirement'
+  responses:
+    '400':
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Era-common_Oas3_ResourceError'
+          examples:
+            Bad request error:
+              summary: Bad request error
+              value:
+                code: era-request-validation-error
+                label: Request validation error
+                details:
+                  - Missing request header 'X-Point-Of-Sale' for method parameter of type String
+    '404':
+      description: Resource Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Era-common_Oas3_ResourceError'
+          examples:
+            Resource not found:
+              summary: Resource not found error
+              value:
+                code: era-offers-unknown-offers-search
+                label: No offer search found with given identifier
+                details:
+                  - 47210c6c-85bf-4121-ab06-7ae61d0513c01
+    '500':
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Era-common_Oas3_ResourceError'
+          examples:
+            Internal server error:
+              summary: Internal Server Error
+              value:
+                code: era-technical-error
+                label: Technical error
+                details:
+                  - An unexpected error occurred
+  examples:
+    search-response-for-eurail-passes-offers:
+      summary: Search response for eurail passes offer
+      value:
+        id: 468c8bab-5322-4c41-b9f8-bb4c9dd999e1
+        place:
+          code: FR
+          label: France
+        validityStartDate: '2023-11-01'
+        travelers:
+          - id: traveler-1
+            type: ADULT
+            age: 30
+        offers:
+          - id: pass-offer-1
+            validityDuration: P1M
+            label: Eurail France Mobile Pass
+            prices:
+              billings:
+                - billingPrice:
+                    amount:
+                      value: 103
+                      currency: EUR
+                    netAmount:
+                      value: 95.79
+                      currency: EUR
+                  partnerCommission:
+                    amount:
+                      value: 7.21
+                      currency: EUR
+              selling:
+                sellingPrice:
+                  amount:
+                    value: 103
+                    currency: EUR
+                partnerCommission:
+                  amount:
+                    value: 7.21
+                    currency: EUR
+              amountsToDisplay:
+                - amount:
+                    value: 103
+                    currency: EUR
+                  partnerCommission:
+                    amount:
+                      value: 7.21
+                      currency: EUR
+            numberOfTravelDays: 1
+            activationDuration: P11M
+            activationPeriod:
+              startDate: '2023-09-18'
+              endDate: '2024-08-17'
+            conditions:
+              - condition: |
+                  <p style="margin-left:1.5em;"></p>
+                  <p style="text-align:left;"></p>
+                type: GLOBAL_INTRODUCTION_DETAILS
+              - condition: |
+                  <p>&nbsp;</p>
+                type: GLOBAL_INTRODUCTION
+              - condition: '<p>Can not be sold to or used by residents of Europe, the Russian Federation and Turkey.</p><p><br></p><ul><li>Flexible travel<br></li><li>Choose between 1, 2, 3, 4, 5, 6, 7 or 8&nbsp;travel days in 1 month. </li><li>Travel days can be used freely within one month from 1st date of validity indicated on your pass.</li></ul><p><br></p>'
+                type: GLOBAL_DESCRIPTION
+              - condition: |
+                  <p>Eurail One Country pass only allows travel in the selected European country.&nbsp;</p>
+                type: INCLUDES
+              - condition: Unlimited travel on the national rail network of France
+                type: PASS_SALES
+              - condition: |
+                  <p>Can not be sold to or used by residents of Europe, the Russian Federation and Turkey.&nbsp;&nbsp;</p>
+                  <p><span style="color: rgb(103,118,138);background-color: rgb(255,255,255);font-size: 13px;">Pass must be activated within eleven months after purchasing date, and before the first travel, through the</span><a href="https://s3.amazonaws.com/helpscout.net/docs/assets/530b1935e4b0479ea072e7c5/attachments/5fedbad041fcb56e4047d364/Getting-started-with-your-EURAIL-mobile-Pass.pdf" target="_blank"><span style="color: rgb(103,118,138);background-color: rgb(255,255,255);font-size: 13px;"> Eurail Rail Planner App</span></a><span style="color: rgb(103,118,138);background-color: rgb(255,255,255);font-size: 13px;"> . </span></p>
+                  <p><span style="color: rgb(103,118,138);background-color: rgb(255,255,255);font-size: 13px;">Seat/bed reservations for mandatory bookable trains <strong>still need to be purchased and are an additional cost to the rail pass. </strong></span>Seat reservations may be limited on some services, advance bookings are recommended (reservations are booked via the Rail Planner app or at the train station).</p>
+                  <p></p>
+                  <p><strong>Discounts available:</strong><br>- Senior: for passengers 60 and over (except with the Eurail Germany Mobile pass)<br>- Youth: for passengers under 28<br>- Children<br> 4-11: free in the limit of 2 children by paying adult otherwise a youth<br> pass should be purchased. Seat/bed reservations for mandatory bookable <br>trains still need to be purchased.<br>Children under 4: free (except if a reservation for a separate seat/bed is required)&nbsp;</p>
+                type: PASS_RANGE_SALES
+              - condition: |+
+
+                type: SUPPLIER_SALES
+              - condition: |
+                  <p>A 100% refund applies to completely unused and unactivated passes. Request must be submitted no later than six months from the last possible activation date indicated on the mobile Pass.&nbsp;</p>
+                type: PASS_RANGE_AFTER_SALES
+              - condition: |-
+                  A mobile Pass is a paperless ticket that can be added instantly to a phone 
+                   - No need to choose a start date until the moment of the travel 
+                   - Instant delivery – add it straight to the Eurail/Interrail Rail Planner app (minimal requirements are: Android 6.0 / iOS 10.0 / iPhone 5)
+                type: TICKETING_METHOD
+            travelerPassOffers:
+              - prices:
+                  billings:
+                    - billingPrice:
+                        amount:
+                          value: 103
+                          currency: EUR
+                        netAmount:
+                          value: 95.79
+                          currency: EUR
+                      partnerCommission:
+                        amount:
+                          value: 7.21
+                          currency: EUR
+                  selling:
+                    sellingPrice:
+                      amount:
+                        value: 103
+                        currency: EUR
+                    partnerCommission:
+                      amount:
+                        value: 7.21
+                        currency: EUR
+                  amountsToDisplay:
+                    - amount:
+                        value: 103
+                        currency: EUR
+                      partnerCommission:
+                        amount:
+                          value: 7.21
+                          currency: EUR
+                travelerId: traveler-1
+                productCode: EOC_C_France_1D
+                passTravelClass:
+                  code: '1'
+                  comfortCategory:
+                    code: COMFORT
+                    label: Comfort
+            tags:
+              - Pass_product
+            travelClass:
+              code: '1'
+              comfortCategory:
+                code: COMFORT
+                label: Comfort
+            travelerInformationRequired:
+              defaultTravelerInformationRequired:
+                - TITLE
+                - FIRST_NAME
+                - LAST_NAME
+                - DATE_OF_BIRTH
+                - COUNTRY_OF_RESIDENCE
+              leadTravelerInformationRequired:
+                - EMAIL
+                - PHONE_NUMBER
+            expirationDate: '2023-09-21T11:59:51Z'
+            location: /offers/passes/searches/468c8bab-5322-4c41-b9f8-bb4c9dd999e1/offers/pass-offer-1
+            marketingCarrier: EURAIL
+            type: pass-offer
+        products:
+          - code: EOC_C_France_1D
+            label: Eurail France Mobile Pass
+            fare:
+              numberOfTravelDays: 1
+              validityDuration: P1M
+              activationDuration: P11M
+            supplier: EURAIL
+            marketingCarrier: EURAIL
+            places:
+              - FR
+            type: pass
+    search-response-for-swiss-pass-offer:
+      summary: Retrieve sbb passes offer
+      value:
+        id: pass-offer-11
+        validityDuration: P1M
+        validityPeriod:
+          startDate: '2022-05-06'
+          endDate: '2022-06-05'
+        label: Swiss Travel Pass Flex
+        location: /offers/passes/searches/97d903ab-b25b-41de-857f-8e3090c62a78/offers/pass-offer-11
+        numberOfTravelDays: 8
+        conditions:
+          - condition: |
+              <p>Swiss Travel Pass includes :</p>
+              <ul>
+              <li>Unlimited travel on train, bus and boat</li>
+              <li>Unlimited travel on premium panorama trains: Glacier Express, Bernina Express, Golden Pass MOB, Gothard Panorama Express and Luzern Interlaken Express (seat reservations extra).</li>
+              <li>Unlimited travel on 90 city transit systems</li>
+              <li>Free admission to more than 500 museums (<a href="http://www.museumspass.ch" target="_blank">www.museumspass.ch</a>)</li>
+              <li>Pass includes mountain excursions to Brunni, Klewenalp, Rigi, Stanserhorn, and Stoos.&nbsp;&nbsp;</li>
+              <li>Free Swiss Family Card: Children age 6 to 15 accompanied by a parent or legal guardian, travel free with the Swiss Family Card.</li>
+              <li>Children under 6 years accompanied by a holder of a valid Swiss Travel System pass travel free of charge.</li>
+              </ul>
+            type: GLOBAL_INTRODUCTION_DETAILS
+          - condition: |
+              <p>Enjoy unlimited travel throughout Switzerland by train, bus and boat, plus free public transportation in over 90 main cities.</p>
+            type: GLOBAL_INTRODUCTION
+          - condition: '<p>Can not be sold to or used by residents of Switzerland and Liechtenstein</p><p><br></p><ul><li>- Flexible travel</li><li>- Choose between 3, 4, 6, 8 or 15 travel days. </li><li>- Travel days can be used freely within one month from 1st date of validity indicated on your pass.</li></ul><p><br></p><p></p>'
+            type: GLOBAL_DESCRIPTION
+          - condition: |
+              <ul>
+              <li>Unlimited travel on train, bus and boat (<a href="https://s3.amazonaws.com/helpscout.net/docs/assets/5f27b7922c7d3a31c76a564e/attachments/5f7333c24cedfd001763928d/STS_map_area_of_validity.pdf" target="_blank">area of validity and benefits</a> )&nbsp;</li>
+              <li>Unlimited travel on premium panorama trains: Glacier Express, Bernina Express, Golden Pass MOB, Gothard Panorama Express and Luzern Interlaken Express (seat reservations cost extra).</li>
+              <li>Unlimited use of public transit in more than 90 towns and cities.</li>
+              <li>Free admission to more than 500 museums (<a href="http://www.museumspass.ch" target="_blank">www.museumspass.ch</a> )</li>
+              <li>Pass includes mountain excursions to Brunni, Klewenalp, Rigi, Stanserhorn, and Stoos.&nbsp;</li>
+              </ul>
+            type: INCLUDES
+          - condition: |
+              <ul>
+              <li>Up to 50% discount on mountain railways and cable cars (25% on Jungfraujoch).</li>
+              <li>Passholder fares on Lyria</li>
+              <li>Passholder fares on NightJet routes including Switzerland</li>
+              </ul>
+              <p>Bonuses are subject to change and may require use of a travel day.</p>
+              <p>Travelers should confirm bonuses locally.</p>
+            type: BONUSES
+          - condition: 'This pass gives you 8 days of travel in which to take as many trips as you want within a calendar day (midnight - 5am the following day). These 8 days do not need to be used continuously, but can be any 8 days of travel within a period of 1 month from first date of validity.'
+            type: PASS_SALES
+          - condition: |
+              <p>Available for adult and youth travelers in first and second class. Youth travelers must be under 25 years old on the first day of travel.<br>Valid for residents outside of Switzerland and Liechtenstein.<br>Passes are prevalidated at time of purchase and can be purchased 6 months in advance.</p>
+              <p>The Swiss map is required to travel, either printed or via the following link: <a href="https://s3.amazonaws.com/helpscout.net/docs/assets/5f27b7922c7d3a31c76a564e/attachments/5f7333c24cedfd001763928d/STS_map_area_of_validity.pdf" target="_blank">area of validity and benefits</a>&nbsp;&nbsp;</p>
+              <p></p>
+            type: PASS_RANGE_SALES
+          - condition: |
+              <p>Refundable up to 1 day prior to first date of validity. Thereafter, a 15% penalty applies to unused passes.  If pass is used or flexi days are activated, non refundable.</p>
+            type: PASS_RANGE_AFTER_SALES
+          - condition: |-
+              For Swiss Travel Pass with consecutive days, or Swiss Half Fare Card: ticket will be attached to your booking confirmation email as a pdf. Please, print your pass or card prior to boarding your first train.
+
+
+              //// For Swiss Travel Pass Flex, the pdf that will be attached to your confirmation email is a receipt and not a valid travel document! You will need to activate your travel days on www.activateyourpass.com. You will receive a valid ticket for each activated travel day. Please show this either in printed form or on your mobile device when tickets are being checked. Activated tickets can be deactivated/changed any number of times until 1 day prior to the selected travel day. On the selected travel day, an activated ticket cannot be deactivated anymore.
+            type: TICKETING_METHOD
+        travelerPassOffers:
+          - prices:
+              billings:
+                - billingPrice:
+                    amount:
+                      value: 631.48
+                      currency: EUR
+                  partnerCommission:
+                    amount:
+                      value: 50.52
+                      currency: EUR
+              selling:
+                sellingPrice:
+                  amount:
+                    value: 695.58
+                    currency: USD
+                partnerCommission:
+                  amount:
+                    value: 55.65
+                    currency: USD
+            travelerId: traveler-1
+            productCode: STPF8
+            passTravelClass:
+              code: '1'
+              comfortCategory:
+                code: COMFORT
+                label: Comfort
+        tags:
+          - Pass_product
+        travelClass:
+          code: '1'
+          comfortCategory:
+            code: COMFORT
+            label: Comfort
+        travelerInformationRequired:
+          defaultTravelerInformationRequired:
+            - TITLE
+            - FIRST_NAME
+            - LAST_NAME
+            - DATE_OF_BIRTH
+            - COUNTRY_OF_RESIDENCE
+          leadTravelerInformationRequired:
+            - EMAIL
+            - PHONE_NUMBER
+        expirationDate: '2022-05-06T00:00:00Z'
+        products:
+          - code: STPF8
+            label: Swiss Travel Pass Flex
+            fare:
+              numberOfTravelDays: 8
+              validityDuration: P1M
+            supplier: SBB
+            marketingCarrier: STS
+            places:
+              - CH
+            type: pass
+        travelers:
+          - id: traveler-1
+            type: ADULT
+            age: 30
+        type: pass-offer
+    search-response-for-eurail-pass-offer:
+      summary: Retrieve eurail passes offer
+      value:
+        id: pass-offer-1
+        validityDuration: P1M
+        label: Interrail Switzerland Mobile Pass
+        location: /offers/passes/searches/97d903ab-b25b-41de-857f-8e3090c62a78/offers/pass-offer-1
+        numberOfTravelDays: 8
+        activationDuration: P11M
+        activationPeriod:
+          startDate: '2022-05-04'
+          endDate: '2023-04-03'
+        conditions:
+          - condition: |
+              <ul>
+              <li></li>
+              </ul>
+            type: GLOBAL_INTRODUCTION_DETAILS
+          - condition: "<p class=\"MsoNormal\" style=\"margin-bottom:0cm;line-height:normal;text-autospace:\nnone\">\n\n\n\n\n<style>\n<!--\n /* Font Definitions */\n @font-face\n\t{font-family:\"Cambria Math\";\n\tpanose-1:2 4 5 3 5 4 6 3 2 4;}\n@font-face\n\t{font-family:DengXian;\n\tpanose-1:2 1 6 0 3 1 1 1 1 1;}\n@font-face\n\t{font-family:Calibri;\n\tpanose-1:2 15 5 2 2 2 4 3 2 4;}\n@font-face\n\t{font-family:\"Segoe UI\";\n\tpanose-1:2 11 5 2 4 2 4 2 2 3;}\n@font-face\n\t{font-family:\"\\@DengXian\";\n\tpanose-1:2 1 6 0 3 1 1 1 1 1;}\n /* Style Definitions */\n p.MsoNormal, li.MsoNormal, div.MsoNormal\n\t{margin-top:0cm;\n\tmargin-right:0cm;\n\tmargin-bottom:8.0pt;\n\tmargin-left:0cm;\n\tline-height:107%;\n\tfont-size:11.0pt;\n\tfont-family:\"Calibri\",sans-serif;}\n.MsoChpDefault\n\t{font-family:\"Calibri\",sans-serif;}\n.MsoPapDefault\n\t{margin-bottom:8.0pt;\n\tline-height:107%;}\n /* Page Definitions */\n @page WordSection1\n\t{size:612.0pt 792.0pt;\n\tmargin:70.85pt 70.85pt 70.85pt 70.85pt;}\ndiv.WordSection1\n\t{page:WordSection1;}\n--> </style><span style=\"color: rgb(0, 0, 0); font-family: &quot;Times New Roman&quot;, serif; font-size: 16px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;\">Can only be sold to or used by residents of Europe, except for residents of the selected country.</span><span style=\"font-size:12.0pt;font-family:&quot;Times New Roman&quot;,serif\"></span>\n\n<br><span style=\"font-size:12.0pt;font-family:&quot;Times New Roman&quot;,serif\"></span><span style=\"font-size:\n10.0pt;font-family:&quot;Segoe UI&quot;,sans-serif;color:black\"></span></p><div class=\"WordSection1\">\n\n</div><p>\n\n\n\n\n<br></p><ul><li>Flexible travel</li><li>Choose between 3, 4, 5, 6&nbsp; or 8 travel days in 1 month. </li><li>Travel days can be used freely within one month from 1st date of validity indicated on your pass.<span style=\"color: rgb(0, 0, 0);\"><span style=\"font-family: &quot;Times New Roman&quot;, serif;\"><br></span></span></li></ul><p></p>"
+            type: GLOBAL_DESCRIPTION
+          - condition: |
+              <p>Interrail One Country pass only allows travel in the selected European country.&nbsp;&nbsp;</p>
+            type: INCLUDES
+          - condition: |
+              <p><a href="http://www.raileurope.fr/Extranet/Eurail/eurail_benefits_2021.pdf" target="_blank">Interrail bonus</a>&nbsp;</p>
+            type: BONUSES
+          - condition: Unlimited travel on the national rail network of Switzerland. Cannot be sold to or used by residents of Switzerland.
+            type: PASS_SALES
+          - condition: |
+              <p>Can only be sold to or used by residents of Albania, Andorra, Austria, Belarus, Belgium, Bosnia-Herzegovina, Bulgaria, Croatia, Czech Republic, Cyprus, Denmark, England, Estonia, Faeroer, Finland, FYR Macedonia, France, Germany, Gibraltar, Greece, Hungary, Iceland, Ireland, Italy, Latvia, Liechtenstein, Lithuania, San Marino, Scotland, Luxembourg, Malta, Moldova, Monaco, Montenegro, Netherlands, Norway, Poland, Portugal, Romania, Russia, Serbia, Slovakia, Slovenia, Spain, Sweden, Switzerland, Turkey, Ukraine, Vatican and Wales. <br>Not valid in the country of residence of the client&nbsp;&nbsp;&nbsp;</p>
+              <p></p>
+              <p style="margin-left:1.5em;"><span style="color: rgb(103,118,138);background-color: rgb(255,255,255);font-size: 13px;">Pass must be activated within eleven months after purchasing date, and before the first travel, through the Eurail/Interrail Rail Planner App. </span></p>
+              <p><span style="color: rgb(103,118,138);background-color: rgb(255,255,255);font-size: 13px;">Seat/bed reservations for mandatory bookable trains <strong>still need to be purchased and are an additional cost to the rail pass. </strong></span>Seat reservations may be limited on some services, advance bookings are recommended (reservations are booked via the Rail Planner app or at the train station).</p>
+              <p><strong>Discounts available:</strong><br>- Senior: for passengers 60 and over<br>- Youth: for passengers under 28<br>- Children<br> 4-11: free in the limit of 2 children by paying adult otherwise a youth<br> pass should be purchased. Seat/bed reservations for mandatory bookable <br>trains still need to be purchased.<br>Children under 4: free (except if a reservation for a separate seat/bed is required)&nbsp;&nbsp;</p>
+            type: PASS_RANGE_SALES
+          - condition: |+
+
+            type: SUPPLIER_SALES
+          - condition: |
+              <p>No refund on partially used, activated pass. When refundable, 100% refundable within 1 year from the date of purchase on non activated pass&nbsp;&nbsp;</p>
+            type: PASS_RANGE_AFTER_SALES
+          - condition: |2-
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+               A mobile Pass is a paperless ticket that can be added instantly to a phone 
+               - No need to choose a start date until the moment of the travel 
+               - Instant delivery – add it straight to the Eurail/Interrail Rail Planner app (minimal requirements are: Android 6.0 / iOS 10.0 / iPhone 5)
+            type: TICKETING_METHOD
+        travelerPassOffers:
+          - prices:
+              billings:
+                - billingPrice:
+                    amount:
+                      value: 344
+                      currency: EUR
+                  partnerCommission:
+                    amount:
+                      value: 24.08
+                      currency: EUR
+              selling:
+                sellingPrice:
+                  amount:
+                    value: 378.92
+                    currency: USD
+                partnerCommission:
+                  amount:
+                    value: 26.53
+                    currency: USD
+            travelerId: traveler-1
+            productCode: IOCCH_8D
+            passTravelClass:
+              code: '1'
+              comfortCategory:
+                code: COMFORT
+                label: Comfort
+        tags:
+          - Pass_product
+        travelClass:
+          code: '1'
+          comfortCategory:
+            code: COMFORT
+            label: Comfort
+        travelerInformationRequired:
+          defaultTravelerInformationRequired:
+            - TITLE
+            - FIRST_NAME
+            - LAST_NAME
+            - DATE_OF_BIRTH
+            - COUNTRY_OF_RESIDENCE
+          leadTravelerInformationRequired:
+            - EMAIL
+            - PHONE_NUMBER
+        expirationDate: '2022-05-07T11:48:44Z'
+        products:
+          - code: IOCCH_8D
+            label: Interrail Switzerland Mobile Pass
+            fare:
+              numberOfTravelDays: 8
+              validityDuration: P1M
+              activationDuration: P11M
+            supplier: EURAIL
+            marketingCarrier: INTERRAIL
+            places:
+              - CH
+            type: pass
+        travelers:
+          - id: traveler-1
+            type: ADULT
+            age: 30
+        type: pass-offer
+    search-request-eurail-passes-offers:
+      value:
+        place:
+          code: FR
+          label: France
+        validityStartDate: '2025-11-06'
+        travelers:
+          - age: 30
+    search-request-swiss-passes-offers:
+      value:
+        place:
+          code: CH
+          label: Switzerland
+        validityStartDate: '2023-11-06'
+        travelers:
+          - age: 30
+  requestBodies: {}
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: 'You can directly use this [endpoint](reference/authentication.oas3.yml/paths/~1oauth2~1token/post) to generate your token.'
+  parameters:
+    PointOfSale:
+      name: X-Point-Of-Sale
+      in: header
+      description: Point of sale code
+      required: true
+      schema:
+        type: string

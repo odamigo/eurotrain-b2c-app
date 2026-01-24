@@ -1,0 +1,422 @@
+openapi: 3.1.0
+info:
+  version: '1.0'
+  title: products
+  summary: products api
+  description: retrieve products
+  contact:
+    url: 'https://rail-europe.stoplight.io/'
+servers:
+  - url: 'https://api-sandbox.era.raileurope.com'
+paths:
+  /products/point-to-point:
+    get:
+      tags:
+        - products
+      summary: retrieve point-to-point products
+      operationId: getPTPProducts
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          description: auth token
+        - schema:
+            type: string
+          in: header
+          name: X-Point-Of-Sale
+          description: point of sale code
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PointToPointProduct'
+        '400':
+          $ref: '#/components/responses/Era-common_Oas3_400'
+        '404':
+          $ref: '#/components/responses/Era-common_Oas3_404'
+        '500':
+          $ref: '#/components/responses/Era-common_Oas3_500'
+      servers:
+        - url: 'https://api-sandbox.era.raileurope.com'
+  /products/passes:
+    get:
+      tags:
+        - products
+      summary: retrieve passes products
+      operationId: getPassesProducts
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PassProduct'
+        '400':
+          $ref: '#/components/responses/Era-common_Oas3_400'
+        '404':
+          $ref: '#/components/responses/Era-common_Oas3_404'
+        '500':
+          $ref: '#/components/responses/Era-common_Oas3_500'
+      servers:
+        - url: 'https://api-sandbox.era.raileurope.com'
+  /products/point-to-point-reservation:
+    get:
+      tags:
+        - products
+      summary: retrieve point-to-point-reservation products
+      operationId: getReservationsProducts
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PointToPointReservationProduct'
+        '400':
+          $ref: '#/components/responses/Era-common_Oas3_400'
+        '404':
+          $ref: '#/components/responses/Era-common_Oas3_404'
+        '500':
+          $ref: '#/components/responses/Era-common_Oas3_500'
+      servers:
+        - url: 'https://api-sandbox.era.raileurope.com'
+  /products/point-to-point-option:
+    get:
+      tags:
+        - products
+      summary: retrieve point-to-point-option products
+      operationId: getOptionsProducts
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PointToPointOptionProduct'
+        '400':
+          $ref: '#/components/responses/Era-common_Oas3_400'
+        '404':
+          $ref: '#/components/responses/Era-common_Oas3_404'
+        '500':
+          $ref: '#/components/responses/Era-common_Oas3_500'
+      servers:
+        - url: 'https://api-sandbox.era.raileurope.com'
+      x-stoplight:
+        id: ahixd7rek1lkx
+    parameters: []
+components:
+  schemas:
+    PointToPointProduct:
+      title: PointToPointProduct
+      description: TYPE = "point-to-point"
+      allOf:
+        - type: object
+          properties:
+            type:
+              type: string
+              readOnly: true
+              default: point-to-point
+            paxType:
+              $ref: '#/components/schemas/PaxType'
+            cabinClass:
+              $ref: '#/components/schemas/CabinClass'
+            fare:
+              $ref: '#/components/schemas/Fare'
+            refundable:
+              type: string
+              enum:
+                - 'YES'
+                - 'NO'
+                - WITH_CONDITION
+            exchangeable:
+              type: string
+              enum:
+                - 'YES'
+                - 'NO'
+                - WITH_CONDITION
+        - $ref: '#/components/schemas/AbstractProduct'
+    PaxType:
+      title: PaxType
+      type: object
+      properties:
+        code:
+          type: string
+        label:
+          type: string
+    Fare:
+      title: Fare
+      type: object
+      properties:
+        label:
+          type: string
+        flexibility:
+          $ref: '#/components/schemas/Flexibility'
+        conditions:
+          type: string
+    Flexibility:
+      title: Flexibility
+      type: object
+      properties:
+        code:
+          type: string
+        label:
+          type: string
+        level:
+          type: string
+      description: |-
+        Possible values:
+        NON_FLEX = new Flexibility("NON_FLEX", "Non Flex", 1)
+        SEMI_FLEX = new Flexibility("SEMI_FLEX", "Semi Flex", 2)
+        FULL_FLEX = new Flexibility("FULL_FLEX", "Flexible", 3)
+    AbstractProduct:
+      title: AbstractProduct
+      type: object
+      properties:
+        code:
+          type: string
+        label:
+          type: string
+        marketingCarrier:
+          type: string
+        supplier:
+          type: string
+        type:
+          type: string
+    PassProduct:
+      title: PassProduct
+      description: TYPE = "pass"
+      allOf:
+        - $ref: '#/components/schemas/AbstractProduct'
+        - type: object
+          properties:
+            type:
+              type: string
+              readOnly: true
+              default: pass
+            fare:
+              $ref: '#/components/schemas/PassFare'
+            places:
+              type: array
+              items:
+                type: string
+    PassFare:
+      title: PassFare
+      type: object
+      properties:
+        code:
+          type: string
+        label:
+          type: string
+        numberOfTravelDays:
+          type: number
+        validityDuration:
+          type: string
+        activationDuration:
+          type: string
+      description: |-
+        * 'validityDuration': always filled
+        * 'numberOfTravelDays': filled only if the travel days are not consecutive
+        * 'activationDuration': filled only if the pass can be activated after the sale
+    PointToPointReservationProduct:
+      description: TYPE = "point-to-point-reservation"
+      allOf:
+        - $ref: '#/components/schemas/AbstractProduct'
+        - type: object
+          properties:
+            type:
+              type: string
+              readOnly: true
+              default: point-to-point-reservation
+            cabinClass:
+              $ref: '#/components/schemas/CabinClass'
+            conditions:
+              type: string
+            externalReservation:
+              type: boolean
+            refundable:
+              type: string
+              enum:
+                - 'YES'
+                - 'NO'
+                - WITH_CONDITION
+            exchangeable:
+              type: string
+              enum:
+                - 'YES'
+                - 'NO'
+                - WITH_CONDITION
+    PointToPointOptionProduct:
+      title: PointToPointOptionProduct
+      description: TYPE = "point-to-point-option"
+      allOf:
+        - $ref: '#/components/schemas/AbstractProduct'
+        - type: object
+          properties:
+            type:
+              type: string
+              readOnly: true
+              default: point-to-point-option
+            serviceType:
+              type: string
+            title:
+              type: string
+            summary:
+              type: string
+            description:
+              type: string
+    CabinClass:
+      title: CabinClass
+      type: object
+      properties:
+        code:
+          type: string
+        label:
+          type: string
+        comfortCategory:
+          allOf:
+            - $ref: '#/components/schemas/Comfort'
+            - type: object
+              deprecated: false
+              properties:
+                code:
+                  deprecated: false
+                label:
+                  deprecated: false
+        type:
+          $ref: '#/components/schemas/CabinType'
+    CabinType:
+      type: object
+      description: This field is typically returned for night trains.
+      properties:
+        code:
+          enum:
+            - COUCHETTE
+            - SLEEPER
+            - SEAT
+        label:
+          enum:
+            - Couchette
+            - Sleeper
+            - Seat
+    CauseError:
+      title: CauseError
+      type: object
+      properties:
+        code:
+          type: string
+        details:
+          type: array
+          items:
+            type: string
+        label:
+          type: string
+        type:
+          type: string
+          enum:
+            - technical
+            - functional
+    Comfort:
+      deprecated: true
+      title: Comfort
+      type: object
+      properties:
+        code:
+          deprecated: true
+          type: string
+          enum:
+            - STANDARD
+            - COMFORT
+            - PREMIER
+        label:
+          deprecated: true
+          type: string
+    ResourceError:
+      title: ResourceError
+      type: object
+      properties:
+        causes:
+          type: array
+          items:
+            $ref: '#/components/schemas/CauseError'
+        code:
+          type: string
+        details:
+          type: array
+          items:
+            type: string
+        label:
+          type: string
+        type:
+          type: string
+          enum:
+            - technical
+            - functional
+  responses:
+    Era-common_Oas3_400:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ResourceError'
+          examples:
+            Bad request error:
+              summary: Bad request error
+              value:
+                code: era-request-validation-error
+                label: Request validation error
+                details:
+                  - Missing request header 'X-Point-Of-Sale' for method parameter of type String
+    Era-common_Oas3_404:
+      description: Resource Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ResourceError'
+          examples:
+            Resource not found:
+              summary: Resource not found error
+              value:
+                code: era-offers-unknown-offers-search
+                label: No offer search found with given identifier
+                details:
+                  - 47210c6c-85bf-4121-ab06-7ae61d0513c01
+    Era-common_Oas3_500:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ResourceError'
+          examples:
+            Internal server error:
+              summary: Internal Server Error
+              value:
+                code: era-technical-error
+                label: Technical error
+                details:
+                  - An unexpected error occurred

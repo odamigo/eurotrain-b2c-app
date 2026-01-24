@@ -1,0 +1,196 @@
+openapi: 3.0.1
+info:
+  title: Health
+  description: Health services
+  contact:
+    url: 'https://rail-europe.stoplight.io/'
+  version: '1.0'
+servers:
+  - url: 'https://api-sandbox.era.raileurope.com'
+security:
+  - bearerAuth: []
+tags:
+  - name: heath
+paths:
+  '/health/suppliers/{supplierId}':
+    get:
+      tags:
+        - health
+      summary: Get health status for a specific supplier
+      description: 'Get the health status for a given supplier. Instability duration is provided when the supplier status is down or unstable: more details on HOW TO use this endpoint [here](docs/how-to/initialization/health.md).'
+      operationId: getHealthGetSupplierHealth
+      parameters:
+        - $ref: '#/components/parameters/PointOfSale'
+        - name: Accept-Language
+          in: header
+          schema:
+            type: string
+            default: en
+        - name: supplierId
+          in: path
+          description: Supplier Id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+              example:
+                id: LYRIA
+                status: UP
+        '404':
+          $ref: '#/components/responses/Era-common_Oas3_404'
+        '500':
+          $ref: '#/components/responses/Era-common_Oas3_500'
+  /health/suppliers:
+    get:
+      summary: Get suppliers health status
+      description: 'Get the health status for all the suppliers. Instability duration is provided when the supplier status is down or unstable: more details on HOW TO use this endpoint [here](docs/how-to/initialization/health.md).'
+      operationId: getHealthGetSuppliersHealth
+      parameters:
+        - $ref: '#/components/parameters/PointOfSale'
+        - name: Accept-Language
+          in: header
+          schema:
+            type: string
+            default: en
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HealthStatus'
+              example:
+                - id: EUROSTAR
+                  status: DOWN
+                  downtime: PT3H35M38S
+                - id: LYRIA
+                  status: UP
+                - id: RENFE
+                  status: UP
+                - id: THALYS
+                  status: UP
+                - id: SBB
+                  status: UP
+                - id: CYBERSOURCE
+                  status: UP
+                - id: TRENITALIA
+                  status: UP
+                - id: NTV
+                  status: UP
+                - id: TRENITALIA
+                  status: UP
+        '404':
+          $ref: '#/components/responses/Era-common_Oas3_404'
+        '500':
+          $ref: '#/components/responses/Era-common_Oas3_500'
+      tags:
+        - health
+components:
+  schemas:
+    HealthStatus:
+      title: HealthStatus
+      type: object
+      properties:
+        id:
+          type: string
+          description: Supplier identifier
+          example: EUROSTAR
+        status:
+          type: string
+          description: Supplier status
+          enum:
+            - UP
+            - UNSTABLE
+            - DOWN
+        downtime:
+          type: string
+          description: ISO 8601 duration format
+          example: PT40M46S
+    CauseError:
+      title: CauseError
+      type: object
+      properties:
+        code:
+          type: string
+        details:
+          type: array
+          items:
+            type: string
+        label:
+          type: string
+        type:
+          type: string
+          enum:
+            - technical
+            - functional
+    ResourceError:
+      title: ResourceError
+      type: object
+      properties:
+        causes:
+          type: array
+          items:
+            $ref: '#/components/schemas/CauseError'
+        code:
+          type: string
+        details:
+          type: array
+          items:
+            type: string
+        label:
+          type: string
+        type:
+          type: string
+          enum:
+            - technical
+            - functional
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: 'You can directly use this [endpoint](reference/authentication.oas3.yml/paths/~1oauth2~1token/post) to generate your token.'
+  parameters:
+    PointOfSale:
+      name: X-Point-Of-Sale
+      in: header
+      description: Point of sale code
+      required: true
+      schema:
+        type: string
+  responses:
+    Era-common_Oas3_404:
+      description: Resource Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ResourceError'
+          examples:
+            Resource not found:
+              summary: Resource not found error
+              value:
+                code: era-offers-unknown-offers-search
+                label: No offer search found with given identifier
+                details:
+                  - 47210c6c-85bf-4121-ab06-7ae61d0513c01
+    Era-common_Oas3_500:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ResourceError'
+          examples:
+            Internal server error:
+              summary: Internal Server Error
+              value:
+                code: era-technical-error
+                label: Technical error
+                details:
+                  - An unexpected error occurred
