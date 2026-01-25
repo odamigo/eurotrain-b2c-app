@@ -140,6 +140,62 @@ EuroTrain, Avrupa tren bileti pazarında **AI-first** yaklaşımıyla öncü olm
 - [ ] Loyalty program
 - [ ] Mobile app (React Native)
 
+### Phase 6: Skill Publishing (Post-Production Stability)
+**Timeline:** Q2-Q3 2025
+**Prerequisite:** Production running stable for 2+ weeks
+
+#### Pre-Conditions (All must be met):
+- [ ] ERA API production credentials active & tested
+- [ ] Payten live payments active & tested
+- [ ] Terms of Service published on eurotrain.net
+- [ ] Privacy Policy (GDPR/KVKK compliant) published
+- [ ] API endpoints stable (no breaking changes for 2 weeks)
+- [ ] Legal review completed
+
+#### Legal Requirements for Skill:
+- [ ] "Prices may change" disclaimer (Fiyatlar değişebilir)
+- [ ] "Booking completes at checkout" clarification
+- [ ] Carrier information accuracy guarantee
+- [ ] Link to refund/exchange policies
+- [ ] No "guaranteed lowest price" claims
+- [ ] No "instant booking" promises (checkout required)
+
+#### Skill Contents:
+```
+eurotrain-skill/
+├── SKILL.md           # Main instructions
+├── marketplace.json   # SkillsMP metadata  
+├── LICENSE            # Apache 2.0
+├── DISCLAIMER.md      # Legal notices
+└── examples/
+    ├── search.md      # Search examples
+    └── booking.md     # Booking flow example
+```
+
+#### Publishing Process:
+1. Create GitHub repo: `eurotrain-skill`
+2. Add Apache 2.0 license
+3. SkillsMP will auto-index from GitHub
+4. Optional: PR to anthropics/skills repo
+5. Announce on social media / developer channels
+
+#### Update Policy:
+| Change Type | Skill Update Required? |
+|-------------|----------------------|
+| Major API breaking change | ✅ Yes, immediately |
+| New feature added | ✅ Yes |
+| New station codes | ⚠️ Only if affects usage |
+| Bug fix | ❌ No |
+| Price changes | ❌ No |
+| Expected frequency | 2-4 times per year |
+
+#### Why NOT Publishing Now:
+- API endpoints still changing (development)
+- Mock data, not real prices
+- No production URL yet
+- Legal agreements not finalized
+- Would require constant updates
+
 ---
 
 ## 🏗️ Technical Architecture
@@ -232,6 +288,7 @@ EuroTrain, Avrupa tren bileti pazarında **AI-first** yaklaşımıyla öncü olm
 | 2025-01-26 | MCP-first, OpenAPI later | Anthropic Claude priority, Google/OpenAI Phase 4 |
 | 2025-01-26 | OAuth deferred to Phase 4 | Anonymous booking sufficient for MVP |
 | 2025-01-26 | search-stations tool in Phase 2 | Station disambiguation critical for AI accuracy |
+| 2025-01-26 | **Skill publishing deferred to Phase 6** | API not stable, legal review needed, would require constant updates |
 | 2025-01-25 | Service fee 5% | Industry standard |
 
 ---
