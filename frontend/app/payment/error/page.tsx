@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -149,14 +149,14 @@ function ErrorContent() {
             <div className="border border-slate-200 rounded-2xl p-6">
               <h3 className="font-semibold text-slate-900 mb-4">Yardıma mı İhtiyacınız Var?</h3>
               <div className="space-y-3">
-                
+                <a
                   href="mailto:destek@eurotrain.net"
                   className="flex items-center gap-3 text-slate-600 hover:text-blue-600 transition-colors"
                 >
                   <Mail className="w-5 h-5" />
                   <span>destek@eurotrain.net</span>
                 </a>
-                
+                <a
                   href="tel:+902123456789"
                   className="flex items-center gap-3 text-slate-600 hover:text-blue-600 transition-colors"
                 >
