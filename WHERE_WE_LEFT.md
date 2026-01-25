@@ -1,13 +1,41 @@
 # 🚂 EUROTRAIN - NEREDE KALDIK
 
-**Son Güncelleme:** 25 Ocak 2026, 21:30
+**Son Güncelleme:** 25 Ocak 2026, 22:45
 **Git Branch:** main
+**Son Commit:** c3a1e91 - "fix: TypeScript hataları düzeltildi - Vercel deployment ready"
 
 ---
 
 ## ✅ BU OTURUMDA TAMAMLANAN
 
-### Booking Page v2 - Tam Akış
+### TypeScript Hataları Düzeltildi (25 Ocak - Gece)
+- [x] `lib/api/client.ts` - Campaign interface genişletildi
+  - `description`, `type`, `active`/`isActive`, `currentUsageCount` eklendi
+  - `UpdateCampaignDto` export edildi
+  - `PopularRoute` interface ve `getPopularRoutes()` fonksiyonu eklendi
+- [x] `lib/api/era-client.ts` - Journey interface güncellendi
+  - `operatorName` property eklendi
+  - `comfortCategory` tipi `'standard' | 'comfort' | 'premier'` olarak güncellendi
+  - `getOperatorName()` helper fonksiyonu eklendi
+- [x] `app/admin/campaigns/page.tsx` - Tip uyumsuzlukları düzeltildi
+- [x] `app/admin/campaigns/new/page.tsx` - discountType tipi düzeltildi
+- [x] `app/admin/campaigns/[id]/page.tsx` - UpdateCampaignDto kullanıldı
+- [x] `app/search/page.tsx` - `Record<string, number>` tip annotation eklendi
+- [x] `app/booking/page.tsx` - `booking.reference ?? null` düzeltmesi
+- [x] `components/search/SearchForm.tsx` - Station/EraPlace tip uyumu
+- [x] `components/search/StationAutocomplete.tsx` - debounceRef tipi düzeltildi
+- [x] `components/search/PopularRoutes.tsx` - Import düzeltildi
+
+### Build & Deploy
+- [x] `npm run build` başarılı (0 hata)
+- [x] Lokal test (localhost:3000) başarılı
+- [x] Git push tamamlandı
+
+---
+
+## 📋 ÖNCEKİ OTURUMLARDA TAMAMLANAN
+
+### Booking Page v2 - Tam Akış (25 Ocak)
 - [x] Koşulları kabul checkbox'ı (ödeme öncesi zorunlu)
 - [x] Satış Koşulları, Gizlilik Politikası, İptal/İade linkleri
 - [x] Success ekranı - Yeşil gradient header
@@ -16,20 +44,13 @@
 - [x] Biletlerim (/my-trips) linki
 - [x] Paylaş - Başkasına e-posta gönder
 - [x] Rezervasyon numarası kopyalama
-- [x] Yolculuk özeti (güzergah, tarih, saat, operatör, yolcular)
 
-### Search Page v2 - Detaylı Filtreler
+### Search Page v2 - Detaylı Filtreler (25 Ocak)
 - [x] Quick time filters (4 buton: 00-06, 06-12, 12-18, 18-24)
 - [x] "Detaylı Filtre" butonu
-- [x] Kalkış saati slider (00:00 - 24:00)
-- [x] Varış saati slider (00:00 - 24:00)
+- [x] Kalkış/Varış saati slider
 - [x] Sıfırla butonu
-- [x] Aktif filtre göstergesi (mavi nokta)
-- ⚠️ **BUG:** Slider sürükleme çalışmıyor (dual range input sorunu)
-
----
-
-## 📋 ÖNCEKİ OTURUMLARDA TAMAMLANAN
+- [x] Aktif filtre göstergesi
 
 ### Search Results Page v2 - Accordion UI (25 Ocak)
 - [x] Accordion/Expandable Cards
@@ -37,21 +58,11 @@
 - [x] "En Popüler" badge
 - [x] Sıralama seçenekleri
 - [x] Feature tags (Yüksek Hız, WiFi, Restoran)
-- [x] Rota özeti header
 
 ### Backend - ERA API Altyapısı (24 Ocak)
 - [x] `interfaces/era-api.types.ts` - 700+ satır TypeScript interface
-- [x] `services/era-auth.service.ts` - Token yönetimi
-- [x] `services/era-places.service.ts` - İstasyon arama
-- [x] `services/era-search.service.ts` - Sefer arama
-- [x] `services/era-booking.service.ts` - Rezervasyon işlemleri
-- [x] `services/era-refund.service.ts` - İade/değişiklik
+- [x] `services/era-*.service.ts` - Tüm servisler
 - [x] `mock/era-mock.service.ts` - 3 class destekli mock data
-
-### Frontend - ERA Entegrasyonu (24 Ocak)
-- [x] `lib/api/era-client.ts` - API client
-- [x] `app/page.tsx` - Homepage ERA API ile çalışıyor
-- [x] `components/search/StationAutocomplete.tsx`
 
 ### Agentic Commerce Stratejisi (24 Ocak)
 - [x] `docs/AGENTIC_COMMERCE_STRATEGY.md` - MCP-First, UCP-Ready
@@ -62,57 +73,68 @@
 
 | Bug | Durum | Öncelik |
 |-----|-------|---------|
-| Slider sürükleme çalışmıyor | Açık | Orta |
+| Slider sürükleme çalışmıyor | Açık | Düşük |
 
 ---
 
 ## 🔧 SONRAKİ OTURUMDA YAPILACAK
 
-### Öncelik 1: Deployment
-- [ ] Vercel hesabı kurulumu
+### Öncelik 1: Vercel Deployment
+- [ ] Vercel hesabı kurulumu (henüz yapılmadı)
 - [ ] GitHub repo bağlantısı
 - [ ] Environment variables ayarları
-- [ ] Production build test
+- [ ] Domain ayarları (eurotrain.net)
 
-### Öncelik 2: Bug Fixes
-- [ ] Slider dual range input düzeltmesi
-
-### Öncelik 3: Legal Sayfalar
+### Öncelik 2: Legal Sayfalar
 - [ ] /terms - Satış Koşulları
 - [ ] /privacy - Gizlilik Politikası
 - [ ] /cancellation - İptal/İade Koşulları
 
-### Öncelik 4: My Trips
+### Öncelik 3: My Trips
 - [ ] /my-trips sayfası
 - [ ] Rezervasyon listesi
 - [ ] Bilet detay görüntüleme
 - [ ] PDF indirme
+
+### Öncelik 4: Backend Production
+- [ ] PostgreSQL production DB kurulumu
+- [ ] Redis cache kurulumu
+- [ ] Environment variables güvenliği
 
 ---
 
 ## 🗂️ DOSYA YAPISI
 
 ```
-backend/src/era/
-├── interfaces/era-api.types.ts      ✅
-├── services/
-│   ├── era-auth.service.ts          ✅
-│   ├── era-places.service.ts        ✅
-│   ├── era-search.service.ts        ✅
-│   ├── era-booking.service.ts       ✅
-│   └── era-refund.service.ts        ✅
-├── mock/era-mock.service.ts         ✅
-├── era.module.ts                    ✅
-└── era.controller.ts                ✅
+backend/src/
+├── era/
+│   ├── interfaces/era-api.types.ts      ✅
+│   ├── services/*.service.ts            ✅
+│   ├── mock/era-mock.service.ts         ✅
+│   ├── era.module.ts                    ✅
+│   └── era.controller.ts                ✅
+├── payment/
+│   ├── payment.controller.ts            ✅ (TS hatası düzeltildi)
+│   ├── payment.service.ts               ✅
+│   └── entities/payment.entity.ts       ✅
+└── ...
 
 frontend/
-├── lib/api/era-client.ts            ✅
+├── lib/api/
+│   ├── client.ts                        ✅ (Campaign interface genişletildi)
+│   └── era-client.ts                    ✅ (Journey.operatorName eklendi)
 ├── app/
-│   ├── page.tsx                     ✅ Homepage
-│   ├── search/page.tsx              ✅ v2 + Slider (buggy)
-│   └── booking/page.tsx             ✅ v2 + Terms + Success
+│   ├── page.tsx                         ✅ Homepage
+│   ├── search/page.tsx                  ✅ (Record<string,number> düzeltildi)
+│   ├── booking/page.tsx                 ✅ (reference ?? null düzeltildi)
+│   └── admin/campaigns/
+│       ├── page.tsx                     ✅ (tip düzeltmeleri)
+│       ├── new/page.tsx                 ✅ (discountType düzeltildi)
+│       └── [id]/page.tsx                ✅ (UpdateCampaignDto)
 └── components/search/
-    └── StationAutocomplete.tsx      ✅
+    ├── SearchForm.tsx                   ✅ (EraPlace tipi)
+    ├── StationAutocomplete.tsx          ✅ (debounceRef tipi)
+    └── PopularRoutes.tsx                ✅ (import düzeltildi)
 ```
 
 ---
@@ -124,37 +146,21 @@ frontend/
 cd C:\dev\eurotrain-b2c-app\backend
 npm run start:dev
 
-# Frontend başlat
+# Frontend başlat (ayrı terminal)
 cd C:\dev\eurotrain-b2c-app\frontend
 npm run dev
+
+# TypeScript kontrol
+cd C:\dev\eurotrain-b2c-app\frontend
+npx tsc --noEmit
+
+# Production build
+npm run build
 
 # Tarayıcıda test
 # http://localhost:3000 → Ana sayfa
 # http://localhost:3000/search?origin=FRPAR&destination=GBLON&date=2026-02-15&adults=1 → Arama
-```
-
----
-
-## 📋 TEST CHECKLIST
-
-### Booking Page v2
-```
-☑ Yolcu bilgileri formu çalışıyor
-☑ Step indicator ilerliyor
-☑ Koşulları kabul checkbox'ı zorunlu
-☑ Ödeme butonu checkbox'a bağlı
-☑ Success ekranı görünüyor
-☑ Rezervasyon numarası gösteriliyor
-☑ PDF/Takvim/Paylaş butonları çalışıyor
-```
-
-### Search Page v2
-```
-☑ Quick filters çalışıyor
-☑ Detaylı filtre paneli açılıyor
-☐ Slider sürükleme çalışmıyor (BUG)
-☑ Sıralama çalışıyor
-☑ Sefer kartları görünüyor
+# http://localhost:3000/admin/campaigns → Kampanya yönetimi
 ```
 
 ---
@@ -162,15 +168,16 @@ npm run dev
 ## 📝 NOTLAR
 
 - Mock mode aktif (`ERA_MOCK_MODE=true`)
-- Deployment için Vercel planlanıyor
+- TypeScript strict mode aktif - tüm hatalar düzeltildi
+- Git push tamamlandı - Vercel deployment bekliyor
 - Sandbox credentials henüz yok
-- Slider bug'ı sonraki oturumda düzeltilecek
 
 ---
 
 ## 🔗 SONRAKİ OTURUM İÇİN
 
 1. Bu dosyayı oku
-2. Git push yap
-3. Vercel deployment kur
-4. Slider bug'ını düzelt
+2. Vercel hesabı oluştur/giriş yap
+3. GitHub repo'yu Vercel'e bağla
+4. Environment variables ayarla
+5. Deploy ve test
