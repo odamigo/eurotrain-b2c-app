@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { bookingApi, Booking } from '@/lib/api/client';
@@ -23,7 +23,7 @@ export default function BookingsPage() {
         const data = await bookingApi.getAll();
         setBookings(data);
       } catch (error) {
-        console.error('Rezervasyonlar yüklenirken hata:', error);
+        console.error('Rezervasyonlar yÃ¼klenirken hata:', error);
       } finally {
         setIsLoading(false);
       }
@@ -33,8 +33,8 @@ export default function BookingsPage() {
 
   const statusMap = {
     PENDING: { label: 'Bekliyor', variant: 'secondary' as const },
-    CONFIRMED: { label: 'Onaylandı', variant: 'default' as const },
-    CANCELLED: { label: 'İptal', variant: 'destructive' as const },
+    CONFIRMED: { label: 'OnaylandÄ±', variant: 'default' as const },
+    CANCELLED: { label: 'Ä°ptal', variant: 'destructive' as const },
   };
 
   const columns = [
@@ -47,7 +47,7 @@ export default function BookingsPage() {
     },
     {
       key: 'customerName',
-      header: 'Müşteri',
+      header: 'MÃ¼ÅŸteri',
       render: (booking: Booking) => (
         <div>
           <p className="font-medium text-slate-900">{booking.customerName}</p>
@@ -57,10 +57,10 @@ export default function BookingsPage() {
     },
     {
       key: 'route',
-      header: 'Güzergah',
+      header: 'GÃ¼zergah',
       render: (booking: Booking) => (
         <span>
-          {booking.fromStation} → {booking.toStation}
+          {booking.fromStation} â†’ {booking.toStation}
         </span>
       ),
     },
@@ -69,8 +69,8 @@ export default function BookingsPage() {
       header: 'Seyahat Tarihi',
       render: (booking: Booking) => (
         <span className="text-sm">
-          {booking.departure_date 
-            ? new Date(booking.departure_date).toLocaleDateString('tr-TR', {
+          {booking.departureDate 
+            ? new Date(booking.departureDate).toLocaleDateString('tr-TR', {
                 day: '2-digit',
                 month: '2-digit',
                 year: 'numeric',
@@ -86,7 +86,7 @@ export default function BookingsPage() {
       key: 'price',
       header: 'Tutar',
       render: (booking: Booking) => (
-        <span className="font-semibold">€{Number(booking.price).toFixed(2)}</span>
+        <span className="font-semibold">â‚¬{Number(booking.price).toFixed(2)}</span>
       ),
     },
     {
@@ -99,7 +99,7 @@ export default function BookingsPage() {
     },
     {
       key: 'createdAt',
-      header: 'Oluşturulma',
+      header: 'OluÅŸturulma',
       render: (booking: Booking) => (
         <span className="text-sm text-slate-500">
           {new Date(booking.createdAt).toLocaleDateString('tr-TR', {
@@ -119,7 +119,7 @@ export default function BookingsPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Rezervasyonlar</h1>
-        <p className="text-slate-500">Tüm bilet rezervasyonlarını görüntüleyin</p>
+        <p className="text-slate-500">TÃ¼m bilet rezervasyonlarÄ±nÄ± gÃ¶rÃ¼ntÃ¼leyin</p>
       </div>
 
       {/* Stats */}
@@ -143,7 +143,7 @@ export default function BookingsPage() {
         <div className="bg-white p-4 rounded-lg border border-slate-200">
           <p className="text-sm text-slate-500">Toplam Gelir</p>
           <p className="text-2xl font-bold text-blue-600">
-            €{bookings.reduce((sum, b) => sum + Number(b.price), 0).toFixed(2)}
+            â‚¬{bookings.reduce((sum, b) => sum + Number(b.price), 0).toFixed(2)}
           </p>
         </div>
       </div>
@@ -160,7 +160,7 @@ export default function BookingsPage() {
       <Dialog open={!!selectedBooking} onOpenChange={() => setSelectedBooking(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Rezervasyon Detayı</DialogTitle>
+            <DialogTitle>Rezervasyon DetayÄ±</DialogTitle>
           </DialogHeader>
           {selectedBooking && (
             <div className="space-y-4">
@@ -171,7 +171,7 @@ export default function BookingsPage() {
               <Separator />
 
               <div className="space-y-3">
-                <h4 className="font-semibold text-slate-900">Müşteri Bilgileri</h4>
+                <h4 className="font-semibold text-slate-900">MÃ¼ÅŸteri Bilgileri</h4>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Ad Soyad</span>
                   <span>{selectedBooking.customerName}</span>
@@ -186,28 +186,28 @@ export default function BookingsPage() {
               <div className="space-y-3">
                 <h4 className="font-semibold text-slate-900">Seyahat Bilgileri</h4>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Kalkış</span>
+                  <span className="text-slate-500">KalkÄ±ÅŸ</span>
                   <span>{selectedBooking.fromStation}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Varış</span>
+                  <span className="text-slate-500">VarÄ±ÅŸ</span>
                   <span>{selectedBooking.toStation}</span>
                 </div>
-                {selectedBooking.departure_date && (
+                {selectedBooking.departureDate && (
                   <div className="flex justify-between">
                     <span className="text-slate-500">Tarih</span>
-                    <span>{new Date(selectedBooking.departure_date).toLocaleDateString('tr-TR')}</span>
+                    <span>{new Date(selectedBooking.departureDate).toLocaleDateString('tr-TR')}</span>
                   </div>
                 )}
                 {selectedBooking.departure_time && (
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Kalkış Saati</span>
+                    <span className="text-slate-500">KalkÄ±ÅŸ Saati</span>
                     <span>{selectedBooking.departure_time.slice(0, 5)}</span>
                   </div>
                 )}
                 {selectedBooking.arrival_time && (
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Varış Saati</span>
+                    <span className="text-slate-500">VarÄ±ÅŸ Saati</span>
                     <span>{selectedBooking.arrival_time.slice(0, 5)}</span>
                   </div>
                 )}
@@ -219,7 +219,7 @@ export default function BookingsPage() {
                 )}
                 {selectedBooking.operator && (
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Operatör</span>
+                    <span className="text-slate-500">OperatÃ¶r</span>
                     <span>{selectedBooking.operator}</span>
                   </div>
                 )}
@@ -227,10 +227,10 @@ export default function BookingsPage() {
               <Separator />
 
               <div className="space-y-3">
-                <h4 className="font-semibold text-slate-900">Ödeme</h4>
+                <h4 className="font-semibold text-slate-900">Ã–deme</h4>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Tutar</span>
-                  <span className="font-semibold text-lg">€{Number(selectedBooking.price).toFixed(2)}</span>
+                  <span className="font-semibold text-lg">â‚¬{Number(selectedBooking.price).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-slate-500">Durum</span>
@@ -242,7 +242,7 @@ export default function BookingsPage() {
               <Separator />
 
               <div className="flex justify-between">
-                <span className="text-slate-500">Oluşturulma</span>
+                <span className="text-slate-500">OluÅŸturulma</span>
                 <span className="text-sm">
                   {new Date(selectedBooking.createdAt).toLocaleDateString('tr-TR', {
                     day: '2-digit',
