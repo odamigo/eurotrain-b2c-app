@@ -76,8 +76,8 @@ export default function BookingsPage() {
                 year: 'numeric',
               })
             : '-'}
-          {booking.departure_time && (
-            <span className="text-slate-500 ml-1">{booking.departure_time.slice(0, 5)}</span>
+          {booking.departureTime && (
+            <span className="text-slate-500 ml-1">{booking.departureTime.slice(0, 5)}</span>
           )}
         </span>
       ),
@@ -199,22 +199,22 @@ export default function BookingsPage() {
                     <span>{new Date(selectedBooking.departureDate).toLocaleDateString('tr-TR')}</span>
                   </div>
                 )}
-                {selectedBooking.departure_time && (
+                {selectedBooking.departureTime && (
                   <div className="flex justify-between">
                     <span className="text-slate-500">KalkÄ±ÅŸ Saati</span>
-                    <span>{selectedBooking.departure_time.slice(0, 5)}</span>
+                    <span>{selectedBooking.departureTime.slice(0, 5)}</span>
                   </div>
                 )}
-                {selectedBooking.arrival_time && (
+                {selectedBooking.arrivalTime && (
                   <div className="flex justify-between">
                     <span className="text-slate-500">VarÄ±ÅŸ Saati</span>
-                    <span>{selectedBooking.arrival_time.slice(0, 5)}</span>
+                    <span>{selectedBooking.arrivalTime.slice(0, 5)}</span>
                   </div>
                 )}
-                {selectedBooking.train_number && (
+                {selectedBooking.trainNumber && (
                   <div className="flex justify-between">
                     <span className="text-slate-500">Tren No</span>
-                    <span>{selectedBooking.train_number}</span>
+                    <span>{selectedBooking.trainNumber}</span>
                   </div>
                 )}
                 {selectedBooking.operator && (
@@ -260,3 +260,4 @@ export default function BookingsPage() {
     </div>
   );
 }
+
