@@ -1,79 +1,92 @@
 # 🚂 EUROTRAIN - NEREDE KALDIK
 
-**Son Güncelleme:** 25 Ocak 2026, 20:00
+**Son Güncelleme:** 25 Ocak 2026, 21:30
 **Git Branch:** main
 
 ---
 
 ## ✅ BU OTURUMDA TAMAMLANAN
 
-### Search Results Page v2 - Accordion UI
-- [x] Accordion/Expandable Cards - Sefer tıklanınca class seçenekleri açılır
-- [x] Başlayan fiyat gösterimi - Her seferde en düşük fiyat
-- [x] 3 Class karşılaştırma UI - Standart, Business, First yan yana
-- [x] "En Popüler" badge - Business class'ta dikkat çekici etiket
-- [x] Saat filtreleri - 🌅 Gece/Sabah Erken, ☀️ Sabah, 🌤️ Öğleden Sonra, 🌙 Akşam
-- [x] Detaylı saat aralığı - Kalkış/Varış için özel saat seçimi
-- [x] Sıralama seçenekleri - Kalkış saati, Fiyat (En Ucuz), Süre (En Kısa)
-- [x] Feature tags - ⚡ Yüksek Hız, 📶 WiFi, ☕ Restoran
-- [x] Rota özeti header - Paris → London, tarih, yolcu sayısı
+### Booking Page v2 - Tam Akış
+- [x] Koşulları kabul checkbox'ı (ödeme öncesi zorunlu)
+- [x] Satış Koşulları, Gizlilik Politikası, İptal/İade linkleri
+- [x] Success ekranı - Yeşil gradient header
+- [x] PDF İndir butonu
+- [x] Takvime Ekle (ICS dosyası oluşturma)
+- [x] Biletlerim (/my-trips) linki
+- [x] Paylaş - Başkasına e-posta gönder
+- [x] Rezervasyon numarası kopyalama
+- [x] Yolculuk özeti (güzergah, tarih, saat, operatör, yolcular)
 
-### Rakip Analizi Sonucu Uygulanan En İyi Pratikler
-- Trainline: Accordion pattern, fare class comparison
-- Omio: Quick time filters, sort options
-- FlixBus: Custom time range selection
-- Rail Europe: Clean header with route summary
+### Search Page v2 - Detaylı Filtreler
+- [x] Quick time filters (4 buton: 00-06, 06-12, 12-18, 18-24)
+- [x] "Detaylı Filtre" butonu
+- [x] Kalkış saati slider (00:00 - 24:00)
+- [x] Varış saati slider (00:00 - 24:00)
+- [x] Sıfırla butonu
+- [x] Aktif filtre göstergesi (mavi nokta)
+- ⚠️ **BUG:** Slider sürükleme çalışmıyor (dual range input sorunu)
 
 ---
 
 ## 📋 ÖNCEKİ OTURUMLARDA TAMAMLANAN
 
+### Search Results Page v2 - Accordion UI (25 Ocak)
+- [x] Accordion/Expandable Cards
+- [x] 3 Class karşılaştırma UI (Standart, Business, First)
+- [x] "En Popüler" badge
+- [x] Sıralama seçenekleri
+- [x] Feature tags (Yüksek Hız, WiFi, Restoran)
+- [x] Rota özeti header
+
 ### Backend - ERA API Altyapısı (24 Ocak)
 - [x] `interfaces/era-api.types.ts` - 700+ satır TypeScript interface
-- [x] `services/era-auth.service.ts` - Token yönetimi (60 dk cache)
-- [x] `services/era-places.service.ts` - İstasyon arama (7 gün cache)
-- [x] `services/era-search.service.ts` - Sefer arama (15 dk cache)
+- [x] `services/era-auth.service.ts` - Token yönetimi
+- [x] `services/era-places.service.ts` - İstasyon arama
+- [x] `services/era-search.service.ts` - Sefer arama
 - [x] `services/era-booking.service.ts` - Rezervasyon işlemleri
 - [x] `services/era-refund.service.ts` - İade/değişiklik
-- [x] `mock/era-mock.service.ts` - 3 class destekli mock data (v2)
-- [x] `era.controller.ts` - Yeni API endpoints
-- [x] `era.module.ts` - NestJS modül
+- [x] `mock/era-mock.service.ts` - 3 class destekli mock data
 
 ### Frontend - ERA Entegrasyonu (24 Ocak)
-- [x] `lib/api/era-client.ts` - Yeni API client
+- [x] `lib/api/era-client.ts` - API client
 - [x] `app/page.tsx` - Homepage ERA API ile çalışıyor
-- [x] `components/search/StationAutocomplete.tsx` - Güncellendi
+- [x] `components/search/StationAutocomplete.tsx`
 
 ### Agentic Commerce Stratejisi (24 Ocak)
-- [x] `docs/AGENTIC_COMMERCE_STRATEGY.md` - MCP-First, UCP-Ready yaklaşımı
+- [x] `docs/AGENTIC_COMMERCE_STRATEGY.md` - MCP-First, UCP-Ready
+
+---
+
+## 🐛 BİLİNEN BUGLAR
+
+| Bug | Durum | Öncelik |
+|-----|-------|---------|
+| Slider sürükleme çalışmıyor | Açık | Orta |
 
 ---
 
 ## 🔧 SONRAKİ OTURUMDA YAPILACAK
 
-### Öncelik 1: Booking Sayfası
-- [ ] ERA booking flow implementasyonu
-- [ ] Traveler bilgileri formu (Ad, Soyad, Email, Telefon)
-- [ ] Prebook → Payment → Confirm akışı
-- [ ] Kampanya kodu entegrasyonu
-- [ ] Seçilen class bilgilerinin booking'e aktarılması
+### Öncelik 1: Deployment
+- [ ] Vercel hesabı kurulumu
+- [ ] GitHub repo bağlantısı
+- [ ] Environment variables ayarları
+- [ ] Production build test
 
-### Öncelik 2: UI/UX İyileştirmeler
-- [ ] Mobile responsive kontrol ve düzeltmeler
-- [ ] Homepage arama formu iyileştirme
-- [ ] Loading states/skeletons
-- [ ] Error boundaries
+### Öncelik 2: Bug Fixes
+- [ ] Slider dual range input düzeltmesi
 
 ### Öncelik 3: Legal Sayfalar
-- [ ] Terms of Service sayfası
-- [ ] Privacy Policy sayfası
-- [ ] Admin'den düzenlenebilir içerik
+- [ ] /terms - Satış Koşulları
+- [ ] /privacy - Gizlilik Politikası
+- [ ] /cancellation - İptal/İade Koşulları
 
-### Öncelik 4: Production Hazırlık
-- [ ] MSU gerçek credentials test
-- [ ] ERA sandbox credentials (bekleniyor)
-- [ ] HTTPS sertifikası
-- [ ] Performance optimizasyonu
+### Öncelik 4: My Trips
+- [ ] /my-trips sayfası
+- [ ] Rezervasyon listesi
+- [ ] Bilet detay görüntüleme
+- [ ] PDF indirme
 
 ---
 
@@ -81,37 +94,25 @@
 
 ```
 backend/src/era/
-├── interfaces/
-│   └── era-api.types.ts      ✅ 700+ satır
+├── interfaces/era-api.types.ts      ✅
 ├── services/
-│   ├── era-auth.service.ts   ✅
-│   ├── era-places.service.ts ✅
-│   ├── era-search.service.ts ✅
-│   ├── era-booking.service.ts ✅
-│   └── era-refund.service.ts  ✅
-├── mock/
-│   └── era-mock.service.ts   ✅ v2 - 3 class
-├── dto/
-│   ├── search-journeys.dto.ts ✅
-│   ├── create-booking.dto.ts  ✅
-│   ├── update-travelers.dto.ts ✅
-│   └── index.ts               ✅
-├── era.module.ts              ✅
-└── era.controller.ts          ✅
+│   ├── era-auth.service.ts          ✅
+│   ├── era-places.service.ts        ✅
+│   ├── era-search.service.ts        ✅
+│   ├── era-booking.service.ts       ✅
+│   └── era-refund.service.ts        ✅
+├── mock/era-mock.service.ts         ✅
+├── era.module.ts                    ✅
+└── era.controller.ts                ✅
 
 frontend/
-├── lib/api/
-│   ├── era-client.ts         ✅ Yeni
-│   └── client.ts             📋 Eski (kaldırılacak)
+├── lib/api/era-client.ts            ✅
 ├── app/
-│   ├── page.tsx              ✅ ERA entegre
-│   ├── search/page.tsx       ✅ v2 Accordion UI
-│   └── booking/page.tsx      ⏳ Güncellenmeli
+│   ├── page.tsx                     ✅ Homepage
+│   ├── search/page.tsx              ✅ v2 + Slider (buggy)
+│   └── booking/page.tsx             ✅ v2 + Terms + Success
 └── components/search/
-    └── StationAutocomplete.tsx ✅
-
-docs/
-└── AGENTIC_COMMERCE_STRATEGY.md ✅ MCP stratejisi
+    └── StationAutocomplete.tsx      ✅
 ```
 
 ---
@@ -123,49 +124,37 @@ docs/
 cd C:\dev\eurotrain-b2c-app\backend
 npm run start:dev
 
-# Frontend başlat (ayrı terminal)
+# Frontend başlat
 cd C:\dev\eurotrain-b2c-app\frontend
 npm run dev
 
-# API Test - İstasyon arama
-Invoke-RestMethod -Uri "http://localhost:3001/era/places/autocomplete?query=paris" | ConvertTo-Json
-
-# API Test - Sefer arama (3 class döner)
-$body = @{
-    origin = "FRPAR"
-    destination = "GBLON"
-    departureDate = "2026-02-15T09:00:00"
-    adults = 1
-} | ConvertTo-Json
-Invoke-RestMethod -Uri "http://localhost:3001/era/search" -Method POST -Body $body -ContentType "application/json" | ConvertTo-Json -Depth 5
-
-# API Test - Status
-Invoke-RestMethod -Uri "http://localhost:3001/era/status" | ConvertTo-Json
+# Tarayıcıda test
+# http://localhost:3000 → Ana sayfa
+# http://localhost:3000/search?origin=FRPAR&destination=GBLON&date=2026-02-15&adults=1 → Arama
 ```
 
 ---
 
 ## 📋 TEST CHECKLIST
 
-### Search Results Page v2
+### Booking Page v2
 ```
-☑ Accordion açılıp kapanıyor
-☑ 3 class seçeneği görünüyor (Standart, Business, First)
-☑ "En Popüler" badge Business'ta
-☑ Saat filtreleri çalışıyor
-☑ Sıralama çalışıyor (Fiyat, Süre, Kalkış)
-☑ Detaylı filtre paneli açılıyor
-☑ Başlayan fiyat doğru gösteriliyor
-☑ Feature tags görünüyor (Yüksek Hız, WiFi, Restoran)
+☑ Yolcu bilgileri formu çalışıyor
+☑ Step indicator ilerliyor
+☑ Koşulları kabul checkbox'ı zorunlu
+☑ Ödeme butonu checkbox'a bağlı
+☑ Success ekranı görünüyor
+☑ Rezervasyon numarası gösteriliyor
+☑ PDF/Takvim/Paylaş butonları çalışıyor
 ```
 
-### Her Değişiklik Sonrası
+### Search Page v2
 ```
-□ API doğru veri dönüyor mu?
-□ Frontend doğru gösteriyor mu?
-□ Mobile'da düzgün görünüyor mu?
-□ Edge case'ler çalışıyor mu?
-□ Screenshot ile doğrulandı mı?
+☑ Quick filters çalışıyor
+☑ Detaylı filtre paneli açılıyor
+☐ Slider sürükleme çalışmıyor (BUG)
+☑ Sıralama çalışıyor
+☑ Sefer kartları görünüyor
 ```
 
 ---
@@ -173,15 +162,15 @@ Invoke-RestMethod -Uri "http://localhost:3001/era/status" | ConvertTo-Json
 ## 📝 NOTLAR
 
 - Mock mode aktif (`ERA_MOCK_MODE=true`)
-- Search Results v2 UI tamamlandı, test edildi
+- Deployment için Vercel planlanıyor
 - Sandbox credentials henüz yok
-- Real API geçişi için sadece `.env` değişikliği yeterli olacak
+- Slider bug'ı sonraki oturumda düzeltilecek
 
 ---
 
 ## 🔗 SONRAKİ OTURUM İÇİN
 
 1. Bu dosyayı oku
-2. Backend ve Frontend'i başlat
-3. Search sayfasını test et (Paris → London)
-4. Booking sayfası güncellemeye başla
+2. Git push yap
+3. Vercel deployment kur
+4. Slider bug'ını düzelt

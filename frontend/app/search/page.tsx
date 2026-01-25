@@ -1,521 +1,763 @@
 'use client';
 
-import { useEffect, useState, useMemo, Suspense } from 'react';
+import { useEffect, useState, useMemo, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
-  Train, ArrowLeft, Calendar, Users, ArrowRight, 
-  Loader2, AlertCircle, SlidersHorizontal, Clock,
-  ChevronDown, ChevronUp, Check, X, Zap, Wifi, Coffee,
-  MapPin, Filter
+  Train, ArrowLeft, Clock, ArrowRight, Filter, ChevronDown, ChevronUp,
+  Loader2, AlertCircle, MapPin, Calendar, Users, Zap, Wifi, Coffee,
+  Check, X, RefreshCw, Info, ChevronRight, SlidersHorizontal
 } from 'lucide-react';
 import { 
   searchJourneys, 
-  toJourneyArray,
-  formatTime,
-  formatDate,
+  toJourneyArray, 
+  formatPrice, 
+  formatTime, 
   formatDuration,
-  formatPrice,
-  parseDuration,
-  EraSearchResponse,
   Journey,
-  EraOffer,
-  EraLegSolution,
+  EraSearchResponse 
 } from '@/lib/api/era-client';
-
-// ============================================================
-// TYPES
-// ============================================================
-
-interface GroupedJourney {
-  solutionId: string;
-  departure: string;
-  arrival: string;
-  durationMinutes: number;
-  origin: { code: string; name: string; city: string };
-  destination: { code: string; name: string; city: string };
-  carrier: string;
-  trainNumber: string;
-  trainType: string;
-  isDirect: boolean;
-  segmentCount: number;
-  offers: {
-    standard?: Journey;
-    comfort?: Journey;
-    premier?: Journey;
-  };
-  lowestPrice: number;
-  currency: string;
-}
 
 // ============================================================
 // CONSTANTS
 // ============================================================
 
 const TIME_FILTERS = [
-  { id: 'early', label: 'Gece/Sabah Erken', range: '00:00 - 08:00', icon: '🌅', start: 0, end: 8 },
-  { id: 'morning', label: 'Sabah', range: '08:00 - 12:00', icon: '☀️', start: 8, end: 12 },
-  { id: 'afternoon', label: 'Öğleden Sonra', range: '12:00 - 18:00', icon: '🌤️', start: 12, end: 18 },
-  { id: 'evening', label: 'Akşam', range: '18:00 - 24:00', icon: '🌙', start: 18, end: 24 },
+  { id: 'night', label: 'Gece', shortLabel: '00-06', icon: '🌙', start: 0, end: 6 },
+  { id: 'morning', label: 'Sabah', shortLabel: '06-12', icon: '☀️', start: 6, end: 12 },
+  { id: 'afternoon', label: 'Öğlen', shortLabel: '12-18', icon: '🌤️', start: 12, end: 18 },
+  { id: 'evening', label: 'Akşam', shortLabel: '18-24', icon: '🌅', start: 18, end: 24 },
+];
+
+const SORT_OPTIONS = [
+  { id: 'departure', label: 'Kalkış Saati' },
+  { id: 'price', label: 'Fiyat (En Ucuz)' },
+  { id: 'duration', label: 'Süre (En Kısa)' },
 ];
 
 const COMFORT_CONFIG: Record<string, { 
   label: string; 
-  labelTR: string;
-  bgColor: string; 
-  textColor: string;
+  labelTr: string; 
+  color: string; 
+  bgColor: string;
   borderColor: string;
   icon: string;
-  description: string;
+  features: string[];
 }> = {
   standard: { 
     label: 'Standard', 
-    labelTR: 'Standart',
-    bgColor: 'bg-slate-50', 
-    textColor: 'text-slate-700',
+    labelTr: 'Standart', 
+    color: 'text-slate-700',
+    bgColor: 'bg-slate-50',
     borderColor: 'border-slate-200',
     icon: '🎫',
-    description: 'Ekonomik seyahat'
+    features: ['Standart koltuk', '1 el bagajı', 'Elektrik prizi']
   },
   comfort: { 
     label: 'Business', 
-    labelTR: 'Business',
-    bgColor: 'bg-amber-50', 
-    textColor: 'text-amber-700',
+    labelTr: 'Business', 
+    color: 'text-amber-700',
+    bgColor: 'bg-amber-50',
     borderColor: 'border-amber-300',
     icon: '💼',
-    description: 'Konforlu seyahat'
+    features: ['Geniş koltuk', 'Yemek servisi', 'Öncelikli biniş', 'Sessiz vagon']
   },
   premier: { 
-    label: 'First', 
-    labelTR: 'Birinci Sınıf',
-    bgColor: 'bg-purple-50', 
-    textColor: 'text-purple-700',
+    label: 'First Class', 
+    labelTr: 'Birinci Sınıf', 
+    color: 'text-purple-700',
+    bgColor: 'bg-purple-50',
     borderColor: 'border-purple-300',
     icon: '👑',
-    description: 'Premium deneyim'
+    features: ['Premium koltuk', 'Şampanya servisi', 'Lounge erişimi', 'Özel check-in', 'Ücretsiz WiFi']
   },
+};
+
+// Carrier logos/colors
+const CARRIER_CONFIG: Record<string, { color: string; textColor: string; abbrev: string }> = {
+  'EUROSTAR': { color: 'bg-yellow-400', textColor: 'text-slate-900', abbrev: 'ES' },
+  'Eurostar': { color: 'bg-yellow-400', textColor: 'text-slate-900', abbrev: 'ES' },
+  'SNCF': { color: 'bg-red-600', textColor: 'text-white', abbrev: 'TGV' },
+  'TGV': { color: 'bg-red-600', textColor: 'text-white', abbrev: 'TGV' },
+  'THALYS': { color: 'bg-red-700', textColor: 'text-white', abbrev: 'THA' },
+  'Thalys': { color: 'bg-red-700', textColor: 'text-white', abbrev: 'THA' },
+  'TRENITALIA': { color: 'bg-green-600', textColor: 'text-white', abbrev: 'TI' },
+  'Frecciarossa': { color: 'bg-red-500', textColor: 'text-white', abbrev: 'FR' },
+  'DBAHN': { color: 'bg-red-600', textColor: 'text-white', abbrev: 'DB' },
+  'ICE': { color: 'bg-red-600', textColor: 'text-white', abbrev: 'ICE' },
+  'RENFE': { color: 'bg-purple-600', textColor: 'text-white', abbrev: 'AVE' },
+  'AVE': { color: 'bg-purple-600', textColor: 'text-white', abbrev: 'AVE' },
+  'SBB': { color: 'bg-red-500', textColor: 'text-white', abbrev: 'SBB' },
+  'OBB': { color: 'bg-red-600', textColor: 'text-white', abbrev: 'ÖBB' },
+  'Railjet': { color: 'bg-red-600', textColor: 'text-white', abbrev: 'RJ' },
+  'TGV Lyria': { color: 'bg-red-600', textColor: 'text-white', abbrev: 'TGV' },
+  'EuroCity': { color: 'bg-blue-600', textColor: 'text-white', abbrev: 'EC' },
+  'DEFAULT': { color: 'bg-blue-600', textColor: 'text-white', abbrev: 'TR' },
 };
 
 // ============================================================
 // HELPER FUNCTIONS
 // ============================================================
 
-function groupJourneysBySolution(
-  journeys: Journey[],
-  searchResponse: EraSearchResponse
-): GroupedJourney[] {
-  const solutionMap = new Map<string, GroupedJourney>();
-
-  // Her journey'i solution'a göre grupla
-  journeys.forEach(journey => {
-    // Solution ID'yi offer'dan bul
-    const offer = searchResponse.offers.find(o => o.id === journey.id);
-    if (!offer) return;
-
-    const solutionId = offer.legSolution;
-    
-    if (!solutionMap.has(solutionId)) {
-      solutionMap.set(solutionId, {
-        solutionId,
-        departure: journey.departure,
-        arrival: journey.arrival,
-        durationMinutes: journey.durationMinutes,
-        origin: journey.origin,
-        destination: journey.destination,
-        carrier: journey.operator,
-        trainNumber: journey.trainNumber,
-        trainType: journey.trainType || 'High-Speed',
-        isDirect: journey.segments.length === 1,
-        segmentCount: journey.segments.length,
-        offers: {},
-        lowestPrice: Infinity,
-        currency: journey.price.currency,
-      });
-    }
-
-    const group = solutionMap.get(solutionId)!;
-    const category = journey.comfortCategory as keyof typeof group.offers;
-    
-    group.offers[category] = journey;
-    
-    if (journey.price.amount < group.lowestPrice) {
-      group.lowestPrice = journey.price.amount;
-    }
-  });
-
-  // Array'e çevir ve kalkış saatine göre sırala
-  return Array.from(solutionMap.values()).sort(
-    (a, b) => new Date(a.departure).getTime() - new Date(b.departure).getTime()
-  );
+function getHourFromDate(isoString: string): number {
+  try {
+    return new Date(isoString).getHours();
+  } catch {
+    return 0;
+  }
 }
 
-function getHourFromDate(dateStr: string): number {
-  return new Date(dateStr).getHours();
+function getMinutesFromMidnight(isoString: string): number {
+  try {
+    const date = new Date(isoString);
+    return date.getHours() * 60 + date.getMinutes();
+  } catch {
+    return 0;
+  }
+}
+
+function formatMinutesToTime(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+}
+
+function getCarrierConfig(carrier: string) {
+  return CARRIER_CONFIG[carrier] || CARRIER_CONFIG[carrier?.toUpperCase()] || CARRIER_CONFIG.DEFAULT;
+}
+
+function groupJourneysBySolution(journeys: Journey[]): Map<string, Journey[]> {
+  const grouped = new Map<string, Journey[]>();
+  
+  journeys.forEach(journey => {
+    const key = `${journey.departure}-${journey.trainNumber}`;
+    if (!grouped.has(key)) {
+      grouped.set(key, []);
+    }
+    grouped.get(key)!.push(journey);
+  });
+
+  return grouped;
 }
 
 // ============================================================
 // COMPONENTS
 // ============================================================
 
-// Journey Card - Accordion Style
-function JourneyCard({ 
-  group, 
-  isExpanded, 
-  onToggle,
-  onSelectOffer,
-}: { 
-  group: GroupedJourney;
-  isExpanded: boolean;
-  onToggle: () => void;
-  onSelectOffer: (journey: Journey) => void;
+// Time Range Slider Component - FlixBus/Omio tarzı
+function TimeRangeSlider({
+  label,
+  icon,
+  minValue,
+  maxValue,
+  onChange,
+  disabled = false,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  minValue: number; // minutes from midnight (0-1440)
+  maxValue: number;
+  onChange: (min: number, max: number) => void;
+  disabled?: boolean;
 }) {
-  const durationStr = formatDuration(group.durationMinutes);
-  const offerCount = Object.keys(group.offers).length;
+  const [localMin, setLocalMin] = useState(minValue);
+  const [localMax, setLocalMax] = useState(maxValue);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Sync with parent
+  useEffect(() => {
+    setLocalMin(minValue);
+    setLocalMax(maxValue);
+  }, [minValue, maxValue]);
+
+  const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = Math.min(parseInt(e.target.value), localMax - 30);
+    setLocalMin(value);
+  };
+
+  const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = Math.max(parseInt(e.target.value), localMin + 30);
+    setLocalMax(value);
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    onChange(localMin, localMax);
+  };
+
+  const minPercent = (localMin / 1440) * 100;
+  const maxPercent = (localMax / 1440) * 100;
 
   return (
-    <div 
-      className={`
-        bg-white rounded-2xl shadow-sm border-2 transition-all duration-300
-        ${isExpanded 
-          ? 'border-blue-400 shadow-lg shadow-blue-100' 
-          : 'border-slate-200 hover:border-slate-300 hover:shadow-md'
-        }
-      `}
-    >
-      {/* Main Row - Always Visible */}
-      <div 
-        className="p-5 cursor-pointer select-none"
-        onClick={onToggle}
-      >
-        <div className="flex items-center justify-between gap-4">
-          {/* Left: Time & Route */}
-          <div className="flex items-center gap-6 flex-1">
-            {/* Departure Time */}
-            <div className="text-center min-w-[72px]">
-              <div className="text-2xl font-bold text-slate-800">
-                {formatTime(group.departure)}
-              </div>
-              <div className="text-xs text-slate-500 mt-0.5">Kalkış</div>
-            </div>
-
-            {/* Duration Line */}
-            <div className="flex-1 max-w-[180px]">
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-white shadow-sm z-10" />
-                <div className="flex-1 h-1 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-300 -mx-1" />
-                <div className="w-3 h-3 rounded-full bg-blue-300 border-2 border-white shadow-sm z-10" />
-              </div>
-              <div className="flex justify-center mt-1.5">
-                <span className="text-sm font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
-                  {durationStr}
-                </span>
-              </div>
-              <div className="text-center mt-1">
-                <span className={`text-xs font-medium ${group.isDirect ? 'text-green-600' : 'text-amber-600'}`}>
-                  {group.isDirect ? 'Direkt' : `${group.segmentCount - 1} Aktarma`}
-                </span>
-              </div>
-            </div>
-
-            {/* Arrival Time */}
-            <div className="text-center min-w-[72px]">
-              <div className="text-2xl font-bold text-slate-800">
-                {formatTime(group.arrival)}
-              </div>
-              <div className="text-xs text-slate-500 mt-0.5">Varış</div>
-            </div>
-          </div>
-
-          {/* Center: Carrier Info */}
-          <div className="hidden md:flex items-center gap-3 px-5 border-l border-slate-200">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center">
-              <Train className="w-6 h-6 text-blue-600" />
-            </div>
-            <div>
-              <div className="font-semibold text-slate-800">{group.carrier}</div>
-              <div className="text-sm text-slate-500">{group.trainNumber}</div>
-            </div>
-          </div>
-
-          {/* Right: Price & Expand */}
-          <div className="flex items-center gap-4 pl-5 border-l border-slate-200">
-            <div className="text-right">
-              <div className="text-xs text-slate-500 mb-0.5">başlayan fiyat</div>
-              <div className="text-2xl font-bold text-blue-600">
-                {formatPrice(group.lowestPrice, group.currency)}
-              </div>
-            </div>
-            
-            <button
-              className={`
-                p-2.5 rounded-full transition-all duration-300
-                ${isExpanded 
-                  ? 'bg-blue-600 text-white rotate-180' 
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }
-              `}
-            >
-              <ChevronDown className="w-5 h-5" />
-            </button>
-          </div>
+    <div className={`${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+          {icon}
+          <span>{label}</span>
         </div>
-
-        {/* Quick Tags - Mobile carrier + features */}
-        <div className="flex items-center gap-2 mt-4 pt-3 border-t border-slate-100 flex-wrap">
-          {/* Mobile Carrier */}
-          <span className="md:hidden text-sm font-medium text-slate-700 bg-slate-100 px-2 py-1 rounded-lg">
-            {group.carrier} • {group.trainNumber}
-          </span>
-          
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium">
-            <Zap className="w-3 h-3" /> Yüksek Hız
-          </span>
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
-            <Wifi className="w-3 h-3" /> WiFi
-          </span>
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-medium">
-            <Coffee className="w-3 h-3" /> Restoran
-          </span>
-          
-          {offerCount > 1 && (
-            <span className="text-xs text-slate-500 ml-auto hidden sm:inline">
-              {offerCount} farklı sınıf seçeneği
-            </span>
-          )}
+        <div className="text-sm font-semibold text-blue-600">
+          {formatMinutesToTime(localMin)} - {formatMinutesToTime(localMax)}
         </div>
       </div>
-
-      {/* Expanded Content - Class Options */}
-      {isExpanded && (
-        <div className="border-t-2 border-slate-100 bg-gradient-to-b from-slate-50 to-white p-5 rounded-b-2xl">
-          <h4 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-            Bilet Sınıfı Seçin
-          </h4>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Standard Class */}
-            {group.offers.standard && (
-              <ClassOptionCard
-                journey={group.offers.standard}
-                category="standard"
-                onSelect={() => onSelectOffer(group.offers.standard!)}
-              />
-            )}
-
-            {/* Business Class */}
-            {group.offers.comfort && (
-              <ClassOptionCard
-                journey={group.offers.comfort}
-                category="comfort"
-                onSelect={() => onSelectOffer(group.offers.comfort!)}
-                isPopular
-              />
-            )}
-
-            {/* First Class */}
-            {group.offers.premier && (
-              <ClassOptionCard
-                journey={group.offers.premier}
-                category="premier"
-                onSelect={() => onSelectOffer(group.offers.premier!)}
-              />
-            )}
-          </div>
-        </div>
-      )}
+      
+      {/* Slider Track */}
+      <div className="relative h-2 bg-slate-200 rounded-full">
+        {/* Active Range */}
+        <div 
+          className="absolute h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full"
+          style={{ 
+            left: `${minPercent}%`, 
+            width: `${maxPercent - minPercent}%` 
+          }}
+        />
+        
+        {/* Min Slider */}
+        <input
+          type="range"
+          min={0}
+          max={1440}
+          step={15}
+          value={localMin}
+          onChange={handleMinChange}
+          onMouseDown={() => setIsDragging(true)}
+          onMouseUp={handleMouseUp}
+          onTouchEnd={handleMouseUp}
+          className="absolute w-full h-full appearance-none bg-transparent pointer-events-none
+            [&::-webkit-slider-thumb]:pointer-events-auto
+            [&::-webkit-slider-thumb]:appearance-none
+            [&::-webkit-slider-thumb]:w-5
+            [&::-webkit-slider-thumb]:h-5
+            [&::-webkit-slider-thumb]:bg-white
+            [&::-webkit-slider-thumb]:border-2
+            [&::-webkit-slider-thumb]:border-blue-500
+            [&::-webkit-slider-thumb]:rounded-full
+            [&::-webkit-slider-thumb]:shadow-md
+            [&::-webkit-slider-thumb]:cursor-grab
+            [&::-webkit-slider-thumb]:active:cursor-grabbing
+            [&::-webkit-slider-thumb]:hover:scale-110
+            [&::-webkit-slider-thumb]:transition-transform
+            [&::-moz-range-thumb]:pointer-events-auto
+            [&::-moz-range-thumb]:appearance-none
+            [&::-moz-range-thumb]:w-5
+            [&::-moz-range-thumb]:h-5
+            [&::-moz-range-thumb]:bg-white
+            [&::-moz-range-thumb]:border-2
+            [&::-moz-range-thumb]:border-blue-500
+            [&::-moz-range-thumb]:rounded-full
+            [&::-moz-range-thumb]:shadow-md
+            [&::-moz-range-thumb]:cursor-grab
+          "
+        />
+        
+        {/* Max Slider */}
+        <input
+          type="range"
+          min={0}
+          max={1440}
+          step={15}
+          value={localMax}
+          onChange={handleMaxChange}
+          onMouseDown={() => setIsDragging(true)}
+          onMouseUp={handleMouseUp}
+          onTouchEnd={handleMouseUp}
+          className="absolute w-full h-full appearance-none bg-transparent pointer-events-none
+            [&::-webkit-slider-thumb]:pointer-events-auto
+            [&::-webkit-slider-thumb]:appearance-none
+            [&::-webkit-slider-thumb]:w-5
+            [&::-webkit-slider-thumb]:h-5
+            [&::-webkit-slider-thumb]:bg-white
+            [&::-webkit-slider-thumb]:border-2
+            [&::-webkit-slider-thumb]:border-blue-500
+            [&::-webkit-slider-thumb]:rounded-full
+            [&::-webkit-slider-thumb]:shadow-md
+            [&::-webkit-slider-thumb]:cursor-grab
+            [&::-webkit-slider-thumb]:active:cursor-grabbing
+            [&::-webkit-slider-thumb]:hover:scale-110
+            [&::-webkit-slider-thumb]:transition-transform
+            [&::-moz-range-thumb]:pointer-events-auto
+            [&::-moz-range-thumb]:appearance-none
+            [&::-moz-range-thumb]:w-5
+            [&::-moz-range-thumb]:h-5
+            [&::-moz-range-thumb]:bg-white
+            [&::-moz-range-thumb]:border-2
+            [&::-moz-range-thumb]:border-blue-500
+            [&::-moz-range-thumb]:rounded-full
+            [&::-moz-range-thumb]:shadow-md
+            [&::-moz-range-thumb]:cursor-grab
+          "
+        />
+      </div>
+      
+      {/* Time Labels */}
+      <div className="flex justify-between mt-1 text-[10px] text-slate-400">
+        <span>00:00</span>
+        <span>06:00</span>
+        <span>12:00</span>
+        <span>18:00</span>
+        <span>24:00</span>
+      </div>
     </div>
   );
 }
 
-// Class Option Card
-function ClassOptionCard({
-  journey,
-  category,
-  onSelect,
-  isPopular = false,
+// Advanced Filters Panel
+function AdvancedFiltersPanel({
+  isOpen,
+  onClose,
+  departureRange,
+  arrivalRange,
+  onDepartureChange,
+  onArrivalChange,
+  onReset,
 }: {
-  journey: Journey;
-  category: string;
-  onSelect: () => void;
-  isPopular?: boolean;
+  isOpen: boolean;
+  onClose: () => void;
+  departureRange: { min: number; max: number };
+  arrivalRange: { min: number; max: number };
+  onDepartureChange: (min: number, max: number) => void;
+  onArrivalChange: (min: number, max: number) => void;
+  onReset: () => void;
 }) {
-  const config = COMFORT_CONFIG[category] || COMFORT_CONFIG.standard;
+  if (!isOpen) return null;
 
+  const hasActiveFilters = 
+    departureRange.min > 0 || 
+    departureRange.max < 1440 || 
+    arrivalRange.min > 0 || 
+    arrivalRange.max < 1440;
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-4 mb-4 shadow-sm">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+          <SlidersHorizontal className="w-4 h-4" />
+          Detaylı Saat Filtresi
+        </h3>
+        <div className="flex items-center gap-2">
+          {hasActiveFilters && (
+            <button
+              onClick={onReset}
+              className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Sıfırla
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
+          >
+            <X className="w-4 h-4 text-slate-400" />
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        {/* Departure Time Slider */}
+        <TimeRangeSlider
+          label="Kalkış Saati"
+          icon={<MapPin className="w-4 h-4 text-green-600" />}
+          minValue={departureRange.min}
+          maxValue={departureRange.max}
+          onChange={onDepartureChange}
+        />
+
+        {/* Arrival Time Slider */}
+        <TimeRangeSlider
+          label="Varış Saati"
+          icon={<MapPin className="w-4 h-4 text-red-500" />}
+          minValue={arrivalRange.min}
+          maxValue={arrivalRange.max}
+          onChange={onArrivalChange}
+        />
+      </div>
+
+      {/* Info Text */}
+      <div className="mt-4 pt-4 border-t border-slate-100">
+        <p className="text-xs text-slate-500 flex items-start gap-1.5">
+          <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+          <span>Slider'ları sürükleyerek tam saat aralığı belirleyebilirsiniz. Hızlı filtreler ile birlikte kullanılabilir.</span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// Carrier Logo Badge
+function CarrierBadge({ carrier, operatorName }: { carrier: string; operatorName?: string }) {
+  const config = getCarrierConfig(operatorName || carrier);
+  
+  return (
+    <div className={`
+      inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-bold
+      ${config.color} ${config.textColor}
+    `}>
+      <Train className="w-3 h-3" />
+      <span>{operatorName || config.abbrev}</span>
+    </div>
+  );
+}
+
+// Feature Tags (for collapsed view)
+function FeatureTags({ journey }: { journey: Journey }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {journey.trainType === 'High-Speed' && (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs">
+          <Zap className="w-3 h-3" /> Yüksek Hız
+        </span>
+      )}
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs">
+        <Wifi className="w-3 h-3" /> WiFi
+      </span>
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs">
+        <Coffee className="w-3 h-3" /> Restoran
+      </span>
+    </div>
+  );
+}
+
+// Class Selection Card - Trainline Style
+function ClassCard({ 
+  journey, 
+  isSelected,
+  isPopular, 
+  onSelect,
+  onBook
+}: { 
+  journey: Journey; 
+  isSelected: boolean;
+  isPopular: boolean;
+  onSelect: () => void;
+  onBook: () => void;
+}) {
+  const config = COMFORT_CONFIG[journey.comfortCategory] || COMFORT_CONFIG.standard;
+  const flexibilityLabel = typeof journey.flexibility === 'string' 
+    ? journey.flexibility 
+    : (journey.flexibility as any)?.label || '';
+  
   return (
     <div 
       className={`
-        relative bg-white rounded-xl border-2 p-4 transition-all cursor-pointer
-        hover:shadow-lg hover:-translate-y-0.5
-        ${isPopular 
-          ? 'border-amber-400 shadow-md shadow-amber-100' 
-          : `${config.borderColor} hover:border-blue-400`
+        relative rounded-xl border-2 transition-all duration-200 overflow-hidden cursor-pointer
+        ${isSelected 
+          ? `${config.borderColor} ${config.bgColor} shadow-md` 
+          : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'
         }
       `}
       onClick={onSelect}
     >
       {/* Popular Badge */}
       {isPopular && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-amber-400 to-amber-500 text-amber-900 text-xs font-bold rounded-full whitespace-nowrap shadow-sm">
+        <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-amber-400 to-amber-500 text-white text-xs font-bold py-1 text-center">
           ⭐ En Popüler
         </div>
       )}
 
-      {/* Class Header */}
-      <div className="flex items-center justify-between mb-3 mt-1">
-        <div className={`
-          inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold
-          ${config.bgColor} ${config.textColor}
-        `}>
-          <span>{config.icon}</span>
-          {config.labelTR}
+      {/* Main Content */}
+      <div className={`p-4 ${isPopular ? 'pt-8' : ''}`}>
+        {/* Header: Icon + Name + Price */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">{config.icon}</span>
+            <span className={`font-semibold ${config.color}`}>{config.labelTr}</span>
+          </div>
+          <div className="text-right">
+            <div className="text-xl font-bold text-slate-800">
+              {formatPrice(journey.price.amount, journey.price.currency)}
+            </div>
+            <div className="text-xs text-slate-500">kişi başı</div>
+          </div>
         </div>
+
+        {/* Quick Info: Refund + Exchange */}
+        <div className="flex items-center gap-4 text-sm mb-3">
+          <div className="flex items-center gap-1">
+            {journey.isRefundable ? (
+              <Check className="w-4 h-4 text-green-600" />
+            ) : (
+              <X className="w-4 h-4 text-slate-400" />
+            )}
+            <span className={journey.isRefundable ? 'text-green-700' : 'text-slate-400'}>
+              İade
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            {journey.isExchangeable ? (
+              <Check className="w-4 h-4 text-green-600" />
+            ) : (
+              <X className="w-4 h-4 text-slate-400" />
+            )}
+            <span className={journey.isExchangeable ? 'text-green-700' : 'text-slate-400'}>
+              Değişiklik
+            </span>
+          </div>
+        </div>
+
+        {/* Expand indicator when not selected */}
+        {!isSelected && (
+          <div className="text-xs text-blue-600 flex items-center gap-1">
+            <Info className="w-3 h-3" />
+            Detaylar için tıklayın
+          </div>
+        )}
       </div>
 
-      {/* Price */}
-      <div className="mb-4">
-        <div className="text-3xl font-bold text-slate-800">
-          {formatPrice(journey.price.amount, journey.price.currency)}
-        </div>
-        <div className="text-sm text-slate-500">kişi başı</div>
-      </div>
+      {/* Expanded Details - Only when selected */}
+      {isSelected && (
+        <div className={`border-t ${config.borderColor} ${config.bgColor} p-4`}>
+          {/* Features */}
+          <div className="mb-4">
+            <div className="text-xs font-semibold text-slate-600 mb-2">Bu sınıfa dahil:</div>
+            <div className="grid grid-cols-1 gap-1.5">
+              {config.features.map((feature, i) => (
+                <div key={i} className="flex items-center gap-2 text-sm text-slate-700">
+                  <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
+                  <span>{feature}</span>
+                </div>
+              ))}
+            </div>
+          </div>
 
-      {/* Features */}
-      <div className="space-y-2.5 mb-4">
-        <div className="flex items-center gap-2 text-sm">
-          {journey.isExchangeable ? (
-            <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
-              <Check className="w-3 h-3 text-green-600" />
+          {/* Flexibility Rules */}
+          <div className="mb-4 p-3 bg-white/60 rounded-lg">
+            <div className="text-xs font-semibold text-slate-600 mb-2">Bilet Koşulları:</div>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-start gap-2">
+                {journey.isRefundable ? (
+                  <>
+                    <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <span className="text-green-700 font-medium">İade Edilebilir</span>
+                      <p className="text-xs text-slate-500">Kalkıştan 24 saat öncesine kadar tam iade</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <X className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <span className="text-red-600 font-medium">İade Edilemez</span>
+                      <p className="text-xs text-slate-500">Bu bilet iade edilemez</p>
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="flex items-start gap-2">
+                {journey.isExchangeable ? (
+                  <>
+                    <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <span className="text-green-700 font-medium">Değiştirilebilir</span>
+                      <p className="text-xs text-slate-500">Kalkıştan önce ücretsiz değişiklik</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <X className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <span className="text-red-600 font-medium">Değiştirilemez</span>
+                      <p className="text-xs text-slate-500">Bu bilet değiştirilemez</p>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
-          ) : (
-            <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center">
-              <X className="w-3 h-3 text-slate-400" />
-            </div>
-          )}
-          <span className={journey.isExchangeable ? 'text-slate-700' : 'text-slate-400'}>
-            Değiştirilebilir
-          </span>
-        </div>
-        <div className="flex items-center gap-2 text-sm">
-          {journey.isRefundable ? (
-            <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
-              <Check className="w-3 h-3 text-green-600" />
-            </div>
-          ) : (
-            <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center">
-              <X className="w-3 h-3 text-slate-400" />
-            </div>
-          )}
-          <span className={journey.isRefundable ? 'text-slate-700' : 'text-slate-400'}>
-            İade Edilebilir
-          </span>
-        </div>
-      </div>
+            {flexibilityLabel && (
+              <div className="mt-2 pt-2 border-t border-slate-200 text-xs text-slate-600">
+                Esneklik seviyesi: <span className="font-semibold">{flexibilityLabel}</span>
+              </div>
+            )}
+          </div>
 
-      {/* Flexibility Label */}
-      {journey.flexibility?.label && (
-        <div className={`
-          text-xs font-medium px-3 py-1.5 rounded-lg text-center mb-4
-          ${journey.flexibility.code === 'FULL_FLEX' 
-            ? 'bg-green-100 text-green-700' 
-            : journey.flexibility.code === 'FLEXIBLE' 
-              ? 'bg-blue-100 text-blue-700' 
-              : 'bg-slate-100 text-slate-600'
-          }
-        `}>
-          {journey.flexibility.label}
+          {/* Book Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onBook();
+            }}
+            className={`
+              w-full py-3 rounded-lg font-semibold text-white transition-all
+              flex items-center justify-center gap-2
+              ${isPopular 
+                ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700' 
+                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
+              }
+            `}
+          >
+            <span>Bu Bileti Seç</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
       )}
-
-      {/* Select Button */}
-      <button
-        className={`
-          w-full py-3 rounded-xl font-semibold transition-all text-sm
-          ${isPopular 
-            ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-md shadow-amber-200' 
-            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-          }
-        `}
-      >
-        Seç
-      </button>
     </div>
   );
 }
 
-// Time Filter Button
-function TimeFilterButton({
-  filter,
-  isActive,
-  onClick,
-}: {
-  filter: typeof TIME_FILTERS[0];
-  isActive: boolean;
-  onClick: () => void;
+// Journey Card (Accordion)
+function JourneyCard({ 
+  journeys, 
+  isExpanded, 
+  onToggle, 
+  onSelect,
+}: { 
+  journeys: Journey[];
+  isExpanded: boolean;
+  onToggle: () => void;
+  onSelect: (journey: Journey) => void;
 }) {
+  const [selectedClass, setSelectedClass] = useState<string | null>(null);
+  
+  // Sort by comfort category order: standard, comfort, premier
+  const sortedJourneys = [...journeys].sort((a, b) => {
+    const order = { standard: 0, comfort: 1, premier: 2 };
+    return (order[a.comfortCategory] || 0) - (order[b.comfortCategory] || 0);
+  });
+  
+  const cheapest = sortedJourneys.reduce((min, j) => j.price.amount < min.price.amount ? j : min, sortedJourneys[0]);
+
+  // Reset selected class when collapsed
+  useEffect(() => {
+    if (!isExpanded) {
+      setSelectedClass(null);
+    }
+  }, [isExpanded]);
+
   return (
-    <button
-      onClick={onClick}
-      className={`
-        px-3 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap
-        ${isActive
-          ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
-          : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-        }
-      `}
-    >
-      <span className="mr-1.5">{filter.icon}</span>
-      <span className="hidden sm:inline">{filter.label}</span>
-      <span className="sm:hidden">{filter.range.split(' - ')[0]}</span>
-    </button>
+    <div className={`
+      bg-white rounded-xl border-2 transition-all duration-300 overflow-hidden
+      ${isExpanded ? 'border-blue-400 shadow-lg' : 'border-slate-200 hover:border-slate-300'}
+    `}>
+      {/* Header - Click to expand/collapse */}
+      <button
+        onClick={onToggle}
+        className="w-full p-4 text-left"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+          {/* Carrier Badge */}
+          <div className="flex items-center gap-2">
+            <CarrierBadge carrier={cheapest.operator} operatorName={cheapest.operatorName} />
+            <span className="text-xs text-slate-500">{cheapest.trainNumber}</span>
+          </div>
+
+          {/* Time & Route */}
+          <div className="flex items-center gap-3 flex-1">
+            <div className="text-center min-w-[50px]">
+              <div className="text-lg sm:text-xl font-bold text-slate-800">{formatTime(cheapest.departure)}</div>
+              <div className="text-[10px] sm:text-xs text-slate-500 truncate max-w-[60px] sm:max-w-[80px]">{cheapest.origin.city}</div>
+            </div>
+            
+            <div className="flex flex-col items-center flex-1 min-w-[50px]">
+              <div className="w-full flex items-center">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-500" />
+                <div className="flex-1 h-0.5 bg-gradient-to-r from-blue-500 to-blue-300" />
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-300" />
+              </div>
+              <span className="text-[10px] sm:text-xs text-slate-500 mt-1">{formatDuration(cheapest.durationMinutes)}</span>
+              <span className="text-[9px] sm:text-[10px] text-green-600 font-medium">Direkt</span>
+            </div>
+            
+            <div className="text-center min-w-[50px]">
+              <div className="text-lg sm:text-xl font-bold text-slate-800">{formatTime(cheapest.arrival)}</div>
+              <div className="text-[10px] sm:text-xs text-slate-500 truncate max-w-[60px] sm:max-w-[80px]">{cheapest.destination.city}</div>
+            </div>
+          </div>
+
+          {/* Price & Expand */}
+          <div className="flex items-center justify-between sm:justify-end gap-4">
+            <div className="text-right">
+              <div className="text-[10px] sm:text-xs text-slate-500">başlayan fiyat</div>
+              <div className="text-lg sm:text-xl font-bold text-green-600">
+                {formatPrice(cheapest.price.amount, cheapest.price.currency)}
+              </div>
+            </div>
+            <div className={`
+              p-2 rounded-full bg-slate-100 transition-transform duration-300
+              ${isExpanded ? 'rotate-180' : ''}
+            `}>
+              <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 text-slate-500" />
+            </div>
+          </div>
+        </div>
+
+        {/* Feature Tags - Only in collapsed state */}
+        {!isExpanded && (
+          <div className="mt-3 pt-3 border-t border-slate-100">
+            <FeatureTags journey={cheapest} />
+          </div>
+        )}
+      </button>
+
+      {/* Expanded Content - Class Selection */}
+      {isExpanded && (
+        <div className="border-t border-slate-200 p-4 bg-slate-50/50">
+          <div className="mb-4">
+            <h4 className="text-sm font-semibold text-slate-700 mb-1">Bilet Sınıfı Seçin</h4>
+            <p className="text-xs text-slate-500">Detayları görmek için bir sınıfa tıklayın</p>
+          </div>
+          
+          {/* Class Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {sortedJourneys.map((journey) => (
+              <ClassCard
+                key={journey.id}
+                journey={journey}
+                isSelected={selectedClass === journey.id}
+                isPopular={journey.comfortCategory === 'comfort'}
+                onSelect={() => setSelectedClass(selectedClass === journey.id ? null : journey.id)}
+                onBook={() => onSelect(journey)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
 // ============================================================
-// MAIN CONTENT COMPONENT
+// MAIN CONTENT
 // ============================================================
 
-function SearchResultsContent() {
+function SearchContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  
-  const [searchResponse, setSearchResponse] = useState<EraSearchResponse | null>(null);
-  const [journeys, setJourneys] = useState<Journey[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  // UI State
-  const [expandedJourney, setExpandedJourney] = useState<string | null>(null);
-  const [selectedTimeFilters, setSelectedTimeFilters] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<'departure' | 'price' | 'duration'>('departure');
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const [customTimeRange, setCustomTimeRange] = useState<{ start: string; end: string }>({
-    start: '00:00',
-    end: '23:59',
-  });
-  const [filterMode, setFilterMode] = useState<'departure' | 'arrival'>('departure');
-  
-  // Get search params
+
+  // URL params
   const origin = searchParams.get('origin') || '';
   const destination = searchParams.get('destination') || '';
   const date = searchParams.get('date') || '';
   const adults = parseInt(searchParams.get('adults') || '1');
   const children = parseInt(searchParams.get('children') || '0');
 
+  // State
+  const [searchResponse, setSearchResponse] = useState<EraSearchResponse | null>(null);
+  const [journeys, setJourneys] = useState<Journey[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // UI State
+  const [expandedJourney, setExpandedJourney] = useState<string | null>(null);
+  const [selectedTimeFilters, setSelectedTimeFilters] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<'departure' | 'price' | 'duration'>('departure');
+  
+  // Advanced Filters State
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [departureRange, setDepartureRange] = useState({ min: 0, max: 1440 });
+  const [arrivalRange, setArrivalRange] = useState({ min: 0, max: 1440 });
+
   // Fetch journeys
   useEffect(() => {
     const fetchJourneys = async () => {
       if (!origin || !destination || !date) {
-        setError('Eksik arama parametreleri');
-        setIsLoading(false);
+        setError('Arama parametreleri eksik');
+        setLoading(false);
         return;
       }
 
+      setLoading(true);
+      setError(null);
+
       try {
-        setIsLoading(true);
-        setError(null);
-        
         const response = await searchJourneys({
           origin,
           destination,
@@ -523,134 +765,138 @@ function SearchResultsContent() {
           adults,
           children,
         });
-        
+
         setSearchResponse(response);
-        setJourneys(toJourneyArray(response));
+        const journeyList = toJourneyArray(response);
+        setJourneys(journeyList);
+        
       } catch (err) {
         console.error('Search error:', err);
-        setError('Seferler yüklenirken bir hata oluştu. Lütfen tekrar deneyin.');
+        setError('Seferler yüklenirken bir hata oluştu');
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
     fetchJourneys();
   }, [origin, destination, date, adults, children]);
 
-  // Group journeys by solution
-  const groupedJourneys = useMemo(() => {
-    if (!searchResponse) return [];
-    return groupJourneysBySolution(journeys, searchResponse);
-  }, [journeys, searchResponse]);
-
   // Filter and sort journeys
-  const filteredJourneys = useMemo(() => {
-    let filtered = [...groupedJourneys];
+  const filteredAndSortedGroups = useMemo(() => {
+    let filtered = [...journeys];
 
-    // Quick time filters
+    // Quick Time filter (buttons)
     if (selectedTimeFilters.length > 0) {
-      filtered = filtered.filter(group => {
-        const timeField = filterMode === 'departure' ? group.departure : group.arrival;
-        const hour = getHourFromDate(timeField);
-        
+      filtered = filtered.filter(j => {
+        const hour = getHourFromDate(j.departure);
         return selectedTimeFilters.some(filterId => {
           const filter = TIME_FILTERS.find(f => f.id === filterId);
-          if (!filter) return false;
-          return hour >= filter.start && hour < filter.end;
+          return filter && hour >= filter.start && hour < filter.end;
         });
       });
     }
 
-    // Custom time range
-    if (showAdvancedFilters) {
-      const startHour = parseInt(customTimeRange.start.split(':')[0]);
-      const endHour = parseInt(customTimeRange.end.split(':')[0]);
-      const endMinute = parseInt(customTimeRange.end.split(':')[1]);
-      
-      filtered = filtered.filter(group => {
-        const timeField = filterMode === 'departure' ? group.departure : group.arrival;
-        const date = new Date(timeField);
-        const hour = date.getHours();
-        const minute = date.getMinutes();
-        
-        if (hour < startHour) return false;
-        if (hour > endHour) return false;
-        if (hour === endHour && minute > endMinute) return false;
-        return true;
+    // Advanced Time Range filter (sliders)
+    if (departureRange.min > 0 || departureRange.max < 1440) {
+      filtered = filtered.filter(j => {
+        const minutes = getMinutesFromMidnight(j.departure);
+        return minutes >= departureRange.min && minutes <= departureRange.max;
       });
     }
 
-    // Sort
-    filtered.sort((a, b) => {
+    if (arrivalRange.min > 0 || arrivalRange.max < 1440) {
+      filtered = filtered.filter(j => {
+        const minutes = getMinutesFromMidnight(j.arrival);
+        return minutes >= arrivalRange.min && minutes <= arrivalRange.max;
+      });
+    }
+
+    // Group by solution
+    const grouped = groupJourneysBySolution(filtered);
+    
+    // Convert to array and sort
+    const groupedArray = Array.from(grouped.entries());
+    
+    groupedArray.sort((a, b) => {
+      const aJourneys = a[1];
+      const bJourneys = b[1];
+      const aCheapest = aJourneys.reduce((min, j) => j.price.amount < min.price.amount ? j : min, aJourneys[0]);
+      const bCheapest = bJourneys.reduce((min, j) => j.price.amount < min.price.amount ? j : min, bJourneys[0]);
+
       switch (sortBy) {
         case 'price':
-          return a.lowestPrice - b.lowestPrice;
+          return aCheapest.price.amount - bCheapest.price.amount;
         case 'duration':
-          return a.durationMinutes - b.durationMinutes;
+          return aCheapest.durationMinutes - bCheapest.durationMinutes;
         case 'departure':
         default:
-          return new Date(a.departure).getTime() - new Date(b.departure).getTime();
+          return new Date(aCheapest.departure).getTime() - new Date(bCheapest.departure).getTime();
       }
     });
 
-    return filtered;
-  }, [groupedJourneys, selectedTimeFilters, sortBy, showAdvancedFilters, customTimeRange, filterMode]);
+    return groupedArray;
+  }, [journeys, selectedTimeFilters, sortBy, departureRange, arrivalRange]);
 
-  // Handlers
+  // Toggle time filter
   const toggleTimeFilter = (filterId: string) => {
-    setSelectedTimeFilters(prev =>
-      prev.includes(filterId)
-        ? prev.filter(f => f !== filterId)
+    setSelectedTimeFilters(prev => 
+      prev.includes(filterId) 
+        ? prev.filter(id => id !== filterId)
         : [...prev, filterId]
     );
   };
 
-  const clearFilters = () => {
-    setSelectedTimeFilters([]);
-    setCustomTimeRange({ start: '00:00', end: '23:59' });
-  };
+  // Reset advanced filters
+  const resetAdvancedFilters = useCallback(() => {
+    setDepartureRange({ min: 0, max: 1440 });
+    setArrivalRange({ min: 0, max: 1440 });
+  }, []);
 
+  // Handle journey selection
   const handleSelectJourney = (journey: Journey) => {
-    // Store in sessionStorage for booking page
     sessionStorage.setItem('selectedJourney', JSON.stringify(journey));
     sessionStorage.setItem('searchResponse', JSON.stringify(searchResponse));
     sessionStorage.setItem('passengers', JSON.stringify({ adults, children }));
-    
-    // Navigate to booking page
-    router.push(`/booking?offerId=${journey.id}&searchId=${searchResponse?.id}`);
+    router.push('/booking');
   };
 
-  // Format date for display
-  const formatDisplayDate = (dateStr: string) => {
+  // Format date display
+  const formatDateDisplay = (dateStr: string) => {
     try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString('tr-TR', {
-        weekday: 'long',
+      return new Date(dateStr).toLocaleDateString('tr-TR', {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
+        weekday: 'long'
       });
     } catch {
       return dateStr;
     }
   };
 
+  // Origin/destination names
+  const originName = searchResponse?.legs?.[0]?.origin?.label || origin;
+  const destinationName = searchResponse?.legs?.[0]?.destination?.label || destination;
+
+  // Check if any advanced filter is active
+  const hasAdvancedFilters = departureRange.min > 0 || departureRange.max < 1440 || arrivalRange.min > 0 || arrivalRange.max < 1440;
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
-                <Train className="w-5 h-5 text-white" />
+          <div className="flex items-center justify-between h-14 sm:h-16">
+            <Link href="/" className="flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
+                <Train className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-slate-900">EuroTrain</span>
+              <span className="text-lg sm:text-xl font-bold text-slate-900">EuroTrain</span>
             </Link>
             
-            <Link 
+            <Link
               href="/"
-              className="flex items-center gap-2 text-slate-600 hover:text-blue-600 transition-colors font-medium"
+              className="flex items-center gap-1 sm:gap-2 text-slate-600 hover:text-blue-600 transition-colors text-sm sm:text-base"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Yeni Arama</span>
@@ -659,272 +905,150 @@ function SearchResultsContent() {
         </div>
       </header>
 
-      {/* Search Summary Bar */}
-      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white py-5 shadow-lg">
+      {/* Route Summary */}
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 sm:py-6">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            {/* Route Info */}
-            <div className="flex items-center gap-3">
-              <MapPin className="w-5 h-5 text-blue-300" />
-              {searchResponse && (
-                <div className="flex items-center gap-3">
-                  <span className="text-lg font-semibold">
-                    {searchResponse.origin?.label || origin}
-                  </span>
-                  <ArrowRight className="w-5 h-5 text-blue-300" />
-                  <span className="text-lg font-semibold">
-                    {searchResponse.destination?.label || destination}
-                  </span>
-                </div>
-              )}
-              {!searchResponse && !isLoading && (
-                <div className="flex items-center gap-3">
-                  <span className="text-lg font-semibold">{origin}</span>
-                  <ArrowRight className="w-5 h-5 text-blue-300" />
-                  <span className="text-lg font-semibold">{destination}</span>
-                </div>
-              )}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-blue-200" />
+              <span className="font-semibold text-sm sm:text-base">{originName}</span>
+              <ArrowRight className="w-4 h-4 text-blue-200" />
+              <span className="font-semibold text-sm sm:text-base">{destinationName}</span>
             </div>
-            
-            {/* Date & Passengers */}
-            <div className="flex items-center gap-5 text-sm">
-              <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-lg">
-                <Calendar className="w-4 h-4 text-blue-300" />
-                <span>{formatDisplayDate(date)}</span>
+            <div className="flex items-center gap-3 sm:gap-4 text-blue-100 text-xs sm:text-sm">
+              <div className="flex items-center gap-1 bg-white/10 px-2 sm:px-3 py-1 rounded-full">
+                <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span>{formatDateDisplay(date)}</span>
               </div>
-              <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-lg">
-                <Users className="w-4 h-4 text-blue-300" />
-                <span>
-                  {adults} Yetişkin{children > 0 && `, ${children} Çocuk`}
-                </span>
+              <div className="flex items-center gap-1 bg-white/10 px-2 sm:px-3 py-1 rounded-full">
+                <Users className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span>{adults + children} Yolcu</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Results Content */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Loading State */}
-        {isLoading && (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mb-4">
-              <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+        {/* Filters */}
+        <div className="mb-4 sm:mb-6">
+          {/* Quick Time Filters + Advanced Toggle */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs sm:text-sm text-slate-600">Kalkış:</div>
+              <button
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                className={`
+                  flex items-center gap-1.5 text-xs sm:text-sm px-3 py-1.5 rounded-lg transition-all
+                  ${showAdvancedFilters || hasAdvancedFilters
+                    ? 'bg-blue-100 text-blue-700 font-medium'
+                    : 'text-slate-600 hover:bg-slate-100'
+                  }
+                `}
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                <span>Detaylı Filtre</span>
+                {hasAdvancedFilters && (
+                  <span className="w-2 h-2 bg-blue-600 rounded-full" />
+                )}
+              </button>
             </div>
-            <p className="text-slate-600 font-medium">Seferler aranıyor...</p>
-            <p className="text-slate-400 text-sm mt-1">En iyi fiyatları buluyoruz</p>
-          </div>
-        )}
-
-        {/* Error State */}
-        {error && !isLoading && (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mb-4">
-              <AlertCircle className="w-8 h-8 text-red-500" />
-            </div>
-            <h3 className="text-xl font-semibold text-slate-900 mb-2">Bir Hata Oluştu</h3>
-            <p className="text-slate-600 mb-6">{error}</p>
-            <Link
-              href="/"
-              className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
-            >
-              Ana Sayfaya Dön
-            </Link>
-          </div>
-        )}
-
-        {/* Results */}
-        {!isLoading && !error && groupedJourneys.length > 0 && (
-          <>
-            {/* Filters Bar */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-6">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                {/* Time Quick Filters */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-medium text-slate-700 mr-1">
-                    {filterMode === 'departure' ? 'Kalkış:' : 'Varış:'}
-                  </span>
-                  {TIME_FILTERS.map(filter => (
-                    <TimeFilterButton
-                      key={filter.id}
-                      filter={filter}
-                      isActive={selectedTimeFilters.includes(filter.id)}
-                      onClick={() => toggleTimeFilter(filter.id)}
-                    />
-                  ))}
-                  {selectedTimeFilters.length > 0 && (
-                    <button
-                      onClick={clearFilters}
-                      className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-                      title="Filtreleri Temizle"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-
-                {/* Sort & More Filters */}
-                <div className="flex items-center gap-3">
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                    className="px-4 py-2 rounded-xl border border-slate-200 text-sm text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                  >
-                    <option value="departure">Kalkış Saati</option>
-                    <option value="price">Fiyat (En Ucuz)</option>
-                    <option value="duration">Süre (En Kısa)</option>
-                  </select>
-
-                  <button
-                    onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                    className={`
-                      flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all
-                      ${showAdvancedFilters 
-                        ? 'bg-blue-600 text-white shadow-md' 
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                      }
-                    `}
-                  >
-                    <SlidersHorizontal className="w-4 h-4" />
-                    <span className="hidden sm:inline">Detaylı Filtre</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Advanced Filters Panel */}
-              {showAdvancedFilters && (
-                <div className="mt-4 pt-4 border-t border-slate-200">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Filter Mode */}
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Filtre Türü
-                      </label>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setFilterMode('departure')}
-                          className={`
-                            flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors
-                            ${filterMode === 'departure'
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                            }
-                          `}
-                        >
-                          Kalkış Saati
-                        </button>
-                        <button
-                          onClick={() => setFilterMode('arrival')}
-                          className={`
-                            flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors
-                            ${filterMode === 'arrival'
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                            }
-                          `}
-                        >
-                          Varış Saati
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Custom Time Range */}
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Saat Aralığı (Başlangıç)
-                      </label>
-                      <input
-                        type="time"
-                        value={customTimeRange.start}
-                        onChange={(e) => setCustomTimeRange(prev => ({ ...prev, start: e.target.value }))}
-                        className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Saat Aralığı (Bitiş)
-                      </label>
-                      <input
-                        type="time"
-                        value={customTimeRange.end}
-                        onChange={(e) => setCustomTimeRange(prev => ({ ...prev, end: e.target.value }))}
-                        className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Results Header */}
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">
-                  {filteredJourneys.length} Sefer Bulundu
-                </h2>
-                <p className="text-slate-500 text-sm">
-                  Fiyatlar kişi başı gösterilmektedir • Detaylar için sefere tıklayın
-                </p>
-              </div>
-            </div>
-
-            {/* Journey List */}
-            <div className="space-y-4">
-              {filteredJourneys.map((group) => (
-                <JourneyCard
-                  key={group.solutionId}
-                  group={group}
-                  isExpanded={expandedJourney === group.solutionId}
-                  onToggle={() => setExpandedJourney(
-                    expandedJourney === group.solutionId ? null : group.solutionId
-                  )}
-                  onSelectOffer={handleSelectJourney}
-                />
+            <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+              {TIME_FILTERS.map(filter => (
+                <button
+                  key={filter.id}
+                  onClick={() => toggleTimeFilter(filter.id)}
+                  className={`
+                    flex flex-col items-center justify-center p-2 sm:p-3 rounded-lg sm:rounded-xl border-2 transition-all
+                    ${selectedTimeFilters.includes(filter.id)
+                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                    }
+                  `}
+                >
+                  <span className="text-base sm:text-lg">{filter.icon}</span>
+                  <span className="text-[10px] sm:text-xs font-medium mt-0.5">{filter.shortLabel}</span>
+                </button>
               ))}
             </div>
+          </div>
 
-            {/* No Results After Filter */}
-            {filteredJourneys.length === 0 && groupedJourneys.length > 0 && (
-              <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-slate-200">
-                <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Filter className="w-8 h-8 text-slate-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-slate-700 mb-2">
-                  Filtrelere Uygun Sefer Bulunamadı
-                </h3>
-                <p className="text-slate-500 mb-4">
-                  Seçtiğiniz kriterlere uygun sefer bulunmuyor. Filtreleri değiştirmeyi deneyin.
-                </p>
-                <button
-                  onClick={clearFilters}
-                  className="px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
-                >
-                  Filtreleri Temizle
-                </button>
-              </div>
-            )}
-          </>
-        )}
+          {/* Advanced Filters Panel */}
+          <AdvancedFiltersPanel
+            isOpen={showAdvancedFilters}
+            onClose={() => setShowAdvancedFilters(false)}
+            departureRange={departureRange}
+            arrivalRange={arrivalRange}
+            onDepartureChange={(min, max) => setDepartureRange({ min, max })}
+            onArrivalChange={(min, max) => setArrivalRange({ min, max })}
+            onReset={resetAdvancedFilters}
+          />
 
-        {/* No Results */}
-        {!isLoading && !error && groupedJourneys.length === 0 && searchResponse && (
-          <div className="text-center py-20">
-            <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Train className="w-8 h-8 text-slate-400" />
+          {/* Sort */}
+          <div className="flex items-center justify-between">
+            <div className="text-xs sm:text-sm text-slate-600">
+              {filteredAndSortedGroups.length} Sefer Bulundu
             </div>
-            <h3 className="text-xl font-semibold text-slate-900 mb-2">
-              Sefer Bulunamadı
-            </h3>
-            <p className="text-slate-600 mb-6">
-              Bu tarih ve güzergah için uygun sefer bulunamadı.
+            <div className="flex items-center gap-2">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="text-xs sm:text-sm border border-slate-200 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {SORT_OPTIONS.map(opt => (
+                  <option key={opt.id} value={opt.id}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Results */}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
+            <p className="text-slate-600">Seferler aranıyor...</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+            <p className="text-slate-800 font-medium mb-2">Bir hata oluştu</p>
+            <p className="text-slate-600 text-sm">{error}</p>
+          </div>
+        ) : filteredAndSortedGroups.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Train className="w-12 h-12 text-slate-400 mb-4" />
+            <p className="text-slate-800 font-medium mb-2">Sefer bulunamadı</p>
+            <p className="text-slate-600 text-sm">Farklı tarih veya güzergah deneyin</p>
+            {(selectedTimeFilters.length > 0 || hasAdvancedFilters) && (
+              <button
+                onClick={() => {
+                  setSelectedTimeFilters([]);
+                  resetAdvancedFilters();
+                }}
+                className="mt-4 text-blue-600 hover:text-blue-700 text-sm flex items-center gap-1"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Filtreleri Temizle
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3 sm:space-y-4">
+            {/* Info text */}
+            <p className="text-xs sm:text-sm text-slate-500">
+              Fiyatlar kişi başı gösterilmektedir • Sınıf seçmek için sefere tıklayın
             </p>
-            <Link
-              href="/"
-              className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors inline-block font-medium"
-            >
-              Farklı Tarih Dene
-            </Link>
+            
+            {filteredAndSortedGroups.map(([key, groupJourneys]) => (
+              <JourneyCard
+                key={key}
+                journeys={groupJourneys}
+                isExpanded={expandedJourney === key}
+                onToggle={() => setExpandedJourney(expandedJourney === key ? null : key)}
+                onSelect={handleSelectJourney}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -933,20 +1057,20 @@ function SearchResultsContent() {
 }
 
 // ============================================================
-// MAIN PAGE WITH SUSPENSE
+// MAIN PAGE
 // ============================================================
 
 export default function SearchPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
           <p className="text-slate-600">Yükleniyor...</p>
         </div>
       </div>
     }>
-      <SearchResultsContent />
+      <SearchContent />
     </Suspense>
   );
 }

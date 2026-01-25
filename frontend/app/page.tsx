@@ -29,6 +29,7 @@ function placeToStation(place: EraPlace): Station {
 
 export default function HomePage() {
   const router = useRouter();
+  const dateInputRef = useRef<HTMLInputElement>(null);
   
   // Form state
   const [origin, setOrigin] = useState('');
@@ -155,6 +156,30 @@ export default function HomePage() {
       ...prev,
       [type]: Math.max(type === 'adults' ? 1 : 0, Math.min(9, prev[type] + delta))
     }));
+  };
+
+  // Open date picker programmatically
+  const openDatePicker = () => {
+    if (dateInputRef.current) {
+      dateInputRef.current.showPicker?.();
+      dateInputRef.current.focus();
+    }
+  };
+
+  // Format date for display
+  const formatDateDisplay = (dateStr: string) => {
+    if (!dateStr) return 'Tarih Seçin';
+    try {
+      const date = new Date(dateStr + 'T00:00:00');
+      return date.toLocaleDateString('tr-TR', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        weekday: 'short'
+      });
+    } catch {
+      return dateStr;
+    }
   };
 
   // Form submit
@@ -332,19 +357,28 @@ export default function HomePage() {
             </div>
 
             <div className="grid md:grid-cols-2 gap-4 mb-6">
-              {/* Date */}
+              {/* Date - FIXED: Entire row clickable */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2 text-left">
                   Tarih
                 </label>
-                <div className="relative">
-                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <div 
+                  className="relative cursor-pointer"
+                  onClick={openDatePicker}
+                >
+                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none z-10" />
+                  {/* Display layer - shows formatted date */}
+                  <div className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-xl bg-white text-left text-slate-700">
+                    {formatDateDisplay(departureDate)}
+                  </div>
+                  {/* Hidden actual input - positioned absolutely to cover entire area */}
                   <input
+                    ref={dateInputRef}
                     type="date"
                     value={departureDate}
                     onChange={(e) => setDepartureDate(e.target.value)}
                     min={new Date().toISOString().split('T')[0]}
-                    className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
                 </div>
               </div>

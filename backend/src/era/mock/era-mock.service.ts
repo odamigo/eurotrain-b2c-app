@@ -56,6 +56,38 @@ export class EraMockService {
   private mockSearches: Map<string, EraSearchResponse> = new Map();
 
   // ============================================================
+  // HELPER: Generate short readable PNR/Reference
+  // ============================================================
+  
+  /**
+   * Generates a short, readable booking reference
+   * Format: ET-XXXXXX (6 alphanumeric characters)
+   * Example: ET-A3B7K9
+   */
+  private generateBookingReference(): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed I, O, 0, 1 to avoid confusion
+    let result = 'ET-';
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }
+
+  /**
+   * Generates a short booking ID (instead of UUID)
+   * Format: 8 character alphanumeric
+   * Example: A3B7K9X2
+   */
+  private generateShortId(): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let result = '';
+    for (let i = 0; i < 8; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }
+
+  // ============================================================
   // CLASS CONFIGURATIONS
   // ============================================================
   
@@ -242,7 +274,7 @@ export class EraMockService {
   // ============================================================
 
   searchJourneys(request: EraSearchRequest): EraSearchResponse {
-    const searchId = uuidv4();
+    const searchId = this.generateShortId();
     const leg = request.legs[0];
     
     // Support both 'departure/arrival' and 'origin/destination' naming
@@ -272,7 +304,7 @@ export class EraMockService {
 
     // Generate journeys for each departure time
     departureTimes.forEach((time, timeIndex) => {
-      const legSolutionId = uuidv4();
+      const legSolutionId = this.generateShortId();
       
       // Calculate arrival time
       const [hours, minutes] = time.split(':').map(Number);
@@ -287,7 +319,7 @@ export class EraMockService {
 
       // Create segment
       const segment: EraSegment = {
-        id: uuidv4(),
+        id: this.generateShortId(),
         sequenceNumber: 1,
         origin,
         destination,
@@ -319,8 +351,8 @@ export class EraMockService {
 
       // Create offers for each class
       this.classConfigs.forEach((classConfig, classIndex) => {
-        const offerId = uuidv4();
-        const productId = uuidv4();
+        const offerId = this.generateShortId();
+        const productId = this.generateShortId();
 
         // Price calculation with variation
         const baseVariation = 0.85 + Math.random() * 0.3; // 85% - 115%
@@ -379,7 +411,7 @@ export class EraMockService {
         solutions: legSolutions,
       }],
       travelers: request.travelers.map((t, i) => ({
-        id: uuidv4(),
+        id: this.generateShortId(),
         type: t.type,
         dateOfBirth: t.dateOfBirth,
       })),
@@ -458,15 +490,16 @@ export class EraMockService {
   // ============================================================
 
   createBooking(offerLocations: string[]): EraBooking {
-    const bookingId = uuidv4();
-    const reference = `ET${Date.now().toString().slice(-8)}`;
+    // Use short ID instead of UUID
+    const bookingId = this.generateShortId();
+    const reference = this.generateBookingReference();
 
     const booking: EraBooking = {
       id: bookingId,
       reference,
       status: 'CREATED',
       items: offerLocations.map((loc, index) => ({
-        id: uuidv4(),
+        id: this.generateShortId(),
         reference: `${reference}-${index + 1}`,
         status: 'CREATED',
       })),
@@ -479,7 +512,7 @@ export class EraMockService {
     };
 
     this.mockBookings.set(bookingId, booking);
-    this.logger.debug(`Mock booking created: ${bookingId}`);
+    this.logger.debug(`Mock booking created: ${bookingId} (ref: ${reference})`);
 
     return booking;
   }
@@ -537,8 +570,9 @@ export class EraMockService {
     booking.status = 'INVOICED';
     booking.updatedAt = new Date().toISOString();
     
-    booking.items.forEach(item => {
-      item.pnr = `PNR${Date.now().toString().slice(-10)}`;
+    // Generate short, readable PNR for each item
+    booking.items.forEach((item, index) => {
+      item.pnr = this.generateBookingReference();
     });
 
     this.mockBookings.set(bookingId, booking);
@@ -565,7 +599,7 @@ export class EraMockService {
 
     return {
       tickets: [{
-        id: uuidv4(),
+        id: this.generateShortId(),
         reference: booking.reference,
         type: 'E-TICKET',
         format,
@@ -600,7 +634,7 @@ export class EraMockService {
     if (!booking) throw new NotFoundException('Booking not found');
 
     return {
-      id: uuidv4(),
+      id: this.generateShortId(),
       bookingId,
       items: booking.items.map(item => ({
         itemId: item.id!,
@@ -623,11 +657,11 @@ export class EraMockService {
     this.mockBookings.set(bookingId, booking);
 
     return {
-      id: uuidv4(),
+      id: this.generateShortId(),
       bookingId,
       status: 'REFUNDED',
       refundedAmount: { amount: 45, currency: 'EUR' },
-      refundTransactionId: `REF${Date.now()}`,
+      refundTransactionId: `REF-${this.generateShortId()}`,
     };
   }
 
@@ -646,9 +680,9 @@ export class EraMockService {
 
   getExchangeQuotation(bookingId: string, offerLocation: string): EraExchangeQuotation {
     return {
-      id: uuidv4(),
+      id: this.generateShortId(),
       bookingId,
-      newOffer: { id: uuidv4(), offerLocation } as EraOffer,
+      newOffer: { id: this.generateShortId(), offerLocation } as EraOffer,
       priceDifference: { amount: 10, currency: 'EUR' },
       fee: { amount: 5, currency: 'EUR' },
       expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
@@ -660,9 +694,9 @@ export class EraMockService {
     if (!booking) throw new NotFoundException('Booking not found');
 
     return {
-      id: uuidv4(),
+      id: this.generateShortId(),
       booking,
-      exchangeTransactionId: `EXC${Date.now()}`,
+      exchangeTransactionId: `EXC-${this.generateShortId()}`,
     };
   }
 }
