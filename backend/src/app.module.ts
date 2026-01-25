@@ -1,6 +1,4 @@
-﻿import { McpBookingModule } from './mcp/mcp-booking.module';
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TrainsController } from './trains/trains.controller';
@@ -12,14 +10,10 @@ import { EraModule } from './era/era.module';
 import { PaymentModule } from './payment/payment.module';
 import { MyTripsModule } from './my-trips/my-trips.module';
 import { SecurityModule } from './security/security.module';
-import { EmailModule } from './email/email.module';
-import { PdfModule } from './pdf/pdf.module';
-import { SettingsModule } from './settings/settings.module';
+import { McpModule } from './mcp/mcp.module';
 
 @Module({
   imports: [
-    McpBookingModule,
-    ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: 'localhost',
@@ -37,9 +31,7 @@ import { SettingsModule } from './settings/settings.module';
     EraModule,
     PaymentModule,
     MyTripsModule,
-    EmailModule,
-    PdfModule,
-    SettingsModule,
+    McpModule,  // MCP Server - AI Tool Endpoints
   ],
   controllers: [AppController, TrainsController],
   providers: [AppService],

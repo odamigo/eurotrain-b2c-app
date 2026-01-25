@@ -55,11 +55,10 @@ EuroTrain, Avrupa tren bileti pazarında **AI-first** yaklaşımıyla öncü olm
 - [ ] Integration testing
 - [ ] Deploy to staging
 
-### Phase 2: ERA API Integration + Infrastructure
+### Phase 2: ERA API Integration
 **Timeline:** Week 3-4 (February 2025)
 **Blocker:** Sandbox credentials from Rail Europe
 
-#### ERA Integration:
 - [ ] Obtain ERA API sandbox credentials
 - [ ] Real search integration
 - [ ] Offer location mapping
@@ -67,24 +66,6 @@ EuroTrain, Avrupa tren bileti pazarında **AI-first** yaklaşımıyla öncü olm
 - [ ] Confirm after payment success
 - [ ] E-ticket from ERA print endpoint
 - [ ] Error handling for ERA failures
-
-#### Infrastructure Upgrades:
-- [ ] **Redis cache** - Replace in-memory (offer/session TTL)
-- [ ] **Timezone standardization** - All datetime ISO 8601 with timezone
-  - Example: `2025-02-15T08:15:00+01:00` (Paris) → `2025-02-15T09:30:00+00:00` (London)
-  - Critical for cross-border journeys (Eurostar, Thalys)
-
-#### New MCP Tool:
-- [ ] **search-stations** - Station disambiguation
-  ```
-  Input: { query: "londra", locale: "tr-TR" }
-  Output: [
-    { code: "GBLST", name: "London St Pancras", city: "London" },
-    { code: "GBQQW", name: "London Waterloo", city: "London" }
-  ]
-  ```
-  - Required for: "Londra'ya git" → Which station?
-  - Google Gemini specifically requires this for Function Calling
 
 ### Phase 3: Production Launch
 **Timeline:** Week 5-6 (February 2025)
@@ -100,36 +81,11 @@ EuroTrain, Avrupa tren bileti pazarında **AI-first** yaklaşımıyla öncü olm
 
 ### Phase 4: AI Platform Integrations
 **Timeline:** March 2025
-**Prerequisite:** Phase 2 & 3 complete
 
-#### Protocol Support:
-- [ ] **MCP (Anthropic Claude)** - Current implementation ✅
-- [ ] **OpenAPI/Swagger export** - For GPT & Gemini compatibility
-- [ ] **GPT Actions (OpenAI)** - Requires OpenAPI 3.0 format
-- [ ] **Gemini Function Calling (Google)** - Requires OpenAPI 3.0 format
-
-#### Authentication (for user-specific features):
-- [ ] **OAuth 2.0 implementation**
-  - Required for: "Biletlerimi göster", saved travelers
-  - Google OAuth consent screen setup
-  - Token refresh flow
-
-#### Additional Tools (OAuth required):
-- [ ] **get-user-bookings** - List user's tickets
-- [ ] **cancel-booking** - Cancel with refund check
-- [ ] **exchange-booking** - Date/time change
-
-#### Multi-language Tool Descriptions:
-- [ ] English (EN) - Primary for AI platforms
-- [ ] German (DE) - DACH market
-- [ ] French (FR) - France/Belgium market
-
-#### Quality Requirements (AI Platform Approval):
-- [ ] Tool descriptions: Detailed, unambiguous
-- [ ] Response shaping: Summarized for token limits
-- [ ] Latency: <2 seconds p95
-- [ ] Error messages: Remedial ("Did you mean X?")
-- [ ] Human-in-the-loop: No auto-purchase without confirmation
+- [ ] Claude.ai MCP integration (Anthropic)
+- [ ] GPT Actions (OpenAI) - requires different format
+- [ ] Documentation for agent developers
+- [ ] Public API launch
 
 ### Phase 5: Scaling & Features
 **Timeline:** Q2 2025
@@ -225,37 +181,11 @@ EuroTrain, Avrupa tren bileti pazarında **AI-first** yaklaşımıyla öncü olm
 
 | Date | Decision | Rationale |
 |------|----------|-----------|
-| 2025-01-26 | In-memory cache, not Redis | Simpler for MVP, Redis in Phase 2 |
+| 2025-01-26 | In-memory cache, not Redis | Simpler for MVP, Redis later |
 | 2025-01-26 | Prebook at payment, not checkout | Avoid ghost reservations |
-| 2025-01-26 | 4 tools only (initial) | Minimal surface, easier onboarding |
+| 2025-01-26 | 4 tools only | Minimal surface, easier onboarding |
 | 2025-01-26 | Hash offer references | Never expose ERA internals to AI |
-| 2025-01-26 | MCP-first, OpenAPI later | Anthropic Claude priority, Google/OpenAI Phase 4 |
-| 2025-01-26 | OAuth deferred to Phase 4 | Anonymous booking sufficient for MVP |
-| 2025-01-26 | search-stations tool in Phase 2 | Station disambiguation critical for AI accuracy |
 | 2025-01-25 | Service fee 5% | Industry standard |
-
----
-
-## ⚠️ Phase 2 Reminders (Post-ERA Sandbox)
-
-> **Bu bölüm ERA sandbox credentials alındığında aktif olacak**
-
-### Must-Do Infrastructure:
-1. **Redis Cache** - In-memory TTL yönetimi production için yetersiz
-2. **ISO 8601 + Timezone** - Sınır geçişlerinde saat karışıklığı önlenir
-3. **search-stations Tool** - AI'ın "Londra" → "London St Pancras" dönüşümü yapabilmesi için
-
-### Platform-Specific Formats:
-| Platform | Protocol | Format | Priority |
-|----------|----------|--------|----------|
-| Claude | MCP | JSON-RPC | ✅ Active |
-| GPT | Actions | OpenAPI 3.0 | Phase 4 |
-| Gemini | Function Calling | OpenAPI 3.0 | Phase 4 |
-
-### OAuth Trigger Points:
-- Kullanıcı hesabı özelliği aktif olunca
-- "Biletlerimi göster" komutu istenince
-- Saved travelers özelliği eklenince
 
 ---
 
