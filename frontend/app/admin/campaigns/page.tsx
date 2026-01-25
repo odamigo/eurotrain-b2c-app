@@ -56,6 +56,24 @@ export default function CampaignsPage() {
     }
   }
 
+  // Helper to check if campaign is active (supports both isActive and active)
+  const isCampaignActive = (campaign: Campaign): boolean => {
+    return campaign.isActive ?? campaign.active ?? false;
+  };
+
+  // Helper to get usage count (supports both usedCount and currentUsageCount)
+  const getUsageCount = (campaign: Campaign): number => {
+    return campaign.currentUsageCount ?? campaign.usedCount ?? 0;
+  };
+
+  // Helper to format discount display
+  const formatDiscount = (campaign: Campaign): string => {
+    if (campaign.discountType === 'PERCENTAGE' || campaign.discountType === 'PERCENT') {
+      return `%${campaign.discountValue}`;
+    }
+    return `€${campaign.discountValue}`;
+  };
+
   const columns = [
     {
       key: 'name',
@@ -83,9 +101,7 @@ export default function CampaignsPage() {
       header: 'İndirim',
       render: (campaign: Campaign) => (
         <span className="font-semibold text-green-600">
-          {campaign.discountType === 'PERCENTAGE'
-            ? `%${campaign.discountValue}`
-            : `€${campaign.discountValue}`}
+          {formatDiscount(campaign)}
         </span>
       ),
     },
@@ -94,7 +110,7 @@ export default function CampaignsPage() {
       header: 'Kullanım',
       render: (campaign: Campaign) => (
         <span>
-          {campaign.currentUsageCount}
+          {getUsageCount(campaign)}
           {campaign.usageLimit ? ` / ${campaign.usageLimit}` : ' / ∞'}
         </span>
       ),
@@ -103,8 +119,8 @@ export default function CampaignsPage() {
       key: 'active',
       header: 'Durum',
       render: (campaign: Campaign) => (
-        <Badge variant={campaign.active ? 'default' : 'secondary'}>
-          {campaign.active ? 'Aktif' : 'Pasif'}
+        <Badge variant={isCampaignActive(campaign) ? 'default' : 'secondary'}>
+          {isCampaignActive(campaign) ? 'Aktif' : 'Pasif'}
         </Badge>
       ),
     },

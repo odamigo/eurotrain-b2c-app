@@ -42,12 +42,16 @@ export default function EditCampaignPage() {
     async function fetchCampaign() {
       try {
         const campaign = await campaignApi.getById(id);
+        
+        // Map campaign fields - handle both isActive and active
+        const isActive = campaign.isActive ?? campaign.active ?? false;
+        
         setFormData({
           name: campaign.name,
           code: campaign.code || '',
           description: campaign.description || '',
           type: campaign.type,
-          discountType: campaign.discountType,
+          discountType: campaign.discountType === 'PERCENTAGE' ? 'PERCENT' : campaign.discountType,
           discountValue: campaign.discountValue,
           discountCurrency: campaign.discountCurrency,
           discountTarget: campaign.discountTarget,
@@ -60,7 +64,7 @@ export default function EditCampaignPage() {
           refundable: campaign.refundable,
           startDate: campaign.startDate ? campaign.startDate.slice(0, 16) : '',
           endDate: campaign.endDate ? campaign.endDate.slice(0, 16) : '',
-          active: campaign.active,
+          active: isActive,
         });
       } catch (err) {
         setError('Kampanya yüklenirken hata oluştu');
@@ -72,7 +76,7 @@ export default function EditCampaignPage() {
   }, [id]);
 
   function handleChange(field: keyof UpdateCampaignDto, value: unknown) {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev: UpdateCampaignDto) => ({ ...prev, [field]: value }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -89,6 +93,7 @@ export default function EditCampaignPage() {
         maxDiscountAmount: formData.maxDiscountAmount || undefined,
         minOrderAmount: formData.minOrderAmount || undefined,
         usageLimit: formData.usageLimit || undefined,
+        isActive: formData.active, // Ensure isActive is also set
       };
       
       await campaignApi.update(id, submitData);
@@ -223,7 +228,7 @@ export default function EditCampaignPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="PERCENTAGE">Yüzde (%)</SelectItem>
+                      <SelectItem value="PERCENT">Yüzde (%)</SelectItem>
                       <SelectItem value="FIXED">Sabit Tutar</SelectItem>
                     </SelectContent>
                   </Select>

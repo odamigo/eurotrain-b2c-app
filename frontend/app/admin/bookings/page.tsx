@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState } from 'react';
 import { bookingApi, Booking } from '@/lib/api/client';
@@ -23,7 +23,7 @@ export default function BookingsPage() {
         const data = await bookingApi.getAll();
         setBookings(data);
       } catch (error) {
-        console.error('Rezervasyonlar yÃ¼klenirken hata:', error);
+        console.error('Rezervasyonlar yüklenirken hata:', error);
       } finally {
         setIsLoading(false);
       }
@@ -31,10 +31,11 @@ export default function BookingsPage() {
     fetchBookings();
   }, []);
 
-  const statusMap = {
-    PENDING: { label: 'Bekliyor', variant: 'secondary' as const },
-    CONFIRMED: { label: 'OnaylandÄ±', variant: 'default' as const },
-    CANCELLED: { label: 'Ä°ptal', variant: 'destructive' as const },
+  const statusMap: Record<string, { label: string; variant: 'secondary' | 'default' | 'destructive' }> = {
+    PENDING: { label: 'Bekliyor', variant: 'secondary' },
+    CONFIRMED: { label: 'Onaylandı', variant: 'default' },
+    CANCELLED: { label: 'İptal', variant: 'destructive' },
+    PAID: { label: 'Ödendi', variant: 'default' },
   };
 
   const columns = [
@@ -47,7 +48,7 @@ export default function BookingsPage() {
     },
     {
       key: 'customerName',
-      header: 'MÃ¼ÅŸteri',
+      header: 'Müşteri',
       render: (booking: Booking) => (
         <div>
           <p className="font-medium text-slate-900">{booking.customerName}</p>
@@ -57,10 +58,10 @@ export default function BookingsPage() {
     },
     {
       key: 'route',
-      header: 'GÃ¼zergah',
+      header: 'Güzergah',
       render: (booking: Booking) => (
         <span>
-          {booking.fromStation} â†’ {booking.toStation}
+          {booking.fromStation} → {booking.toStation}
         </span>
       ),
     },
@@ -86,7 +87,7 @@ export default function BookingsPage() {
       key: 'price',
       header: 'Tutar',
       render: (booking: Booking) => (
-        <span className="font-semibold">â‚¬{Number(booking.price).toFixed(2)}</span>
+        <span className="font-semibold">€{Number(booking.price).toFixed(2)}</span>
       ),
     },
     {
@@ -99,7 +100,7 @@ export default function BookingsPage() {
     },
     {
       key: 'createdAt',
-      header: 'OluÅŸturulma',
+      header: 'Oluşturulma',
       render: (booking: Booking) => (
         <span className="text-sm text-slate-500">
           {new Date(booking.createdAt).toLocaleDateString('tr-TR', {
@@ -119,7 +120,7 @@ export default function BookingsPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Rezervasyonlar</h1>
-        <p className="text-slate-500">TÃ¼m bilet rezervasyonlarÄ±nÄ± gÃ¶rÃ¼ntÃ¼leyin</p>
+        <p className="text-slate-500">Tüm bilet rezervasyonlarını görüntüleyin</p>
       </div>
 
       {/* Stats */}
@@ -143,7 +144,7 @@ export default function BookingsPage() {
         <div className="bg-white p-4 rounded-lg border border-slate-200">
           <p className="text-sm text-slate-500">Toplam Gelir</p>
           <p className="text-2xl font-bold text-blue-600">
-            â‚¬{bookings.reduce((sum, b) => sum + Number(b.price), 0).toFixed(2)}
+            €{bookings.reduce((sum, b) => sum + Number(b.price), 0).toFixed(2)}
           </p>
         </div>
       </div>
@@ -160,7 +161,7 @@ export default function BookingsPage() {
       <Dialog open={!!selectedBooking} onOpenChange={() => setSelectedBooking(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Rezervasyon DetayÄ±</DialogTitle>
+            <DialogTitle>Rezervasyon Detayı</DialogTitle>
           </DialogHeader>
           {selectedBooking && (
             <div className="space-y-4">
@@ -171,7 +172,7 @@ export default function BookingsPage() {
               <Separator />
 
               <div className="space-y-3">
-                <h4 className="font-semibold text-slate-900">MÃ¼ÅŸteri Bilgileri</h4>
+                <h4 className="font-semibold text-slate-900">Müşteri Bilgileri</h4>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Ad Soyad</span>
                   <span>{selectedBooking.customerName}</span>
@@ -186,11 +187,11 @@ export default function BookingsPage() {
               <div className="space-y-3">
                 <h4 className="font-semibold text-slate-900">Seyahat Bilgileri</h4>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">KalkÄ±ÅŸ</span>
+                  <span className="text-slate-500">Kalkış</span>
                   <span>{selectedBooking.fromStation}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">VarÄ±ÅŸ</span>
+                  <span className="text-slate-500">Varış</span>
                   <span>{selectedBooking.toStation}</span>
                 </div>
                 {selectedBooking.departureDate && (
@@ -201,13 +202,13 @@ export default function BookingsPage() {
                 )}
                 {selectedBooking.departureTime && (
                   <div className="flex justify-between">
-                    <span className="text-slate-500">KalkÄ±ÅŸ Saati</span>
+                    <span className="text-slate-500">Kalkış Saati</span>
                     <span>{selectedBooking.departureTime.slice(0, 5)}</span>
                   </div>
                 )}
                 {selectedBooking.arrivalTime && (
                   <div className="flex justify-between">
-                    <span className="text-slate-500">VarÄ±ÅŸ Saati</span>
+                    <span className="text-slate-500">Varış Saati</span>
                     <span>{selectedBooking.arrivalTime.slice(0, 5)}</span>
                   </div>
                 )}
@@ -219,7 +220,7 @@ export default function BookingsPage() {
                 )}
                 {selectedBooking.operator && (
                   <div className="flex justify-between">
-                    <span className="text-slate-500">OperatÃ¶r</span>
+                    <span className="text-slate-500">Operatör</span>
                     <span>{selectedBooking.operator}</span>
                   </div>
                 )}
@@ -227,10 +228,10 @@ export default function BookingsPage() {
               <Separator />
 
               <div className="space-y-3">
-                <h4 className="font-semibold text-slate-900">Ã–deme</h4>
+                <h4 className="font-semibold text-slate-900">Ödeme</h4>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Tutar</span>
-                  <span className="font-semibold text-lg">â‚¬{Number(selectedBooking.price).toFixed(2)}</span>
+                  <span className="font-semibold text-lg">€{Number(selectedBooking.price).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-slate-500">Durum</span>
@@ -242,7 +243,7 @@ export default function BookingsPage() {
               <Separator />
 
               <div className="flex justify-between">
-                <span className="text-slate-500">OluÅŸturulma</span>
+                <span className="text-slate-500">Oluşturulma</span>
                 <span className="text-sm">
                   {new Date(selectedBooking.createdAt).toLocaleDateString('tr-TR', {
                     day: '2-digit',
@@ -260,4 +261,3 @@ export default function BookingsPage() {
     </div>
   );
 }
-

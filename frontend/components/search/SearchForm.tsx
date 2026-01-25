@@ -4,12 +4,14 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRightLeft, Calendar, Users, Search, Sparkles } from 'lucide-react';
 import { StationAutocomplete } from './StationAutocomplete';
-import { Station } from '@/lib/api/client';
+import { EraPlace } from '@/lib/api/era-client';
 
 export function SearchForm() {
   const router = useRouter();
-  const [origin, setOrigin] = useState<Station | null>(null);
-  const [destination, setDestination] = useState<Station | null>(null);
+  const [originCode, setOriginCode] = useState<string>('');
+  const [destinationCode, setDestinationCode] = useState<string>('');
+  const [originLabel, setOriginLabel] = useState<string>('');
+  const [destinationLabel, setDestinationLabel] = useState<string>('');
   const [departureDate, setDepartureDate] = useState('');
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
@@ -17,9 +19,12 @@ export function SearchForm() {
 
   // Swap origin and destination
   const handleSwap = () => {
-    const temp = origin;
-    setOrigin(destination);
-    setDestination(temp);
+    const tempCode = originCode;
+    const tempLabel = originLabel;
+    setOriginCode(destinationCode);
+    setOriginLabel(destinationLabel);
+    setDestinationCode(tempCode);
+    setDestinationLabel(tempLabel);
   };
 
   // Get minimum date (today)
@@ -28,11 +33,31 @@ export function SearchForm() {
     return today.toISOString().split('T')[0];
   };
 
+  // Handle origin change
+  const handleOriginChange = (value: string, place?: EraPlace) => {
+    setOriginCode(value);
+    if (place) {
+      setOriginLabel(place.label);
+    } else if (!value) {
+      setOriginLabel('');
+    }
+  };
+
+  // Handle destination change
+  const handleDestinationChange = (value: string, place?: EraPlace) => {
+    setDestinationCode(value);
+    if (place) {
+      setDestinationLabel(place.label);
+    } else if (!value) {
+      setDestinationLabel('');
+    }
+  };
+
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!origin || !destination || !departureDate) {
+    if (!originCode || !destinationCode || !departureDate) {
       return;
     }
 
@@ -40,8 +65,8 @@ export function SearchForm() {
 
     // Build search params
     const params = new URLSearchParams({
-  origin: (origin as any).id || origin.code,
-  destination: (destination as any).id || destination.code,
+      origin: originCode,
+      destination: destinationCode,
       date: departureDate,
       adults: adults.toString(),
       children: children.toString(),
@@ -51,7 +76,7 @@ export function SearchForm() {
     router.push(`/search?${params.toString()}`);
   };
 
-  const isFormValid = origin && destination && departureDate && adults > 0;
+  const isFormValid = originCode && destinationCode && departureDate && adults > 0;
 
   return (
     <form onSubmit={handleSubmit} className="w-full">
@@ -70,9 +95,8 @@ export function SearchForm() {
             <StationAutocomplete
               label="Nereden"
               placeholder="İstasyon ara..."
-              value={origin}
-              onChange={setOrigin}
-              icon="origin"
+              value={originLabel || originCode}
+              onChange={handleOriginChange}
             />
           </div>
 
@@ -93,9 +117,8 @@ export function SearchForm() {
             <StationAutocomplete
               label="Nereye"
               placeholder="İstasyon ara..."
-              value={destination}
-              onChange={setDestination}
-              icon="destination"
+              value={destinationLabel || destinationCode}
+              onChange={handleDestinationChange}
             />
           </div>
         </div>

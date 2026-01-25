@@ -609,7 +609,7 @@ function JourneyCard({
   
   // Sort by comfort category order: standard, comfort, premier
   const sortedJourneys = [...journeys].sort((a, b) => {
-    const order = { standard: 0, comfort: 1, premier: 2 };
+    const order: Record<string, number> = { standard: 0, comfort: 1, premier: 2 };
     return (order[a.comfortCategory] || 0) - (order[b.comfortCategory] || 0);
   });
   

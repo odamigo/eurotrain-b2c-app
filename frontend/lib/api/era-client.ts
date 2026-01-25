@@ -579,9 +579,10 @@ export interface Journey {
     currency: string;
   };
   operator: string;
+  operatorName: string; // Added for UI display
   trainNumber: string;
   trainType: string;
-  comfortCategory: string;
+  comfortCategory: 'standard' | 'comfort' | 'premier';
   flexibility?: EraFlexibility;
   segments: EraSegment[];
   isRefundable: boolean;
@@ -598,6 +599,29 @@ export function placeToStation(place: EraPlace): Station {
     city: place.localLabel || place.label,
     country: place.country?.label || '',
   };
+}
+
+/**
+ * Carrier code'dan okunabilir isim al
+ */
+function getOperatorName(carrierCode: string): string {
+  const operatorNames: Record<string, string> = {
+    'EUROSTAR': 'Eurostar',
+    'SNCF': 'SNCF TGV',
+    'TGV': 'TGV',
+    'THALYS': 'Thalys',
+    'TRENITALIA': 'Trenitalia',
+    'FRECCIAROSSA': 'Frecciarossa',
+    'DBAHN': 'Deutsche Bahn',
+    'ICE': 'ICE',
+    'RENFE': 'Renfe',
+    'AVE': 'AVE',
+    'SBB': 'SBB',
+    'OBB': 'ÖBB',
+    'NS': 'NS International',
+  };
+  
+  return operatorNames[carrierCode.toUpperCase()] || carrierCode;
 }
 
 /**
@@ -622,9 +646,10 @@ export function toJourneyArray(searchResponse: EraSearchResponse): Journey[] {
       currency: j.currency,
     },
     operator: j.carrier,
+    operatorName: getOperatorName(j.carrier),
     trainNumber: j.trainNumber,
     trainType: j.trainType,
-    comfortCategory: j.comfortCategory,
+    comfortCategory: j.comfortCategory as 'standard' | 'comfort' | 'premier',
     flexibility: j.flexibility,
     segments: j.segments,
     isRefundable: j.isRefundable,

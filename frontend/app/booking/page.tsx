@@ -791,7 +791,7 @@ export default function BookingPage() {
       // Step 1: Create Booking
       const booking = await createBooking([journey.offerLocation]);
       setBookingId(booking.id);
-      setBookingRef(booking.reference);
+      setBookingRef(booking.reference ?? null);
 
       // Step 2: Update Travelers
       const itemId = booking.items?.[0]?.id;

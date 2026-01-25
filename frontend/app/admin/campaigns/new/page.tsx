@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { campaignApi, CreateCampaignDto } from '@/lib/api/client';
+import { campaignApi, CreateCampaignDto, Campaign } from '@/lib/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,7 +27,7 @@ export default function NewCampaignPage() {
     code: '',
     description: '',
     type: 'PROMO_CODE',
-    discountType: 'PERCENTAGE',
+    discountType: 'PERCENT',
     discountValue: 10,
     discountCurrency: 'EUR',
     discountTarget: 'TOTAL',
@@ -53,14 +53,29 @@ export default function NewCampaignPage() {
     setError(null);
 
     try {
-      const submitData = {
-        ...formData,
+      // Map PERCENTAGE to PERCENT for API compatibility
+      const discountType = formData.discountType === 'PERCENTAGE' ? 'PERCENT' : formData.discountType;
+      
+      const submitData: Partial<Campaign> = {
+        name: formData.name,
         code: formData.code || undefined,
-        startDate: formData.startDate || undefined,
-        endDate: formData.endDate || undefined,
+        description: formData.description,
+        type: formData.type,
+        discountType: discountType as 'FIXED' | 'PERCENT',
+        discountValue: formData.discountValue,
+        discountCurrency: formData.discountCurrency,
+        discountTarget: formData.discountTarget,
         maxDiscountAmount: formData.maxDiscountAmount || undefined,
         minOrderAmount: formData.minOrderAmount || undefined,
+        stackable: formData.stackable,
+        priority: formData.priority,
         usageLimit: formData.usageLimit || undefined,
+        usagePerUser: formData.usagePerUser,
+        refundable: formData.refundable,
+        startDate: formData.startDate || undefined,
+        endDate: formData.endDate || undefined,
+        active: formData.active,
+        isActive: formData.active,
       };
       
       await campaignApi.create(submitData);
@@ -161,13 +176,13 @@ export default function NewCampaignPage() {
                   <Label htmlFor="discountType">İndirim Tipi</Label>
                   <Select
                     value={formData.discountType}
-                    onValueChange={(value) => handleChange('discountType', value)}
+                    onValueChange={(value) => handleChange('discountType', value as 'PERCENT' | 'FIXED')}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="PERCENTAGE">Yüzde (%)</SelectItem>
+                      <SelectItem value="PERCENT">Yüzde (%)</SelectItem>
                       <SelectItem value="FIXED">Sabit Tutar</SelectItem>
                     </SelectContent>
                   </Select>

@@ -20,6 +20,7 @@ export interface Journey {
   price: number;
   currency: string;
   operator: string;
+  operatorName?: string; // Added for UI display
   trainNumber: string;
   trainType: string;
   availableSeats: number;
@@ -34,6 +35,7 @@ export interface Journey {
     business?: number;
     first?: number;
   };
+  comfortCategory?: string;
 }
 
 export interface JourneyLeg {
@@ -106,18 +108,55 @@ export interface CreateBookingParams {
   };
 }
 
+// ==================== CAMPAIGN INTERFACE (EXTENDED) ====================
+
 export interface Campaign {
   id: number;
   code: string;
   name: string;
-  discountType: 'FIXED' | 'PERCENT';
+  description?: string;
+  type?: string;
+  discountType: 'FIXED' | 'PERCENT' | 'PERCENTAGE';
   discountValue: number;
-  usageLimit: number;
-  usedCount: number;
-  startDate: string;
-  endDate: string;
-  isActive: boolean;
+  discountCurrency?: string;
+  discountTarget?: string;
+  maxDiscountAmount?: number;
+  minOrderAmount?: number;
+  stackable?: boolean;
+  priority?: number;
+  usageLimit?: number;
+  usagePerUser?: number;
+  usedCount?: number;
+  currentUsageCount?: number;
+  refundable?: boolean;
+  startDate?: string;
+  endDate?: string;
+  isActive?: boolean;
+  active?: boolean; // Alias for isActive
 }
+
+export interface CreateCampaignDto {
+  name: string;
+  code?: string;
+  description?: string;
+  type?: string;
+  discountType: 'PERCENTAGE' | 'FIXED' | 'PERCENT';
+  discountValue: number;
+  discountCurrency?: string;
+  discountTarget?: string;
+  maxDiscountAmount?: number;
+  minOrderAmount?: number;
+  stackable?: boolean;
+  priority?: number;
+  usageLimit?: number;
+  usagePerUser?: number;
+  refundable?: boolean;
+  startDate?: string;
+  endDate?: string;
+  active?: boolean;
+}
+
+export interface UpdateCampaignDto extends Partial<CreateCampaignDto> {}
 
 export interface PriceCalculation {
   basePrice: number;
@@ -125,6 +164,84 @@ export interface PriceCalculation {
   discount: number;
   finalPrice: number;
   currency: string;
+}
+
+// ==================== POPULAR ROUTES ====================
+
+export interface PopularRoute {
+  origin: {
+    code?: string;
+    name?: string;
+    city?: string;
+    countryCode?: string;
+  };
+  destination: {
+    code?: string;
+    name?: string;
+    city?: string;
+    countryCode?: string;
+  };
+  trainType?: string;
+  duration?: string;
+  minPrice?: number;
+  price?: number;
+}
+
+export async function getPopularRoutes(): Promise<PopularRoute[]> {
+  try {
+    const response = await fetch(`${API_URL}/era/popular-routes`);
+    if (!response.ok) {
+      throw new Error('Popüler rotalar yüklenemedi');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Popular routes error:', error);
+    // Return mock popular routes
+    return [
+      {
+        origin: { code: 'FRPAR', name: 'Paris Gare du Nord', city: 'Paris', countryCode: 'FR' },
+        destination: { code: 'GBLON', name: 'London St Pancras', city: 'London', countryCode: 'GB' },
+        trainType: 'Eurostar',
+        duration: '2h 16m',
+        minPrice: 78,
+      },
+      {
+        origin: { code: 'FRPAR', name: 'Paris Gare du Nord', city: 'Paris', countryCode: 'FR' },
+        destination: { code: 'NLAMS', name: 'Amsterdam Centraal', city: 'Amsterdam', countryCode: 'NL' },
+        trainType: 'Thalys',
+        duration: '3h 18m',
+        minPrice: 35,
+      },
+      {
+        origin: { code: 'DEBER', name: 'Berlin Hbf', city: 'Berlin', countryCode: 'DE' },
+        destination: { code: 'DEMUC', name: 'München Hbf', city: 'München', countryCode: 'DE' },
+        trainType: 'ICE',
+        duration: '4h 00m',
+        minPrice: 29,
+      },
+      {
+        origin: { code: 'ITROM', name: 'Roma Termini', city: 'Roma', countryCode: 'IT' },
+        destination: { code: 'ITMIL', name: 'Milano Centrale', city: 'Milano', countryCode: 'IT' },
+        trainType: 'Frecciarossa',
+        duration: '2h 55m',
+        minPrice: 39,
+      },
+      {
+        origin: { code: 'ESMAD', name: 'Madrid Atocha', city: 'Madrid', countryCode: 'ES' },
+        destination: { code: 'ESBCN', name: 'Barcelona Sants', city: 'Barcelona', countryCode: 'ES' },
+        trainType: 'AVE',
+        duration: '2h 30m',
+        minPrice: 45,
+      },
+      {
+        origin: { code: 'FRPAR', name: 'Paris Gare de Lyon', city: 'Paris', countryCode: 'FR' },
+        destination: { code: 'CHZRH', name: 'Zürich HB', city: 'Zürich', countryCode: 'CH' },
+        trainType: 'TGV Lyria',
+        duration: '4h 03m',
+        minPrice: 49,
+      },
+    ];
+  }
 }
 
 // ==================== STATION API ====================
@@ -239,6 +356,7 @@ export async function searchJourneys(params: JourneySearchParams): Promise<Journ
       
       // FİYAT: prices.from kullan, yoksa economy, yoksa 0
       const price = j.prices?.from || j.prices?.economy || j.prices?.business || 0;
+      const operatorCode = j.operators?.[0] || firstLeg?.operator || 'Unknown';
       
       return {
         id: j.id,
@@ -249,7 +367,8 @@ export async function searchJourneys(params: JourneySearchParams): Promise<Journ
         duration: j.duration,
         price: price,
         currency: j.prices?.currency || 'EUR',
-        operator: j.operators?.[0] || firstLeg?.operator || 'Unknown',
+        operator: operatorCode,
+        operatorName: operatorCode, // Same as operator for now
         trainNumber: firstLeg?.trainNumber || '',
         trainType: j.trainTypes?.[0] || firstLeg?.trainType || '',
         availableSeats: 50,
@@ -318,6 +437,7 @@ function getMockJourneys(params: JourneySearchParams): JourneySearchResult {
       price: 94,
       currency: 'EUR',
       operator: 'Thalys',
+      operatorName: 'Thalys',
       trainNumber: 'TH9012',
       trainType: 'High-Speed',
       availableSeats: 45,
@@ -508,6 +628,7 @@ export function formatTime(dateTimeString: string): string {
 export function formatPrice(price: number, currency: string = 'EUR'): string {
   return `€${price.toFixed(2)}`;
 }
+
 // ==================== CAMPAIGN API EXTENDED ====================
 
 export const campaignApi = {
@@ -586,26 +707,3 @@ export const bookingApi = {
     return response.json();
   },
 };
-
-// ==================== CREATE CAMPAIGN DTO ====================
-
-export interface CreateCampaignDto {
-  name: string;
-  code?: string;
-  description?: string;
-  type?: string;
-  discountType: 'PERCENTAGE' | 'FIXED' | 'PERCENT';
-  discountValue: number;
-  discountCurrency?: string;
-  discountTarget?: string;
-  maxDiscountAmount?: number;
-  minOrderAmount?: number;
-  stackable?: boolean;
-  priority?: number;
-  usageLimit?: number;
-  usagePerUser?: number;
-  refundable?: boolean;
-  startDate?: string;
-  endDate?: string;
-  active?: boolean;
-}

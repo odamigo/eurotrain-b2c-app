@@ -15,7 +15,7 @@ export function PopularRoutes() {
     const fetchRoutes = async () => {
       try {
         const data = await getPopularRoutes();
-        setRoutes(Array.isArray(data) ? data : (data as any).routes || []);
+        setRoutes(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Error fetching popular routes:', err);
         setError('Popüler rotalar yüklenemedi');
@@ -45,7 +45,7 @@ export function PopularRoutes() {
   };
 
   // Country flag emoji helper
-  const getCountryFlag = (countryCode: string) => {
+  const getCountryFlag = (countryCode: string | undefined) => {
     if (!countryCode) return '🚂';
     const codePoints = countryCode
       .toUpperCase()

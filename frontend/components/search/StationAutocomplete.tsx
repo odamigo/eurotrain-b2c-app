@@ -29,14 +29,14 @@ export function StationAutocomplete({
   
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const debounceRef = useRef<NodeJS.Timeout>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Update query when value prop changes
   useEffect(() => {
     if (value !== query && !selectedPlace) {
       setQuery(value);
     }
-  }, [value]);
+  }, [value, query, selectedPlace]);
 
   // Search places with debounce
   useEffect(() => {
@@ -74,7 +74,7 @@ export function StationAutocomplete({
         clearTimeout(debounceRef.current);
       }
     };
-  }, [query]);
+  }, [query, selectedPlace]);
 
   // Close dropdown on outside click
   useEffect(() => {
