@@ -1,7 +1,7 @@
 # 🗺️ EUROTRAIN PROJECT MAP
 
-**Son Güncelleme:** 24 Ocak 2026
-**Durum:** ERA API Altyapısı Tamamlandı
+**Son Güncelleme:** 25 Ocak 2026
+**Durum:** Search Results v2 Tamamlandı
 
 ---
 
@@ -11,7 +11,7 @@
 backend/src/
 ├── app.module.ts          # Ana modül
 ├── main.ts                # Entry point
-├── era/                   # ✅ ERA API Entegrasyonu (YENİ)
+├── era/                   # ✅ ERA API Entegrasyonu
 │   ├── interfaces/
 │   │   └── era-api.types.ts    # 700+ satır TypeScript interface
 │   ├── services/
@@ -42,7 +42,7 @@ frontend/
 ├── app/
 │   ├── page.tsx           # ✅ Homepage (ERA entegre)
 │   ├── search/
-│   │   └── page.tsx       # ✅ Arama sonuçları (ERA entegre)
+│   │   └── page.tsx       # ✅ v2 Accordion UI (YENİ)
 │   ├── booking/
 │   │   └── page.tsx       # ⏳ Güncellenmeli
 │   ├── payment/
@@ -65,11 +65,14 @@ frontend/
     └── api/
         ├── era-client.ts  # ✅ Yeni ERA API client
         └── client.ts      # Eski (kaldırılacak)
+
+docs/
+└── AGENTIC_COMMERCE_STRATEGY.md  # ✅ MCP-First stratejisi
 ```
 
 ---
 
-## 🔌 ERA API ENDPOİNTLERİ (YENİ)
+## 🔌 ERA API ENDPOİNTLERİ
 
 ### Places
 | Method | Endpoint | Açıklama |
@@ -111,6 +114,31 @@ frontend/
 
 ---
 
+## 🎨 SEARCH RESULTS PAGE v2 ÖZELLİKLERİ
+
+### UI Bileşenleri
+| Bileşen | Açıklama | Durum |
+|---------|----------|-------|
+| Accordion Cards | Sefer tıklanınca class seçenekleri açılır | ✅ |
+| Class Comparison | 3 class yan yana karşılaştırma | ✅ |
+| Time Filters | Sabah/Öğle/Akşam hızlı butonları | ✅ |
+| Custom Time Range | Kalkış/Varış saat aralığı seçimi | ✅ |
+| Sort Options | Fiyat/Süre/Kalkış sıralaması | ✅ |
+| Feature Tags | Yüksek Hız, WiFi, Restoran | ✅ |
+| Popular Badge | Business class'ta "En Popüler" | ✅ |
+
+### Filtreleme
+- Hızlı saat filtreleri: 🌅 00:00-08:00, ☀️ 08:00-12:00, 🌤️ 12:00-18:00, 🌙 18:00-24:00
+- Kalkış/Varış modu seçimi
+- Özel saat aralığı girişi
+
+### Sıralama
+- Kalkış Saati (varsayılan)
+- Fiyat (En Ucuz)
+- Süre (En Kısa)
+
+---
+
 ## 🚂 MOCK DATA ÖZELLİKLERİ
 
 ### Desteklenen Carrier'lar
@@ -127,11 +155,11 @@ frontend/
 | TGV Lyria | High-Speed | TGV | Paris↔Geneva, Paris↔Zurich |
 
 ### Class Seçenekleri
-| Class | Comfort | Fiyat Çarpanı | İade | Değişiklik |
-|-------|---------|---------------|------|------------|
-| Standard | standard | 1.0x | ❌ | ✅ |
-| Business | comfort | 1.6x | ✅ | ✅ |
-| First | premier | 2.2x | ✅ | ✅ |
+| Class | Comfort | Fiyat Çarpanı | İade | Değişiklik | Flexibility |
+|-------|---------|---------------|------|------------|-------------|
+| Standard | standard | 1.0x | ❌ | ✅ | Semi-Flexible |
+| Business | comfort | 1.6x | ✅ | ✅ | Flexible |
+| First | premier | 2.2x | ✅ | ✅ | Fully Flexible |
 
 ### Şehirler (32 adet)
 Fransa, İngiltere, Almanya, İtalya, İspanya, Hollanda, Belçika, İsviçre, Avusturya, Çekya
@@ -159,7 +187,7 @@ Fransa, İngiltere, Almanya, İtalya, İspanya, Hollanda, Belçika, İsviçre, A
 | Modül | Backend | Frontend | Durum |
 |-------|---------|----------|-------|
 | ERA Places | ✅ | ✅ | Mock çalışıyor |
-| ERA Search | ✅ | ✅ | 3 class, 35+ rota |
+| ERA Search | ✅ | ✅ | v2 UI tamamlandı |
 | ERA Booking | ✅ | ⏳ | Backend hazır |
 | ERA Refund | ✅ | - | Backend hazır |
 | Auth | ✅ | ✅ | JWT çalışıyor |
@@ -185,3 +213,17 @@ Fransa, İngiltere, Almanya, İtalya, İspanya, Hollanda, Belçika, İsviçre, A
 | Ödeme | Payten MSU |
 | Icons | Lucide React |
 | Tren API | Rail Europe ERA (mock mode) |
+
+---
+
+## 🚀 AGENTIC COMMERCE STRATEJİSİ
+
+### Yaklaşım: MCP-First, UCP-Ready
+
+| Faz | Süre | Hedef |
+|-----|------|-------|
+| Faz 1 | 2-3 hafta | Temel MCP Server (search-trains) |
+| Faz 2 | 3-4 hafta | Booking desteği |
+| Faz 3 | 4-6 hafta | Ödeme + UCP uyumu |
+
+Detaylar: `docs/AGENTIC_COMMERCE_STRATEGY.md`

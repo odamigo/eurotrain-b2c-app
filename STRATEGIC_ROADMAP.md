@@ -1,7 +1,7 @@
 # 🚀 EUROTRAIN STRATEGIC ROADMAP
 
-**Son Güncelleme:** 24 Ocak 2026
-**Durum:** ERA API Altyapısı Tamamlandı
+**Son Güncelleme:** 25 Ocak 2026
+**Durum:** Search Results v2 Tamamlandı
 
 ---
 
@@ -11,38 +11,33 @@
 |----------|-------|-----|
 | ERA API Altyapısı | ✅ | Interfaces, Services, Mock |
 | Backend API | %98 | Tüm modüller hazır |
-| Frontend | %90 | Booking sayfası güncellenmeli |
+| Frontend Search | ✅ | v2 Accordion UI |
+| Frontend Booking | %80 | Güncellenmeli |
 | Database | %98 | Settings tablosu aktif |
 | Payment | %90 | MSU credentials bekliyor |
 | TCMB Kur | ✅ | Efektif satış, dinamik markup |
-| **TOPLAM** | **%94** | |
+| **TOPLAM** | **%95** | |
 
 ---
 
-## ✅ TAMAMLANAN (24 Ocak)
+## ✅ TAMAMLANAN
 
-### ERA API Clean Architecture
+### 25 Ocak 2026 - Search Results v2
+- ✅ Accordion/Expandable Cards
+- ✅ 3 Class karşılaştırma (Standart/Business/First)
+- ✅ "En Popüler" badge
+- ✅ Saat filtreleri (Sabah/Öğle/Akşam)
+- ✅ Kalkış/Varış saat aralığı seçimi
+- ✅ Sıralama (Fiyat/Süre/Kalkış)
+- ✅ Feature tags (Yüksek Hız, WiFi, Restoran)
+- ✅ Rakip analizi: Trainline, Omio, FlixBus, Rail Europe
+
+### 24 Ocak 2026 - ERA API & Mock v2
 - ✅ `era-api.types.ts` - 700+ satır TypeScript interface
-- ✅ `era-auth.service.ts` - Token yönetimi (60dk cache)
-- ✅ `era-places.service.ts` - İstasyon arama (7gün cache)
-- ✅ `era-search.service.ts` - Sefer arama (15dk cache)
-- ✅ `era-booking.service.ts` - Rezervasyon işlemleri
-- ✅ `era-refund.service.ts` - İade/değişiklik
-
-### Mock Service v2
-- ✅ 3 class desteği: Standard, Business, First
-- ✅ 35+ rota (her iki yön)
-- ✅ 32 şehir/istasyon
-- ✅ Gerçek carrier isimleri: EUROSTAR, TGV, ICE, vb.
-- ✅ Peak hour fiyatlandırma
-
-### Frontend ERA Entegrasyonu
-- ✅ `era-client.ts` - Yeni API client
-- ✅ Homepage - ERA autocomplete
-- ✅ Search page - ERA sonuçları
-
-### Instruction Güncellemesi
-- ✅ Test ve Doğrulama Kuralları eklendi
+- ✅ ERA Services: Auth, Places, Search, Booking, Refund
+- ✅ Mock Service v2: 3 class, 35+ rota, 32 şehir
+- ✅ Frontend ERA entegrasyonu
+- ✅ Agentic Commerce stratejisi belgesi
 
 ---
 
@@ -53,9 +48,8 @@
 |-------|-------|---------|
 | ERA API Altyapısı | ✅ | - |
 | Mock Service v2 | ✅ | - |
-| Frontend ERA Entegrasyonu | ✅ | - |
-| Booking sayfası güncelleme | ⏳ | 🔴 Yüksek |
-| Class seçim UI | ⏳ | 🔴 Yüksek |
+| Search Results v2 UI | ✅ | - |
+| **Booking sayfası güncelleme** | ⏳ | 🔴 Yüksek |
 | Terms/Privacy sayfaları | 🔜 | 🟡 Orta |
 | MSU credentials test | ⏳ | 🔴 Yüksek |
 
@@ -81,32 +75,35 @@
 ### FAZ 4: AI Agent (1-2 Ay)
 | Görev | Durum | Not |
 |-------|-------|-----|
-| MCP Server | 🔜 | Claude entegrasyonu |
-| Direct Post API | 🔜 | Chatbot'lar için |
-| Webhook notifications | 🔜 | Booking updates |
+| MCP Server | 🔜 | search-trains tool |
+| Claude Desktop entegrasyonu | 🔜 | Test |
+| ChatGPT Actions | 🔜 | Alternatif |
+| UCP uyumu | 🔜 | Google |
 
 ---
 
 ## 🎯 SONRAKİ ADIMLAR (Öncelik Sırasına Göre)
 
-### 1. Frontend Class Seçimi (Bugün/Yarın)
-- Her sefer için 3 class gösterimi
-- Fiyat karşılaştırma
-- Özellik badge'leri (İade, Değişiklik)
-
-### 2. Booking Sayfası (Bu Hafta)
+### 1. Booking Sayfası (Bu Hafta) 🔴
 - ERA booking flow
-- Traveler formu
+- Traveler formu (Ad, Soyad, Email, Telefon)
 - Prebook → Payment → Confirm
+- Seçilen class bilgilerinin aktarılması
 
-### 3. UI/UX İyileştirmeler (Bu Hafta)
-- Header logo düzeltme
-- Mobile responsive
+### 2. UI/UX İyileştirmeler (Bu Hafta) 🟡
+- Mobile responsive kontrol
+- Homepage form iyileştirme
 - Loading states
 
-### 4. Terms/Privacy (Bu Hafta)
-- Frontend sayfaları
+### 3. Legal Sayfalar (Bu Hafta) 🟡
+- Terms of Service
+- Privacy Policy
 - Admin'den düzenlenebilir
+
+### 4. Production Hazırlık (Gelecek Hafta) 🟢
+- MSU gerçek credentials
+- ERA sandbox test
+- HTTPS aktifleştirme
 
 ---
 
@@ -153,6 +150,32 @@ ERA_POINT_OF_SALE=EUROTRAIN
 
 ---
 
+## 🤖 AGENTIC COMMERCE STRATEJİSİ
+
+### Yaklaşım: MCP-First, UCP-Ready
+
+**Neden MCP?**
+- Anthropic standardı, de-facto
+- Kiwi.com örneği başarılı
+- Tren sektöründe MCP server YOK - ilk olma fırsatı
+
+**Faz 1 (2-3 hafta):**
+- `search-trains` tool
+- `get-stations` tool + resource
+- Claude Desktop entegrasyonu
+
+**Faz 2 (3-4 hafta):**
+- `create-booking` tool
+- Booking link oluşturma (Kiwi.com modeli)
+
+**Faz 3 (4-6 hafta):**
+- AP2 (Agent Payments Protocol)
+- Google UCP uyumluluğu
+
+Detaylar: `docs/AGENTIC_COMMERCE_STRATEGY.md`
+
+---
+
 ## 📞 İLETİŞİM
 
 ### Payten
@@ -176,7 +199,7 @@ ERA_POINT_OF_SALE=EUROTRAIN
 ```
 □ API doğru veri dönüyor mu?
 □ Frontend doğru gösteriyor mu?
-□ Carrier isimleri doğru mu?
+□ Mobile'da düzgün görünüyor mu?
 □ Edge case'ler çalışıyor mu?
 □ Screenshot ile doğrulandı mı?
 ```

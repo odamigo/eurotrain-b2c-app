@@ -1,6 +1,6 @@
 # 🚀 EUROTRAIN QUICK START
 
-**Son Güncelleme:** 24 Ocak 2026
+**Son Güncelleme:** 25 Ocak 2026
 **Domain:** eurotrain.net
 
 ---
@@ -33,6 +33,7 @@ npm run dev
 | Sayfa | URL |
 |-------|-----|
 | Ana Sayfa | http://localhost:3000 |
+| Arama Sonuçları | http://localhost:3000/search?origin=FRPAR&destination=GBLON&date=2026-02-15 |
 | Admin Panel | http://localhost:3000/admin |
 | Admin Settings | http://localhost:3000/admin/settings |
 | Biletlerim | http://localhost:3000/my-trips |
@@ -56,12 +57,12 @@ Email: admin@eurotrain.com
 Invoke-RestMethod -Uri "http://localhost:3001/era/places/autocomplete?query=paris" | ConvertTo-Json
 ```
 
-### Sefer Arama
+### Sefer Arama (3 Class Döner)
 ```powershell
 $body = @{
     origin = "FRPAR"
     destination = "GBLON"
-    departureDate = "2025-02-15T09:00:00"
+    departureDate = "2026-02-15T09:00:00"
     adults = 1
 } | ConvertTo-Json
 Invoke-RestMethod -Uri "http://localhost:3001/era/search" -Method POST -Body $body -ContentType "application/json" | ConvertTo-Json -Depth 5
@@ -142,15 +143,32 @@ ERA_MOCK_MODE=true
 
 ## 🚂 DESTEKLENEN ROTALAR (Mock)
 
-| Rota | Carrier | Süre | Fiyat |
-|------|---------|------|-------|
-| Paris → London | EUROSTAR | 2s 16dk | €89+ |
+| Rota | Carrier | Süre | Fiyat (Standard) |
+|------|---------|------|------------------|
+| Paris → London | EUROSTAR | 2s 16dk | €72+ |
 | Paris → Amsterdam | THALYS | 3s 15dk | €89+ |
 | Paris → Brussels | THALYS | 1s 22dk | €69+ |
 | Roma → Milano | TRENITALIA | 2s 55dk | €69+ |
 | Berlin → Munich | ICE | 4s | €89+ |
 | Madrid → Barcelona | AVE | 2s 35dk | €69+ |
 | Zurich → Geneva | SBB | 2s 50dk | €79+ |
+
+### Class Fiyatları
+| Class | Çarpan | Örnek (€72 base) |
+|-------|--------|------------------|
+| Standard | 1.0x | €72 |
+| Business | 1.6x | €115 |
+| First | 2.2x | €158 |
+
+---
+
+## 🎨 SEARCH RESULTS v2 ÖZELLİKLERİ
+
+- **Accordion Cards**: Sefer tıklanınca class seçenekleri açılır
+- **3 Class Karşılaştırma**: Standart, Business, First yan yana
+- **Saat Filtreleri**: 🌅 Sabah Erken, ☀️ Sabah, 🌤️ Öğle, 🌙 Akşam
+- **Sıralama**: Fiyat, Süre, Kalkış saati
+- **Feature Tags**: ⚡ Yüksek Hız, 📶 WiFi, ☕ Restoran
 
 ---
 
@@ -174,6 +192,11 @@ Mock service güncel değil. En son `era-mock.service.ts` dosyasını kontrol et
 2. Backend'i yeniden başlat
 3. Admin'den çıkış yap, tekrar giriş yap
 
+### Search sayfası boş geliyor
+1. Backend çalışıyor mu kontrol et: http://localhost:3001/era/status
+2. API test et: PowerShell ile sefer arama yap
+3. Browser console'da hata var mı bak
+
 ---
 
 ## 📋 TEST CHECKLIST
@@ -182,9 +205,11 @@ Mock service güncel değil. En son `era-mock.service.ts` dosyasını kontrol et
 □ Backend çalışıyor mu? (http://localhost:3001/health)
 □ ERA status mock mu? (http://localhost:3001/era/status)
 □ İstasyon arama çalışıyor mu?
-□ Sefer arama sonuç dönüyor mu?
+□ Sefer arama 3 class dönüyor mu?
 □ Carrier isimleri doğru mu? (EUROSTAR, TGV, vb.)
 □ Frontend açılıyor mu? (http://localhost:3000)
+□ Search page accordion çalışıyor mu?
+□ Saat filtreleri çalışıyor mu?
 ```
 
 ---

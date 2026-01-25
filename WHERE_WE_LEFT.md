@@ -1,62 +1,79 @@
 # 🚂 EUROTRAIN - NEREDE KALDIK
 
-**Son Güncelleme:** 24 Ocak 2026, 23:30
+**Son Güncelleme:** 25 Ocak 2026, 20:00
 **Git Branch:** main
 
 ---
 
 ## ✅ BU OTURUMDA TAMAMLANAN
 
-### Backend - ERA API Altyapısı
+### Search Results Page v2 - Accordion UI
+- [x] Accordion/Expandable Cards - Sefer tıklanınca class seçenekleri açılır
+- [x] Başlayan fiyat gösterimi - Her seferde en düşük fiyat
+- [x] 3 Class karşılaştırma UI - Standart, Business, First yan yana
+- [x] "En Popüler" badge - Business class'ta dikkat çekici etiket
+- [x] Saat filtreleri - 🌅 Gece/Sabah Erken, ☀️ Sabah, 🌤️ Öğleden Sonra, 🌙 Akşam
+- [x] Detaylı saat aralığı - Kalkış/Varış için özel saat seçimi
+- [x] Sıralama seçenekleri - Kalkış saati, Fiyat (En Ucuz), Süre (En Kısa)
+- [x] Feature tags - ⚡ Yüksek Hız, 📶 WiFi, ☕ Restoran
+- [x] Rota özeti header - Paris → London, tarih, yolcu sayısı
+
+### Rakip Analizi Sonucu Uygulanan En İyi Pratikler
+- Trainline: Accordion pattern, fare class comparison
+- Omio: Quick time filters, sort options
+- FlixBus: Custom time range selection
+- Rail Europe: Clean header with route summary
+
+---
+
+## 📋 ÖNCEKİ OTURUMLARDA TAMAMLANAN
+
+### Backend - ERA API Altyapısı (24 Ocak)
 - [x] `interfaces/era-api.types.ts` - 700+ satır TypeScript interface
 - [x] `services/era-auth.service.ts` - Token yönetimi (60 dk cache)
 - [x] `services/era-places.service.ts` - İstasyon arama (7 gün cache)
 - [x] `services/era-search.service.ts` - Sefer arama (15 dk cache)
 - [x] `services/era-booking.service.ts` - Rezervasyon işlemleri
 - [x] `services/era-refund.service.ts` - İade/değişiklik
-- [x] `mock/era-mock.service.ts` - 3 class destekli mock data
+- [x] `mock/era-mock.service.ts` - 3 class destekli mock data (v2)
 - [x] `era.controller.ts` - Yeni API endpoints
 - [x] `era.module.ts` - NestJS modül
-- [x] DTO'lar: SearchJourneys, CreateBooking, UpdateTravelers
 
-### Frontend - ERA Entegrasyonu
+### Frontend - ERA Entegrasyonu (24 Ocak)
 - [x] `lib/api/era-client.ts` - Yeni API client
 - [x] `app/page.tsx` - Homepage ERA API ile çalışıyor
-- [x] `app/search/page.tsx` - Search page ERA formatında
-- [x] `components/search/StationAutocomplete.tsx` - Güncellenmiş
+- [x] `components/search/StationAutocomplete.tsx` - Güncellendi
 
-### Mock Service Özellikleri (v2)
-- [x] 3 class desteği: Standard, Business, First
-- [x] 35+ rota tanımı (her iki yön)
-- [x] 32 şehir/istasyon
-- [x] Gerçek carrier isimleri: EUROSTAR, TGV, ICE, Frecciarossa, AVE, Railjet
-- [x] Gerçekçi tren numaraları: ES 9015, TGV 9230, ICE 9145
-- [x] Peak hour fiyatlandırma (%15 daha pahalı)
-- [x] Esneklik bilgileri: Semi-Flexible, Flexible, Fully Flexible
-
-### Instruction Güncellemesi
-- [x] Test ve Doğrulama Kuralları eklendi
+### Agentic Commerce Stratejisi (24 Ocak)
+- [x] `docs/AGENTIC_COMMERCE_STRATEGY.md` - MCP-First, UCP-Ready yaklaşımı
 
 ---
 
 ## 🔧 SONRAKİ OTURUMDA YAPILACAK
 
-### Öncelik 1: Frontend Class Seçimi
-- [ ] Her sefer için 3 class gösterimi (Standard/Business/First)
-- [ ] Fiyat karşılaştırma UI
-- [ ] Class özelliklerini göster (İade, Değişiklik)
-
-### Öncelik 2: Booking Sayfası
+### Öncelik 1: Booking Sayfası
 - [ ] ERA booking flow implementasyonu
-- [ ] Traveler bilgileri formu
+- [ ] Traveler bilgileri formu (Ad, Soyad, Email, Telefon)
 - [ ] Prebook → Payment → Confirm akışı
 - [ ] Kampanya kodu entegrasyonu
+- [ ] Seçilen class bilgilerinin booking'e aktarılması
 
-### Öncelik 3: UI/UX İyileştirmeler
-- [ ] Header'da logo düzeltme
-- [ ] Mobile responsive kontrol
-- [ ] Loading states
-- [ ] Error handling
+### Öncelik 2: UI/UX İyileştirmeler
+- [ ] Mobile responsive kontrol ve düzeltmeler
+- [ ] Homepage arama formu iyileştirme
+- [ ] Loading states/skeletons
+- [ ] Error boundaries
+
+### Öncelik 3: Legal Sayfalar
+- [ ] Terms of Service sayfası
+- [ ] Privacy Policy sayfası
+- [ ] Admin'den düzenlenebilir içerik
+
+### Öncelik 4: Production Hazırlık
+- [ ] MSU gerçek credentials test
+- [ ] ERA sandbox credentials (bekleniyor)
+- [ ] HTTPS sertifikası
+- [ ] Performance optimizasyonu
 
 ---
 
@@ -88,10 +105,13 @@ frontend/
 │   └── client.ts             📋 Eski (kaldırılacak)
 ├── app/
 │   ├── page.tsx              ✅ ERA entegre
-│   ├── search/page.tsx       ✅ ERA entegre
+│   ├── search/page.tsx       ✅ v2 Accordion UI
 │   └── booking/page.tsx      ⏳ Güncellenmeli
 └── components/search/
     └── StationAutocomplete.tsx ✅
+
+docs/
+└── AGENTIC_COMMERCE_STRATEGY.md ✅ MCP stratejisi
 ```
 
 ---
@@ -110,11 +130,11 @@ npm run dev
 # API Test - İstasyon arama
 Invoke-RestMethod -Uri "http://localhost:3001/era/places/autocomplete?query=paris" | ConvertTo-Json
 
-# API Test - Sefer arama
+# API Test - Sefer arama (3 class döner)
 $body = @{
     origin = "FRPAR"
     destination = "GBLON"
-    departureDate = "2025-02-15T09:00:00"
+    departureDate = "2026-02-15T09:00:00"
     adults = 1
 } | ConvertTo-Json
 Invoke-RestMethod -Uri "http://localhost:3001/era/search" -Method POST -Body $body -ContentType "application/json" | ConvertTo-Json -Depth 5
@@ -125,14 +145,25 @@ Invoke-RestMethod -Uri "http://localhost:3001/era/status" | ConvertTo-Json
 
 ---
 
-## 📋 TEST CHECKLIST (Her Değişiklik Sonrası)
+## 📋 TEST CHECKLIST
 
+### Search Results Page v2
+```
+☑ Accordion açılıp kapanıyor
+☑ 3 class seçeneği görünüyor (Standart, Business, First)
+☑ "En Popüler" badge Business'ta
+☑ Saat filtreleri çalışıyor
+☑ Sıralama çalışıyor (Fiyat, Süre, Kalkış)
+☑ Detaylı filtre paneli açılıyor
+☑ Başlayan fiyat doğru gösteriliyor
+☑ Feature tags görünüyor (Yüksek Hız, WiFi, Restoran)
+```
+
+### Her Değişiklik Sonrası
 ```
 □ API doğru veri dönüyor mu?
 □ Frontend doğru gösteriyor mu?
-□ Carrier ismi doğru mu? (EUROSTAR, TGV, vb.)
-□ Fiyatlar mantıklı mı?
-□ Tren numarası formatı doğru mu?
+□ Mobile'da düzgün görünüyor mu?
 □ Edge case'ler çalışıyor mu?
 □ Screenshot ile doğrulandı mı?
 ```
@@ -142,15 +173,15 @@ Invoke-RestMethod -Uri "http://localhost:3001/era/status" | ConvertTo-Json
 ## 📝 NOTLAR
 
 - Mock mode aktif (`ERA_MOCK_MODE=true`)
+- Search Results v2 UI tamamlandı, test edildi
 - Sandbox credentials henüz yok
 - Real API geçişi için sadece `.env` değişikliği yeterli olacak
-- Backup klasörü: `backend/src/era-backup-20260124-212353/`
 
 ---
 
 ## 🔗 SONRAKİ OTURUM İÇİN
 
 1. Bu dosyayı oku
-2. Backend'i başlat, mock service v2'yi test et
-3. Frontend'de class seçimi UI'ı ekle
-4. Booking sayfasını ERA formatına uyarla
+2. Backend ve Frontend'i başlat
+3. Search sayfasını test et (Paris → London)
+4. Booking sayfası güncellemeye başla
