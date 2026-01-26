@@ -1,0 +1,297 @@
+// ============================================================
+// MCP API Client for Frontend
+// EuroTrain B2C Platform - Session-based Checkout
+// ============================================================
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+// ============================================================
+// TYPES
+// ============================================================
+
+export interface SessionJourney {
+  origin: string;
+  destination: string;
+  departure: string;
+  arrival: string;
+  operator: string;
+  train_number: string;
+  comfort_class: 'standard' | 'comfort' | 'premier';
+}
+
+export interface SessionPricing {
+  base_price: number;
+  service_fee: number;
+  total_price: number;
+  promo_discount?: number;
+  currency: string;
+}
+
+export interface SessionPassengers {
+  adults: number;
+  children: number;
+}
+
+export interface TravelerData {
+  title: 'MR' | 'MS';
+  first_name: string;
+  last_name: string;
+  email?: string;
+  phone?: string;
+  date_of_birth?: string;
+  type: 'adult' | 'child';
+  passport_number?: string;
+  passport_expiry?: string;
+  passport_country?: string;
+}
+
+export interface SessionData {
+  valid: boolean;
+  session_token: string;
+  status: 'CREATED' | 'TRAVELERS_ADDED' | 'PAYMENT_INITIATED' | 'COMPLETED' | 'EXPIRED' | 'CANCELLED';
+  journey: SessionJourney;
+  pricing: SessionPricing;
+  passengers: SessionPassengers;
+  travelers?: TravelerData[];
+  expires_at: string;
+  remaining_seconds: number;
+}
+
+export interface PromoResult {
+  success: boolean;
+  discount: number;
+  new_total: number;
+}
+
+// ============================================================
+// API FUNCTIONS
+// ============================================================
+
+/**
+ * Session bilgilerini getir
+ */
+export async function getSession(sessionToken: string): Promise<SessionData> {
+  const response = await fetch(`${API_URL}/mcp/tools/session/${sessionToken}`);
+  
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('SESSION_NOT_FOUND');
+    }
+    throw new Error('SESSION_ERROR');
+  }
+  
+  return response.json();
+}
+
+/**
+ * Yolcu bilgilerini güncelle
+ */
+export async function updateTravelers(
+  sessionToken: string, 
+  travelers: TravelerData[]
+): Promise<{ success: boolean; status: string }> {
+  const response = await fetch(`${API_URL}/mcp/tools/session/${sessionToken}/travelers`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ travelers }),
+  });
+  
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('SESSION_EXPIRED');
+    }
+    throw new Error('UPDATE_FAILED');
+  }
+  
+  return response.json();
+}
+
+/**
+ * Promo kodu uygula
+ */
+export async function applyPromoCode(
+  sessionToken: string, 
+  promoCode: string
+): Promise<PromoResult> {
+  const response = await fetch(`${API_URL}/mcp/tools/session/${sessionToken}/promo`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ promo_code: promoCode }),
+  });
+  
+  if (!response.ok) {
+    if (response.status === 400) {
+      throw new Error('INVALID_PROMO');
+    }
+    if (response.status === 404) {
+      throw new Error('SESSION_EXPIRED');
+    }
+    throw new Error('PROMO_ERROR');
+  }
+  
+  return response.json();
+}
+
+/**
+ * Session'ı extend et (kullanıcı aktif olduğunda)
+ */
+export async function extendSession(sessionToken: string): Promise<{ success: boolean }> {
+  const response = await fetch(`${API_URL}/mcp/tools/session/${sessionToken}/extend`, {
+    method: 'POST',
+  });
+  
+  if (!response.ok) {
+    return { success: false };
+  }
+  
+  return response.json();
+}
+
+// ============================================================
+// HELPER FUNCTIONS
+// ============================================================
+
+/**
+ * Comfort class'ı Türkçe'ye çevir
+ */
+export function getComfortLabel(code: string): string {
+  const labels: Record<string, string> = {
+    standard: 'Standart',
+    comfort: 'Business',
+    premier: 'Birinci Sınıf',
+  };
+  return labels[code] || 'Standart';
+}
+
+/**
+ * Comfort class config
+ */
+export function getComfortConfig(code: string): {
+  label: string;
+  labelTr: string;
+  color: string;
+  bgColor: string;
+  icon: string;
+} {
+  const configs: Record<string, {
+    label: string;
+    labelTr: string;
+    color: string;
+    bgColor: string;
+    icon: string;
+  }> = {
+    standard: { 
+      label: 'Standard', 
+      labelTr: 'Standart', 
+      color: 'text-slate-700', 
+      bgColor: 'bg-slate-100', 
+      icon: '🎫' 
+    },
+    comfort: { 
+      label: 'Business', 
+      labelTr: 'Business', 
+      color: 'text-amber-700', 
+      bgColor: 'bg-amber-100', 
+      icon: '💼' 
+    },
+    premier: { 
+      label: 'First Class', 
+      labelTr: 'Birinci Sınıf', 
+      color: 'text-purple-700', 
+      bgColor: 'bg-purple-100', 
+      icon: '👑' 
+    },
+  };
+  return configs[code] || configs.standard;
+}
+
+/**
+ * Operatör ismini düzelt
+ */
+export function getOperatorName(code: string): string {
+  const names: Record<string, string> = {
+    EUROSTAR: 'Eurostar',
+    SNCF: 'SNCF TGV',
+    TGV: 'TGV',
+    THALYS: 'Thalys',
+    TRENITALIA: 'Trenitalia',
+    FRECCIAROSSA: 'Frecciarossa',
+    DBAHN: 'Deutsche Bahn',
+    ICE: 'ICE',
+    RENFE: 'Renfe',
+    AVE: 'AVE',
+  };
+  return names[code?.toUpperCase()] || code;
+}
+
+/**
+ * Uluslararası rota mı? (Pasaport gerekir)
+ */
+export function isInternationalRoute(operator: string): boolean {
+  const internationalOperators = ['EUROSTAR', 'THALYS', 'TGV LYRIA'];
+  return internationalOperators.some(op => 
+    operator?.toUpperCase().includes(op)
+  );
+}
+
+/**
+ * Fiyat formatla
+ */
+export function formatPrice(amount: number, currency: string = 'EUR'): string {
+  return new Intl.NumberFormat('tr-TR', {
+    style: 'currency',
+    currency: currency,
+  }).format(amount);
+}
+
+/**
+ * Saat formatla (ISO -> HH:MM)
+ */
+export function formatTime(isoString: string): string {
+  try {
+    const date = new Date(isoString);
+    return date.toLocaleTimeString('tr-TR', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    });
+  } catch {
+    return '--:--';
+  }
+}
+
+/**
+ * Tarih formatla (ISO -> Tam tarih)
+ */
+export function formatDate(isoString: string): string {
+  try {
+    const date = new Date(isoString);
+    return date.toLocaleDateString('tr-TR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Kalan süreyi formatla
+ */
+export function formatRemainingTime(seconds: number): string {
+  if (seconds <= 0) return 'Süre doldu';
+  
+  const minutes = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  
+  if (minutes >= 1) {
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  }
+  return `${secs} saniye`;
+}

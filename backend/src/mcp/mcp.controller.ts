@@ -602,6 +602,23 @@ export class McpController {
     };
   }
 
+  @Post('session/:token/extend')
+  async extendSession(@Param('token') token: string): Promise<any> {
+    const session = this.sessionCache.extendSession(token);
+    
+    if (!session) {
+      throw new HttpException('Session not found or expired', HttpStatus.NOT_FOUND);
+    }
+
+    this.logger.log(`Session extended: ${token}, new expiry: ${session.expires_at.toISOString()}`);
+
+    return { 
+      success: true, 
+      new_expiry: session.expires_at.toISOString(),
+      remaining_seconds: this.sessionCache.getSessionTTL(token),
+    };
+  }
+
   // ============================================================
   // HELPER METHODS
   // ============================================================
