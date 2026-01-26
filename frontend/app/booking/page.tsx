@@ -7,7 +7,7 @@ import {
   Train, ArrowLeft, User, Mail, Phone, Calendar, ChevronDown, ChevronUp,
   Check, X, Loader2, Shield, CreditCard, Clock, MapPin, ArrowRight,
   AlertCircle, Info, ChevronRight, RefreshCw, Ticket, Download, Send,
-  CalendarPlus, Briefcase, FileText, Share2, Copy, CheckCircle2
+  CalendarPlus, Briefcase, FileText, Share2, Copy, CheckCircle2, RotateCcw
 } from 'lucide-react';
 import { createBooking, updateTravelers, prebookBooking, Journey, formatPrice, formatTime, formatDuration } from '@/lib/api/era-client';
 
@@ -305,33 +305,49 @@ function TicketConditions({ journey }: { journey: Journey }) {
   );
 }
 
-// Price Breakdown Component - Omio/Trainline tarzı
+// Price Breakdown Component - ROUND-TRIP DESTEKLI
 function PriceBreakdown({ 
   journey, 
+  returnJourney,
   passengers,
   promoDiscount = 0
 }: { 
   journey: Journey;
+  returnJourney?: Journey | null;
   passengers: Passengers;
   promoDiscount?: number;
 }) {
   const totalPassengers = passengers.adults + passengers.children;
-  const ticketPrice = journey.price.amount * totalPassengers;
+  const outboundPrice = journey.price.amount * totalPassengers;
+  const returnPrice = returnJourney ? returnJourney.price.amount * totalPassengers : 0;
+  const ticketPrice = outboundPrice + returnPrice;
   const serviceFee = Math.round(ticketPrice * SERVICE_FEE_PERCENT * 100) / 100;
   const totalBeforeDiscount = ticketPrice + serviceFee;
   const finalTotal = totalBeforeDiscount - promoDiscount;
 
   return (
     <div className="space-y-3">
-      {/* Bilet Ücreti */}
+      {/* Gidiş Bileti */}
       <div className="flex justify-between items-center">
         <div className="text-slate-600">
-          Bilet Ücreti ({totalPassengers} kişi)
+          {returnJourney ? 'Gidiş Bileti' : 'Bilet Ücreti'} ({totalPassengers} kişi)
         </div>
         <div className="font-medium text-slate-800">
-          {formatPrice(ticketPrice, journey.price.currency)}
+          {formatPrice(outboundPrice, journey.price.currency)}
         </div>
       </div>
+
+      {/* Dönüş Bileti */}
+      {returnJourney && (
+        <div className="flex justify-between items-center">
+          <div className="text-slate-600">
+            Dönüş Bileti ({totalPassengers} kişi)
+          </div>
+          <div className="font-medium text-slate-800">
+            {formatPrice(returnPrice, returnJourney.price.currency)}
+          </div>
+        </div>
+      )}
 
       {/* Hizmet Bedeli */}
       <div className="flex justify-between items-center">
@@ -433,15 +449,111 @@ function TermsCheckbox({
   );
 }
 
+// Journey Summary Card Component (ROUND-TRIP için)
+function JourneySummaryCard({ 
+  journey, 
+  label,
+  comfortConfig 
+}: { 
+  journey: Journey;
+  label?: string;
+  comfortConfig: typeof COMFORT_CONFIG[string];
+}) {
+  const formatDateDisplay = (dateStr: string) => {
+    try {
+      return new Date(dateStr).toLocaleDateString('tr-TR', {
+        day: 'numeric',
+        month: 'short',
+        weekday: 'short'
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  return (
+    <div className="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl p-5 text-white">
+      {label && (
+        <div className="flex items-center gap-2 mb-3 pb-3 border-b border-white/20">
+          {label === 'Gidiş' ? (
+            <ArrowRight className="w-4 h-4" />
+          ) : (
+            <RotateCcw className="w-4 h-4" />
+          )}
+          <span className="text-sm font-medium text-blue-200">{label}</span>
+        </div>
+      )}
+      
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Train className="w-5 h-5" />
+          <span className="font-semibold">{journey.operatorName || journey.operator}</span>
+          <span className="text-blue-200 text-sm">{journey.trainNumber}</span>
+        </div>
+        <div className={`px-2.5 py-1 rounded-full text-xs font-bold ${comfortConfig.bgColor} ${comfortConfig.color}`}>
+          {comfortConfig.icon} {comfortConfig.labelTr}
+        </div>
+      </div>
+
+      {/* Route */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="text-center">
+          <div className="text-2xl font-bold">{formatTime(journey.departure)}</div>
+          <div className="text-blue-200 text-sm">{journey.origin.city}</div>
+        </div>
+        <div className="flex flex-col items-center flex-1 mx-4">
+          <div className="w-full flex items-center">
+            <div className="w-2 h-2 rounded-full bg-white" />
+            <div className="flex-1 h-0.5 bg-blue-400" />
+            <div className="w-2 h-2 rounded-full bg-blue-300" />
+          </div>
+          <span className="text-blue-200 text-xs mt-1">{formatDuration(journey.durationMinutes)}</span>
+        </div>
+        <div className="text-center">
+          <div className="text-2xl font-bold">{formatTime(journey.arrival)}</div>
+          <div className="text-blue-200 text-sm">{journey.destination.city}</div>
+        </div>
+      </div>
+
+      {/* Date */}
+      <div className="text-center text-blue-100 text-sm">
+        {formatDateDisplay(journey.departure)}
+      </div>
+
+      {/* Quick Conditions */}
+      <div className="flex items-center justify-center gap-4 mt-4 pt-4 border-t border-blue-500/30">
+        <div className="flex items-center gap-1 text-sm">
+          {journey.isExchangeable ? (
+            <Check className="w-4 h-4 text-green-300" />
+          ) : (
+            <X className="w-4 h-4 text-red-300" />
+          )}
+          <span className="text-blue-100">Değiştirilebilir</span>
+        </div>
+        <div className="flex items-center gap-1 text-sm">
+          {journey.isRefundable ? (
+            <Check className="w-4 h-4 text-green-300" />
+          ) : (
+            <X className="w-4 h-4 text-red-300" />
+          )}
+          <span className="text-blue-100">İade Edilebilir</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Success Screen Component - Trainline/Omio tarzı
 function BookingSuccess({
   bookingRef,
   journey,
+  returnJourney,
   travelers,
   passengers,
 }: {
   bookingRef: string;
   journey: Journey;
+  returnJourney?: Journey | null;
   travelers: TravelerForm[];
   passengers: Passengers;
 }) {
@@ -646,12 +758,13 @@ END:VCALENDAR`;
           Yolculuk Özeti
         </h4>
         <div className="bg-white rounded-lg p-4 space-y-2 text-sm">
+          {/* Gidiş */}
           <div className="flex justify-between">
-            <span className="text-slate-500">Güzergah</span>
+            <span className="text-slate-500">{returnJourney ? 'Gidiş' : 'Güzergah'}</span>
             <span className="font-medium">{journey.origin.city} → {journey.destination.city}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-slate-500">Tarih</span>
+            <span className="text-slate-500">{returnJourney ? 'Gidiş Tarihi' : 'Tarih'}</span>
             <span className="font-medium">
               {new Date(journey.departure).toLocaleDateString('tr-TR', { 
                 day: 'numeric', 
@@ -661,9 +774,36 @@ END:VCALENDAR`;
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-slate-500">Saat</span>
+            <span className="text-slate-500">{returnJourney ? 'Gidiş Saati' : 'Saat'}</span>
             <span className="font-medium">{formatTime(journey.departure)} - {formatTime(journey.arrival)}</span>
           </div>
+          
+          {/* Dönüş */}
+          {returnJourney && (
+            <>
+              <div className="border-t border-slate-100 my-2" />
+              <div className="flex justify-between">
+                <span className="text-slate-500">Dönüş</span>
+                <span className="font-medium">{returnJourney.origin.city} → {returnJourney.destination.city}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Dönüş Tarihi</span>
+                <span className="font-medium">
+                  {new Date(returnJourney.departure).toLocaleDateString('tr-TR', { 
+                    day: 'numeric', 
+                    month: 'long', 
+                    year: 'numeric' 
+                  })}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Dönüş Saati</span>
+                <span className="font-medium">{formatTime(returnJourney.departure)} - {formatTime(returnJourney.arrival)}</span>
+              </div>
+            </>
+          )}
+          
+          <div className="border-t border-slate-100 my-2" />
           <div className="flex justify-between">
             <span className="text-slate-500">Operatör</span>
             <span className="font-medium">{journey.operator} • {journey.trainNumber}</span>
@@ -690,6 +830,8 @@ export default function BookingPage() {
 
   // State
   const [journey, setJourney] = useState<Journey | null>(null);
+  const [returnJourney, setReturnJourney] = useState<Journey | null>(null); // ROUND-TRIP
+  const [isRoundTrip, setIsRoundTrip] = useState(false); // ROUND-TRIP
   const [passengers, setPassengers] = useState<Passengers>({ adults: 1, children: 0 });
   const [travelers, setTravelers] = useState<TravelerForm[]>([]);
   const [expandedTraveler, setExpandedTraveler] = useState<number>(0);
@@ -702,17 +844,40 @@ export default function BookingPage() {
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [termsAccepted, setTermsAccepted] = useState(false);
 
-  // Load journey from sessionStorage
+  // Load journey from sessionStorage - ROUND-TRIP DESTEKLI
   useEffect(() => {
-    const storedJourney = sessionStorage.getItem('selectedJourney');
+    const tripType = sessionStorage.getItem('tripType');
     const storedPassengers = sessionStorage.getItem('passengers');
+    
+    let parsedJourney: Journey | null = null;
+    let parsedReturnJourney: Journey | null = null;
 
-    if (!storedJourney) {
-      router.push('/');
-      return;
+    // Check for round-trip first
+    if (tripType === 'roundtrip') {
+      const storedOutbound = sessionStorage.getItem('selectedOutbound');
+      const storedReturn = sessionStorage.getItem('selectedReturn');
+      
+      if (!storedOutbound || !storedReturn) {
+        router.push('/');
+        return;
+      }
+      
+      parsedJourney = JSON.parse(storedOutbound) as Journey;
+      parsedReturnJourney = JSON.parse(storedReturn) as Journey;
+      setReturnJourney(parsedReturnJourney);
+      setIsRoundTrip(true);
+    } else {
+      // One-way trip
+      const storedJourney = sessionStorage.getItem('selectedJourney');
+      
+      if (!storedJourney) {
+        router.push('/');
+        return;
+      }
+      
+      parsedJourney = JSON.parse(storedJourney) as Journey;
     }
 
-    const parsedJourney = JSON.parse(storedJourney) as Journey;
     setJourney(parsedJourney);
 
     if (storedPassengers) {
@@ -788,8 +953,14 @@ export default function BookingPage() {
     setError(null);
 
     try {
+      // Collect all offer locations
+      const offerLocations = [journey.offerLocation];
+      if (returnJourney) {
+        offerLocations.push(returnJourney.offerLocation);
+      }
+
       // Step 1: Create Booking
-      const booking = await createBooking([journey.offerLocation]);
+      const booking = await createBooking(offerLocations);
       setBookingId(booking.id);
       setBookingRef(booking.reference ?? null);
 
@@ -1073,6 +1244,7 @@ export default function BookingPage() {
               <BookingSuccess
                 bookingRef={bookingRef || 'ET-XXXXXX'}
                 journey={journey}
+                returnJourney={returnJourney}
                 travelers={travelers}
                 passengers={passengers}
               />
@@ -1081,70 +1253,28 @@ export default function BookingPage() {
 
           {/* Right Column - Sidebar */}
           <div className="space-y-4">
-            {/* Journey Summary Card */}
-            <div className="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl p-5 text-white">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Train className="w-5 h-5" />
-                  <span className="font-semibold">{journey.operatorName || journey.operator}</span>
-                  <span className="text-blue-200 text-sm">{journey.trainNumber}</span>
-                </div>
-                <div className={`px-2.5 py-1 rounded-full text-xs font-bold ${comfortConfig.bgColor} ${comfortConfig.color}`}>
-                  {comfortConfig.icon} {comfortConfig.labelTr}
-                </div>
-              </div>
-
-              {/* Route */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold">{formatTime(journey.departure)}</div>
-                  <div className="text-blue-200 text-sm">{journey.origin.city}</div>
-                </div>
-                <div className="flex flex-col items-center flex-1 mx-4">
-                  <div className="w-full flex items-center">
-                    <div className="w-2 h-2 rounded-full bg-white" />
-                    <div className="flex-1 h-0.5 bg-blue-400" />
-                    <div className="w-2 h-2 rounded-full bg-blue-300" />
-                  </div>
-                  <span className="text-blue-200 text-xs mt-1">{formatDuration(journey.durationMinutes)}</span>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold">{formatTime(journey.arrival)}</div>
-                  <div className="text-blue-200 text-sm">{journey.destination.city}</div>
-                </div>
-              </div>
-
-              {/* Date */}
-              <div className="text-center text-blue-100 text-sm">
-                {formatDateDisplay(journey.departure)}
-              </div>
-
-              {/* Quick Conditions */}
-              <div className="flex items-center justify-center gap-4 mt-4 pt-4 border-t border-blue-500/30">
-                <div className="flex items-center gap-1 text-sm">
-                  {journey.isExchangeable ? (
-                    <Check className="w-4 h-4 text-green-300" />
-                  ) : (
-                    <X className="w-4 h-4 text-red-300" />
-                  )}
-                  <span className="text-blue-100">Değiştirilebilir</span>
-                </div>
-                <div className="flex items-center gap-1 text-sm">
-                  {journey.isRefundable ? (
-                    <Check className="w-4 h-4 text-green-300" />
-                  ) : (
-                    <X className="w-4 h-4 text-red-300" />
-                  )}
-                  <span className="text-blue-100">İade Edilebilir</span>
-                </div>
-              </div>
-            </div>
+            {/* Journey Summary Card(s) - ROUND-TRIP */}
+            {isRoundTrip ? (
+              <>
+                <JourneySummaryCard journey={journey} label="Gidiş" comfortConfig={comfortConfig} />
+                {returnJourney && (
+                  <JourneySummaryCard 
+                    journey={returnJourney} 
+                    label="Dönüş" 
+                    comfortConfig={COMFORT_CONFIG[returnJourney.comfortCategory] || COMFORT_CONFIG.standard} 
+                  />
+                )}
+              </>
+            ) : (
+              <JourneySummaryCard journey={journey} comfortConfig={comfortConfig} />
+            )}
 
             {/* Price Breakdown */}
             <div className="bg-white rounded-xl border border-slate-200 p-5">
               <h3 className="font-semibold text-slate-800 mb-4">Fiyat Detayı</h3>
               <PriceBreakdown 
                 journey={journey} 
+                returnJourney={returnJourney}
                 passengers={passengers}
                 promoDiscount={promoDiscount}
               />

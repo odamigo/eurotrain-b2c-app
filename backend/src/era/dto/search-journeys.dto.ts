@@ -1,4 +1,9 @@
-import { IsString, IsOptional, IsNumber, IsDateString, Min } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsDateString, Min, IsBoolean, IsEnum } from 'class-validator';
+
+export enum TripType {
+  ONEWAY = 'oneway',
+  ROUNDTRIP = 'roundtrip',
+}
 
 export class SearchJourneysDto {
   @IsString()
@@ -13,6 +18,10 @@ export class SearchJourneysDto {
   @IsOptional()
   @IsDateString()
   returnDate?: string;
+
+  @IsOptional()
+  @IsEnum(TripType)
+  tripType?: TripType = TripType.ONEWAY;
 
   @IsOptional()
   @IsNumber()
@@ -39,5 +48,6 @@ export class SearchJourneysDto {
   class?: 'standard' | 'comfort' | 'premier';
 
   @IsOptional()
+  @IsBoolean()
   directOnly?: boolean = false;
 }

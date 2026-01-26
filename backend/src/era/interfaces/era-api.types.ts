@@ -131,11 +131,19 @@ export interface EraSearchRequest {
   productFilters?: string[]; // ["RIT"]
   multiProviderEnabled?: boolean;
   seatReservationOnly?: boolean;
+  directOnly?: boolean; // FAZ 1: Direct only filter
 }
 
 // ============================================================
 // SEARCH - RESPONSE
 // ============================================================
+
+// FAZ 1: Search highlights for "En Ucuz" / "En Hızlı" badges
+export interface SearchHighlights {
+  cheapestOfferId?: string;
+  fastestOfferId?: string;
+  bestValueOfferId?: string;
+}
 
 export interface EraSearchResponse extends EraResource {
   pointOfSale?: string;
@@ -144,7 +152,7 @@ export interface EraSearchResponse extends EraResource {
   offers: EraOffer[];
   products: EraProduct[];
   services?: EraService[];
-  highlights?: EraLegSolutionHighlight[];
+  highlights?: SearchHighlights | EraLegSolutionHighlight[]; // FAZ 1: Support both formats
   multiProviderEnabled?: boolean;
 }
 
@@ -166,6 +174,9 @@ export interface EraLegSolution extends EraResource {
   segmentConnections?: EraSegmentConnection[];
   travelerInformationRequired?: EraTravelerInformationRequired;
   offersSellableReason?: 'full_fare' | 'free' | 'supplement_at_station' | 'available_supplement_api' | 'unknown';
+  // FAZ 1: Multi-segment support
+  segmentCount?: number;
+  isDirect?: boolean;
 }
 
 export interface EraSegment extends EraResource {
@@ -240,6 +251,9 @@ export interface EraOffer extends EraResource {
   ticketingOptions?: EraTicketingOption[];
   conditions?: EraCondition[];
   globalRoundTripPrice?: boolean;
+  // FAZ 1: Direct journey indicator
+  isDirect?: boolean;
+  segmentCount?: number;
 }
 
 export type EraComfortCategory = 'standard' | 'comfort' | 'premier';

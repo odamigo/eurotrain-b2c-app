@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Train, MapPin, Calendar, Users, Search, ArrowRightLeft,
-  ChevronDown, X, Loader2, Clock, Star, Shield, CreditCard
+  ChevronDown, X, Loader2, Clock, Star, Shield, CreditCard,
+  ArrowRight, RotateCcw, Check
 } from 'lucide-react';
 import { searchPlaces, EraPlace } from '@/lib/api/era-client';
 
@@ -27,14 +28,60 @@ function placeToStation(place: EraPlace): Station {
   };
 }
 
+// Trip Type Toggle Component
+function TripTypeToggle({ 
+  isRoundTrip, 
+  onChange 
+}: { 
+  isRoundTrip: boolean; 
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 mb-4">
+      <button
+        type="button"
+        onClick={() => onChange(false)}
+        className={`
+          flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all
+          ${!isRoundTrip 
+            ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25' 
+            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }
+        `}
+      >
+        <ArrowRight className="w-4 h-4" />
+        <span>Tek Yön</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange(true)}
+        className={`
+          flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all
+          ${isRoundTrip 
+            ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25' 
+            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }
+        `}
+      >
+        <RotateCcw className="w-4 h-4" />
+        <span>Gidiş-Dönüş</span>
+      </button>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const router = useRouter();
-  const dateInputRef = useRef<HTMLInputElement>(null);
+  const departureDateInputRef = useRef<HTMLInputElement>(null);
+  const returnDateInputRef = useRef<HTMLInputElement>(null);
   
   // Form state
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
   const [departureDate, setDepartureDate] = useState('');
+  const [returnDate, setReturnDate] = useState('');
+  const [isRoundTrip, setIsRoundTrip] = useState(false);
+  const [directOnly, setDirectOnly] = useState(false);
   const [passengers, setPassengers] = useState({ adults: 1, children: 0 });
   const [showPassengerDropdown, setShowPassengerDropdown] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -57,8 +104,13 @@ export default function HomePage() {
   // Set initial date only once on mount
   useEffect(() => {
     setMounted(true);
-    const today = new Date().toISOString().split('T')[0];
-    setDepartureDate(today);
+    const today = new Date();
+    setDepartureDate(today.toISOString().split('T')[0]);
+    
+    // Set default return date to departure + 7 days
+    const defaultReturn = new Date(today);
+    defaultReturn.setDate(defaultReturn.getDate() + 7);
+    setReturnDate(defaultReturn.toISOString().split('T')[0]);
   }, []);
 
   // Click outside handler
@@ -78,6 +130,15 @@ export default function HomePage() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Ensure return date is after departure date
+  useEffect(() => {
+    if (departureDate && returnDate && new Date(returnDate) < new Date(departureDate)) {
+      const newReturnDate = new Date(departureDate);
+      newReturnDate.setDate(newReturnDate.getDate() + 1);
+      setReturnDate(newReturnDate.toISOString().split('T')[0]);
+    }
+  }, [departureDate, returnDate]);
 
   // Search stations for autocomplete - UPDATED for ERA API
   const handleOriginSearch = async (query: string) => {
@@ -159,10 +220,17 @@ export default function HomePage() {
   };
 
   // Open date picker programmatically
-  const openDatePicker = () => {
-    if (dateInputRef.current) {
-      dateInputRef.current.showPicker?.();
-      dateInputRef.current.focus();
+  const openDepartureDatePicker = () => {
+    if (departureDateInputRef.current) {
+      departureDateInputRef.current.showPicker?.();
+      departureDateInputRef.current.focus();
+    }
+  };
+
+  const openReturnDatePicker = () => {
+    if (returnDateInputRef.current) {
+      returnDateInputRef.current.showPicker?.();
+      returnDateInputRef.current.focus();
     }
   };
 
@@ -191,6 +259,11 @@ export default function HomePage() {
       return;
     }
 
+    if (isRoundTrip && !returnDate) {
+      alert('Lütfen dönüş tarihini seçin');
+      return;
+    }
+
     const searchParams = new URLSearchParams({
       origin: selectedOrigin.code,
       destination: selectedDestination.code,
@@ -198,6 +271,19 @@ export default function HomePage() {
       adults: passengers.adults.toString(),
       children: passengers.children.toString(),
     });
+
+    // Add round-trip params
+    if (isRoundTrip && returnDate) {
+      searchParams.set('returnDate', returnDate);
+      searchParams.set('tripType', 'roundtrip');
+    } else {
+      searchParams.set('tripType', 'oneway');
+    }
+
+    // Add direct only filter
+    if (directOnly) {
+      searchParams.set('directOnly', 'true');
+    }
 
     router.push(`/search?${searchParams.toString()}`);
   };
@@ -263,6 +349,9 @@ export default function HomePage() {
 
           {/* Search Form */}
           <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-2xl p-6 md:p-8">
+            {/* Trip Type Toggle */}
+            <TripTypeToggle isRoundTrip={isRoundTrip} onChange={setIsRoundTrip} />
+
             <div className="grid md:grid-cols-2 gap-4 mb-4">
               {/* Origin */}
               <div ref={originRef} className="relative">
@@ -305,16 +394,7 @@ export default function HomePage() {
                 )}
               </div>
 
-              {/* Swap Button - Mobile Hidden */}
-              <button
-                type="button"
-                onClick={swapStations}
-                className="hidden md:flex absolute left-1/2 top-[140px] -translate-x-1/2 w-10 h-10 bg-white border border-slate-200 rounded-full items-center justify-center hover:bg-slate-50 transition-colors z-10 shadow-sm"
-              >
-                <ArrowRightLeft className="w-4 h-4 text-slate-600" />
-              </button>
-
-              {/* Destination */}
+              {/* Destination with Swap Button */}
               <div ref={destinationRef} className="relative">
                 <label className="block text-sm font-medium text-slate-700 mb-2 text-left">
                   Nereye
@@ -327,8 +407,19 @@ export default function HomePage() {
                     onChange={(e) => handleDestinationSearch(e.target.value)}
                     onFocus={() => destinationSuggestions.length > 0 && setShowDestinationSuggestions(true)}
                     placeholder="Şehir veya istasyon"
-                    className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-12 pr-12 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
+                  
+                  {/* Swap Button - Between inputs on md+ */}
+                  <button
+                    type="button"
+                    onClick={swapStations}
+                    className="absolute -left-8 top-1/2 -translate-y-1/2 hidden md:flex w-10 h-10 bg-white border-2 border-slate-200 rounded-full items-center justify-center hover:bg-slate-50 hover:border-blue-400 transition-colors z-10"
+                    title="İstasyonları değiştir"
+                  >
+                    <ArrowRightLeft className="w-4 h-4 text-slate-500" />
+                  </button>
+                  
                   {isSearchingDestination && (
                     <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 animate-spin" />
                   )}
@@ -356,33 +447,73 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4 mb-6">
-              {/* Date - FIXED: Entire row clickable */}
+            {/* Mobile Swap Button */}
+            <button
+              type="button"
+              onClick={swapStations}
+              className="md:hidden w-full mb-4 py-2 flex items-center justify-center gap-2 text-sm text-slate-600 hover:text-blue-600 transition-colors"
+            >
+              <ArrowRightLeft className="w-4 h-4" />
+              <span>İstasyonları Değiştir</span>
+            </button>
+
+            {/* Dates Row */}
+            <div className={`grid ${isRoundTrip ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-4 mb-4`}>
+              {/* Departure Date */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2 text-left">
-                  Tarih
+                  {isRoundTrip ? 'Gidiş Tarihi' : 'Tarih'}
                 </label>
-                <div 
-                  className="relative cursor-pointer"
-                  onClick={openDatePicker}
+                <button
+                  type="button"
+                  onClick={openDepartureDatePicker}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left flex items-center gap-3 hover:border-slate-300 transition-colors"
                 >
-                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none z-10" />
-                  {/* Display layer - shows formatted date */}
-                  <div className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-xl bg-white text-left text-slate-700">
+                  <Calendar className="w-5 h-5 text-slate-400" />
+                  <span className={departureDate ? 'text-slate-900' : 'text-slate-400'}>
                     {formatDateDisplay(departureDate)}
-                  </div>
-                  {/* Hidden actual input - positioned absolutely to cover entire area */}
-                  <input
-                    ref={dateInputRef}
-                    type="date"
-                    value={departureDate}
-                    onChange={(e) => setDepartureDate(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                </div>
+                  </span>
+                </button>
+                <input
+                  ref={departureDateInputRef}
+                  type="date"
+                  value={departureDate}
+                  onChange={(e) => setDepartureDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="sr-only"
+                />
               </div>
 
+              {/* Return Date - Only shown for round-trip */}
+              {isRoundTrip && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2 text-left">
+                    Dönüş Tarihi
+                  </label>
+                  <button
+                    type="button"
+                    onClick={openReturnDatePicker}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left flex items-center gap-3 hover:border-slate-300 transition-colors"
+                  >
+                    <Calendar className="w-5 h-5 text-slate-400" />
+                    <span className={returnDate ? 'text-slate-900' : 'text-slate-400'}>
+                      {formatDateDisplay(returnDate)}
+                    </span>
+                  </button>
+                  <input
+                    ref={returnDateInputRef}
+                    type="date"
+                    value={returnDate}
+                    onChange={(e) => setReturnDate(e.target.value)}
+                    min={departureDate || new Date().toISOString().split('T')[0]}
+                    className="sr-only"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Passengers & Options Row */}
+            <div className="grid md:grid-cols-2 gap-4 mb-6">
               {/* Passengers */}
               <div ref={passengerRef} className="relative">
                 <label className="block text-sm font-medium text-slate-700 mb-2 text-left">
@@ -391,12 +522,15 @@ export default function HomePage() {
                 <button
                   type="button"
                   onClick={() => setShowPassengerDropdown(!showPassengerDropdown)}
-                  className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left flex items-center justify-between"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-left flex items-center justify-between hover:border-slate-300 transition-colors"
                 >
-                  <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <span>
-                    {passengers.adults} Yetişkin{passengers.children > 0 && `, ${passengers.children} Çocuk`}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <Users className="w-5 h-5 text-slate-400" />
+                    <span className="text-slate-900">
+                      {passengers.adults} Yetişkin
+                      {passengers.children > 0 && `, ${passengers.children} Çocuk`}
+                    </span>
+                  </div>
                   <ChevronDown className="w-5 h-5 text-slate-400" />
                 </button>
                 
@@ -458,6 +592,38 @@ export default function HomePage() {
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Direct Only Option */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2 text-left">
+                  Seçenekler
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setDirectOnly(!directOnly)}
+                  className={`
+                    w-full px-4 py-3 border rounded-xl text-left flex items-center gap-3 transition-all
+                    ${directOnly 
+                      ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                      : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                    }
+                  `}
+                >
+                  <div className={`
+                    w-5 h-5 rounded border-2 flex items-center justify-center transition-all
+                    ${directOnly 
+                      ? 'bg-blue-500 border-blue-500' 
+                      : 'border-slate-300 bg-white'
+                    }
+                  `}>
+                    {directOnly && <Check className="w-3 h-3 text-white" />}
+                  </div>
+                  <div>
+                    <div className="font-medium">Sadece Direkt Seferler</div>
+                    <div className="text-xs text-slate-500">Aktarmasız seyahat edin</div>
+                  </div>
+                </button>
               </div>
             </div>
 

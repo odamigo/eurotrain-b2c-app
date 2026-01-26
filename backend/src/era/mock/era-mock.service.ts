@@ -9,7 +9,6 @@ import {
   EraSegment,
   EraProduct,
   EraBooking,
-  EraBookingStatus,
   EraBookingTravelerInput,
   EraPrebookResponse,
   EraConfirmResponse,
@@ -59,13 +58,8 @@ export class EraMockService {
   // HELPER: Generate short readable PNR/Reference
   // ============================================================
   
-  /**
-   * Generates a short, readable booking reference
-   * Format: ET-XXXXXX (6 alphanumeric characters)
-   * Example: ET-A3B7K9
-   */
   private generateBookingReference(): string {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed I, O, 0, 1 to avoid confusion
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let result = 'ET-';
     for (let i = 0; i < 6; i++) {
       result += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -73,11 +67,6 @@ export class EraMockService {
     return result;
   }
 
-  /**
-   * Generates a short booking ID (instead of UUID)
-   * Format: 8 character alphanumeric
-   * Example: A3B7K9X2
-   */
   private generateShortId(): string {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let result = '';
@@ -139,53 +128,44 @@ export class EraMockService {
     { id: 'FRLYS', type: 'city', code: 'FRLYS', label: 'Lyon', localLabel: 'Lyon', country: { code: 'FR', label: 'France', localLabel: 'France' }, timezone: 'Europe/Paris' },
     { id: 'FRMRS', type: 'city', code: 'FRMRS', label: 'Marseille', localLabel: 'Marseille', country: { code: 'FR', label: 'France', localLabel: 'France' }, timezone: 'Europe/Paris' },
     { id: 'FRNIC', type: 'city', code: 'FRNIC', label: 'Nice', localLabel: 'Nice', country: { code: 'FR', label: 'France', localLabel: 'France' }, timezone: 'Europe/Paris' },
-    
     // UK
     { id: 'GBLON', type: 'city', code: 'GBLON', label: 'London', localLabel: 'London', country: { code: 'GB', label: 'United Kingdom', localLabel: 'United Kingdom' }, timezone: 'Europe/London' },
     { id: 'GBSTP', type: 'station', code: 'GBSTP', label: 'London St Pancras', localLabel: 'London St Pancras', country: { code: 'GB', label: 'United Kingdom', localLabel: 'United Kingdom' }, timezone: 'Europe/London' },
     { id: 'GBEDB', type: 'city', code: 'GBEDB', label: 'Edinburgh', localLabel: 'Edinburgh', country: { code: 'GB', label: 'United Kingdom', localLabel: 'United Kingdom' }, timezone: 'Europe/London' },
-    
     // Germany
     { id: 'DEBER', type: 'city', code: 'DEBER', label: 'Berlin', localLabel: 'Berlin', country: { code: 'DE', label: 'Germany', localLabel: 'Deutschland' }, timezone: 'Europe/Berlin' },
     { id: 'DEMUC', type: 'city', code: 'DEMUC', label: 'Munich', localLabel: 'München', country: { code: 'DE', label: 'Germany', localLabel: 'Deutschland' }, timezone: 'Europe/Berlin' },
     { id: 'DEFRA', type: 'city', code: 'DEFRA', label: 'Frankfurt', localLabel: 'Frankfurt am Main', country: { code: 'DE', label: 'Germany', localLabel: 'Deutschland' }, timezone: 'Europe/Berlin' },
     { id: 'DECOL', type: 'city', code: 'DECOL', label: 'Cologne', localLabel: 'Köln', country: { code: 'DE', label: 'Germany', localLabel: 'Deutschland' }, timezone: 'Europe/Berlin' },
-    
     // Italy
     { id: 'ITROM', type: 'city', code: 'ITROM', label: 'Rome', localLabel: 'Roma', country: { code: 'IT', label: 'Italy', localLabel: 'Italia' }, timezone: 'Europe/Rome' },
     { id: 'ITMIL', type: 'city', code: 'ITMIL', label: 'Milan', localLabel: 'Milano', country: { code: 'IT', label: 'Italy', localLabel: 'Italia' }, timezone: 'Europe/Rome' },
     { id: 'ITFLO', type: 'city', code: 'ITFLO', label: 'Florence', localLabel: 'Firenze', country: { code: 'IT', label: 'Italy', localLabel: 'Italia' }, timezone: 'Europe/Rome' },
     { id: 'ITVEN', type: 'city', code: 'ITVEN', label: 'Venice', localLabel: 'Venezia', country: { code: 'IT', label: 'Italy', localLabel: 'Italia' }, timezone: 'Europe/Rome' },
     { id: 'ITNAP', type: 'city', code: 'ITNAP', label: 'Naples', localLabel: 'Napoli', country: { code: 'IT', label: 'Italy', localLabel: 'Italia' }, timezone: 'Europe/Rome' },
-    
     // Spain
     { id: 'ESMAD', type: 'city', code: 'ESMAD', label: 'Madrid', localLabel: 'Madrid', country: { code: 'ES', label: 'Spain', localLabel: 'España' }, timezone: 'Europe/Madrid' },
     { id: 'ESBAR', type: 'city', code: 'ESBAR', label: 'Barcelona', localLabel: 'Barcelona', country: { code: 'ES', label: 'Spain', localLabel: 'España' }, timezone: 'Europe/Madrid' },
     { id: 'ESSEV', type: 'city', code: 'ESSEV', label: 'Seville', localLabel: 'Sevilla', country: { code: 'ES', label: 'Spain', localLabel: 'España' }, timezone: 'Europe/Madrid' },
-    
     // Netherlands
     { id: 'NLAMS', type: 'city', code: 'NLAMS', label: 'Amsterdam', localLabel: 'Amsterdam', country: { code: 'NL', label: 'Netherlands', localLabel: 'Nederland' }, timezone: 'Europe/Amsterdam' },
     { id: 'NLROT', type: 'city', code: 'NLROT', label: 'Rotterdam', localLabel: 'Rotterdam', country: { code: 'NL', label: 'Netherlands', localLabel: 'Nederland' }, timezone: 'Europe/Amsterdam' },
-    
     // Belgium
     { id: 'BEBRU', type: 'city', code: 'BEBRU', label: 'Brussels', localLabel: 'Bruxelles', country: { code: 'BE', label: 'Belgium', localLabel: 'Belgique' }, timezone: 'Europe/Brussels' },
     { id: 'BEANT', type: 'city', code: 'BEANT', label: 'Antwerp', localLabel: 'Antwerpen', country: { code: 'BE', label: 'Belgium', localLabel: 'België' }, timezone: 'Europe/Brussels' },
-    
     // Switzerland
     { id: 'CHZRH', type: 'city', code: 'CHZRH', label: 'Zurich', localLabel: 'Zürich', country: { code: 'CH', label: 'Switzerland', localLabel: 'Schweiz' }, timezone: 'Europe/Zurich' },
     { id: 'CHGVA', type: 'city', code: 'CHGVA', label: 'Geneva', localLabel: 'Genève', country: { code: 'CH', label: 'Switzerland', localLabel: 'Suisse' }, timezone: 'Europe/Zurich' },
     { id: 'CHBRN', type: 'city', code: 'CHBRN', label: 'Bern', localLabel: 'Bern', country: { code: 'CH', label: 'Switzerland', localLabel: 'Schweiz' }, timezone: 'Europe/Zurich' },
-    
     // Austria
     { id: 'ATVIE', type: 'city', code: 'ATVIE', label: 'Vienna', localLabel: 'Wien', country: { code: 'AT', label: 'Austria', localLabel: 'Österreich' }, timezone: 'Europe/Vienna' },
     { id: 'ATSBG', type: 'city', code: 'ATSBG', label: 'Salzburg', localLabel: 'Salzburg', country: { code: 'AT', label: 'Austria', localLabel: 'Österreich' }, timezone: 'Europe/Vienna' },
-    
     // Czech Republic
     { id: 'CZPRG', type: 'city', code: 'CZPRG', label: 'Prague', localLabel: 'Praha', country: { code: 'CZ', label: 'Czech Republic', localLabel: 'Česká republika' }, timezone: 'Europe/Prague' },
   ];
 
   // ============================================================
-  // ROUTE CONFIGURATIONS
+  // ROUTE CONFIGURATIONS (with reverse routes)
   // ============================================================
 
   private readonly routeConfigs: Record<string, RouteConfig> = {
@@ -193,52 +173,77 @@ export class EraMockService {
     'FRPAR-GBLON': { duration: 136, basePrice: 89, carrier: 'EUROSTAR', carrierName: 'Eurostar', trainType: 'High-Speed', trainPrefix: 'ES' },
     'GBLON-FRPAR': { duration: 136, basePrice: 89, carrier: 'EUROSTAR', carrierName: 'Eurostar', trainType: 'High-Speed', trainPrefix: 'ES' },
     'GBLON-BEBRU': { duration: 120, basePrice: 69, carrier: 'EUROSTAR', carrierName: 'Eurostar', trainType: 'High-Speed', trainPrefix: 'ES' },
+    'BEBRU-GBLON': { duration: 120, basePrice: 69, carrier: 'EUROSTAR', carrierName: 'Eurostar', trainType: 'High-Speed', trainPrefix: 'ES' },
     'GBLON-NLAMS': { duration: 225, basePrice: 99, carrier: 'EUROSTAR', carrierName: 'Eurostar', trainType: 'High-Speed', trainPrefix: 'ES' },
-    
+    'NLAMS-GBLON': { duration: 225, basePrice: 99, carrier: 'EUROSTAR', carrierName: 'Eurostar', trainType: 'High-Speed', trainPrefix: 'ES' },
     // Thalys routes
     'FRPAR-NLAMS': { duration: 195, basePrice: 89, carrier: 'THALYS', carrierName: 'Thalys', trainType: 'High-Speed', trainPrefix: 'THA' },
+    'NLAMS-FRPAR': { duration: 195, basePrice: 89, carrier: 'THALYS', carrierName: 'Thalys', trainType: 'High-Speed', trainPrefix: 'THA' },
     'FRPAR-BEBRU': { duration: 82, basePrice: 69, carrier: 'THALYS', carrierName: 'Thalys', trainType: 'High-Speed', trainPrefix: 'THA' },
+    'BEBRU-FRPAR': { duration: 82, basePrice: 69, carrier: 'THALYS', carrierName: 'Thalys', trainType: 'High-Speed', trainPrefix: 'THA' },
     'FRPAR-DECOL': { duration: 200, basePrice: 79, carrier: 'THALYS', carrierName: 'Thalys', trainType: 'High-Speed', trainPrefix: 'THA' },
+    'DECOL-FRPAR': { duration: 200, basePrice: 79, carrier: 'THALYS', carrierName: 'Thalys', trainType: 'High-Speed', trainPrefix: 'THA' },
     'BEBRU-NLAMS': { duration: 113, basePrice: 49, carrier: 'THALYS', carrierName: 'Thalys', trainType: 'High-Speed', trainPrefix: 'THA' },
-    
+    'NLAMS-BEBRU': { duration: 113, basePrice: 49, carrier: 'THALYS', carrierName: 'Thalys', trainType: 'High-Speed', trainPrefix: 'THA' },
     // TGV/SNCF routes
     'FRPAR-FRLYS': { duration: 120, basePrice: 79, carrier: 'SNCF', carrierName: 'TGV', trainType: 'High-Speed', trainPrefix: 'TGV' },
+    'FRLYS-FRPAR': { duration: 120, basePrice: 79, carrier: 'SNCF', carrierName: 'TGV', trainType: 'High-Speed', trainPrefix: 'TGV' },
     'FRPAR-FRMRS': { duration: 180, basePrice: 89, carrier: 'SNCF', carrierName: 'TGV', trainType: 'High-Speed', trainPrefix: 'TGV' },
+    'FRMRS-FRPAR': { duration: 180, basePrice: 89, carrier: 'SNCF', carrierName: 'TGV', trainType: 'High-Speed', trainPrefix: 'TGV' },
     'FRPAR-FRNIC': { duration: 330, basePrice: 99, carrier: 'SNCF', carrierName: 'TGV', trainType: 'High-Speed', trainPrefix: 'TGV' },
+    'FRNIC-FRPAR': { duration: 330, basePrice: 99, carrier: 'SNCF', carrierName: 'TGV', trainType: 'High-Speed', trainPrefix: 'TGV' },
     'FRPAR-ESBAR': { duration: 390, basePrice: 109, carrier: 'SNCF', carrierName: 'TGV', trainType: 'High-Speed', trainPrefix: 'TGV' },
+    'ESBAR-FRPAR': { duration: 390, basePrice: 109, carrier: 'SNCF', carrierName: 'TGV', trainType: 'High-Speed', trainPrefix: 'TGV' },
     'FRLYS-FRMRS': { duration: 100, basePrice: 49, carrier: 'SNCF', carrierName: 'TGV', trainType: 'High-Speed', trainPrefix: 'TGV' },
-    
-    // Trenitalia routes (Frecciarossa/Frecciargento)
+    'FRMRS-FRLYS': { duration: 100, basePrice: 49, carrier: 'SNCF', carrierName: 'TGV', trainType: 'High-Speed', trainPrefix: 'TGV' },
+    // Trenitalia routes
     'ITROM-ITMIL': { duration: 175, basePrice: 69, carrier: 'TRENITALIA', carrierName: 'Frecciarossa', trainType: 'High-Speed', trainPrefix: 'FR' },
+    'ITMIL-ITROM': { duration: 175, basePrice: 69, carrier: 'TRENITALIA', carrierName: 'Frecciarossa', trainType: 'High-Speed', trainPrefix: 'FR' },
     'ITROM-ITFLO': { duration: 95, basePrice: 49, carrier: 'TRENITALIA', carrierName: 'Frecciarossa', trainType: 'High-Speed', trainPrefix: 'FR' },
+    'ITFLO-ITROM': { duration: 95, basePrice: 49, carrier: 'TRENITALIA', carrierName: 'Frecciarossa', trainType: 'High-Speed', trainPrefix: 'FR' },
     'ITROM-ITVEN': { duration: 225, basePrice: 79, carrier: 'TRENITALIA', carrierName: 'Frecciarossa', trainType: 'High-Speed', trainPrefix: 'FR' },
+    'ITVEN-ITROM': { duration: 225, basePrice: 79, carrier: 'TRENITALIA', carrierName: 'Frecciarossa', trainType: 'High-Speed', trainPrefix: 'FR' },
     'ITROM-ITNAP': { duration: 70, basePrice: 45, carrier: 'TRENITALIA', carrierName: 'Frecciarossa', trainType: 'High-Speed', trainPrefix: 'FR' },
+    'ITNAP-ITROM': { duration: 70, basePrice: 45, carrier: 'TRENITALIA', carrierName: 'Frecciarossa', trainType: 'High-Speed', trainPrefix: 'FR' },
     'ITMIL-ITFLO': { duration: 100, basePrice: 45, carrier: 'TRENITALIA', carrierName: 'Frecciarossa', trainType: 'High-Speed', trainPrefix: 'FR' },
+    'ITFLO-ITMIL': { duration: 100, basePrice: 45, carrier: 'TRENITALIA', carrierName: 'Frecciarossa', trainType: 'High-Speed', trainPrefix: 'FR' },
     'ITMIL-ITVEN': { duration: 145, basePrice: 55, carrier: 'TRENITALIA', carrierName: 'Frecciarossa', trainType: 'High-Speed', trainPrefix: 'FR' },
-    
+    'ITVEN-ITMIL': { duration: 145, basePrice: 55, carrier: 'TRENITALIA', carrierName: 'Frecciarossa', trainType: 'High-Speed', trainPrefix: 'FR' },
     // Deutsche Bahn ICE routes
     'DEBER-DEMUC': { duration: 240, basePrice: 89, carrier: 'DBAHN', carrierName: 'ICE', trainType: 'High-Speed', trainPrefix: 'ICE' },
+    'DEMUC-DEBER': { duration: 240, basePrice: 89, carrier: 'DBAHN', carrierName: 'ICE', trainType: 'High-Speed', trainPrefix: 'ICE' },
     'DEBER-DEFRA': { duration: 240, basePrice: 79, carrier: 'DBAHN', carrierName: 'ICE', trainType: 'High-Speed', trainPrefix: 'ICE' },
+    'DEFRA-DEBER': { duration: 240, basePrice: 79, carrier: 'DBAHN', carrierName: 'ICE', trainType: 'High-Speed', trainPrefix: 'ICE' },
     'DEMUC-DEFRA': { duration: 195, basePrice: 69, carrier: 'DBAHN', carrierName: 'ICE', trainType: 'High-Speed', trainPrefix: 'ICE' },
+    'DEFRA-DEMUC': { duration: 195, basePrice: 69, carrier: 'DBAHN', carrierName: 'ICE', trainType: 'High-Speed', trainPrefix: 'ICE' },
     'DEFRA-DECOL': { duration: 70, basePrice: 39, carrier: 'DBAHN', carrierName: 'ICE', trainType: 'High-Speed', trainPrefix: 'ICE' },
-    
+    'DECOL-DEFRA': { duration: 70, basePrice: 39, carrier: 'DBAHN', carrierName: 'ICE', trainType: 'High-Speed', trainPrefix: 'ICE' },
     // RENFE AVE routes
     'ESMAD-ESBAR': { duration: 155, basePrice: 69, carrier: 'RENFE', carrierName: 'AVE', trainType: 'High-Speed', trainPrefix: 'AVE' },
+    'ESBAR-ESMAD': { duration: 155, basePrice: 69, carrier: 'RENFE', carrierName: 'AVE', trainType: 'High-Speed', trainPrefix: 'AVE' },
     'ESMAD-ESSEV': { duration: 150, basePrice: 65, carrier: 'RENFE', carrierName: 'AVE', trainType: 'High-Speed', trainPrefix: 'AVE' },
-    
+    'ESSEV-ESMAD': { duration: 150, basePrice: 65, carrier: 'RENFE', carrierName: 'AVE', trainType: 'High-Speed', trainPrefix: 'AVE' },
     // SBB routes
     'CHZRH-CHGVA': { duration: 170, basePrice: 79, carrier: 'SBB', carrierName: 'SBB', trainType: 'Inter-City', trainPrefix: 'IC' },
+    'CHGVA-CHZRH': { duration: 170, basePrice: 79, carrier: 'SBB', carrierName: 'SBB', trainType: 'Inter-City', trainPrefix: 'IC' },
     'CHZRH-CHBRN': { duration: 60, basePrice: 45, carrier: 'SBB', carrierName: 'SBB', trainType: 'Inter-City', trainPrefix: 'IC' },
-    
+    'CHBRN-CHZRH': { duration: 60, basePrice: 45, carrier: 'SBB', carrierName: 'SBB', trainType: 'Inter-City', trainPrefix: 'IC' },
     // ÖBB Railjet routes
     'ATVIE-ATSBG': { duration: 145, basePrice: 55, carrier: 'OBB', carrierName: 'Railjet', trainType: 'High-Speed', trainPrefix: 'RJ' },
+    'ATSBG-ATVIE': { duration: 145, basePrice: 55, carrier: 'OBB', carrierName: 'Railjet', trainType: 'High-Speed', trainPrefix: 'RJ' },
     'ATVIE-DEMUC': { duration: 240, basePrice: 69, carrier: 'OBB', carrierName: 'Railjet', trainType: 'High-Speed', trainPrefix: 'RJ' },
+    'DEMUC-ATVIE': { duration: 240, basePrice: 69, carrier: 'OBB', carrierName: 'Railjet', trainType: 'High-Speed', trainPrefix: 'RJ' },
     'ATVIE-CZPRG': { duration: 240, basePrice: 59, carrier: 'OBB', carrierName: 'Railjet', trainType: 'High-Speed', trainPrefix: 'RJ' },
-    
+    'CZPRG-ATVIE': { duration: 240, basePrice: 59, carrier: 'OBB', carrierName: 'Railjet', trainType: 'High-Speed', trainPrefix: 'RJ' },
     // Cross-border international
     'FRPAR-CHGVA': { duration: 190, basePrice: 89, carrier: 'TGV_LYRIA', carrierName: 'TGV Lyria', trainType: 'High-Speed', trainPrefix: 'TGV' },
+    'CHGVA-FRPAR': { duration: 190, basePrice: 89, carrier: 'TGV_LYRIA', carrierName: 'TGV Lyria', trainType: 'High-Speed', trainPrefix: 'TGV' },
     'FRPAR-CHZRH': { duration: 240, basePrice: 99, carrier: 'TGV_LYRIA', carrierName: 'TGV Lyria', trainType: 'High-Speed', trainPrefix: 'TGV' },
+    'CHZRH-FRPAR': { duration: 240, basePrice: 99, carrier: 'TGV_LYRIA', carrierName: 'TGV Lyria', trainType: 'High-Speed', trainPrefix: 'TGV' },
     'ITMIL-CHZRH': { duration: 210, basePrice: 79, carrier: 'SBB', carrierName: 'EuroCity', trainType: 'Inter-City', trainPrefix: 'EC' },
+    'CHZRH-ITMIL': { duration: 210, basePrice: 79, carrier: 'SBB', carrierName: 'EuroCity', trainType: 'Inter-City', trainPrefix: 'EC' },
+    'DEBER-CZPRG': { duration: 250, basePrice: 49, carrier: 'DBAHN', carrierName: 'EuroCity', trainType: 'Inter-City', trainPrefix: 'EC' },
+    'CZPRG-DEBER': { duration: 250, basePrice: 49, carrier: 'DBAHN', carrierName: 'EuroCity', trainType: 'Inter-City', trainPrefix: 'EC' },
   };
 
   // ============================================================
@@ -247,17 +252,14 @@ export class EraMockService {
 
   searchPlaces(query: string, limit: number = 10, type?: 'city' | 'station'): EraPlace[] {
     const searchTerm = query.toLowerCase();
-    
     let results = this.mockPlaces.filter(place =>
       place.label.toLowerCase().includes(searchTerm) ||
       place.localLabel?.toLowerCase().includes(searchTerm) ||
       place.code.toLowerCase().includes(searchTerm)
     );
-
     if (type) {
       results = results.filter(p => p.type === type);
     }
-
     return results.slice(0, limit);
   }
 
@@ -277,7 +279,7 @@ export class EraMockService {
     const searchId = this.generateShortId();
     const leg = request.legs[0];
     
-    // Support both 'departure/arrival' and 'origin/destination' naming
+    // Support both naming conventions
     const originCode = (leg as any).departure || (leg as any).origin;
     const destinationCode = (leg as any).arrival || (leg as any).destination;
     const departureTime = (leg as any).departureTime || (leg as any).departureDate;
@@ -289,12 +291,9 @@ export class EraMockService {
       throw new BadRequestException(`Invalid origin (${originCode}) or destination (${destinationCode})`);
     }
 
-    // Get route config - try both directions
     const routeKey = `${originCode}-${destinationCode}`;
-    const reverseKey = `${destinationCode}-${originCode}`;
-    const config = this.routeConfigs[routeKey] || this.routeConfigs[reverseKey] || this.getDefaultRouteConfig(origin, destination);
+    const config = this.routeConfigs[routeKey] || this.getDefaultRouteConfig(origin, destination);
 
-    // Generate departure times
     const departureTimes = ['06:15', '07:30', '08:45', '10:15', '12:30', '14:45', '16:15', '18:30', '20:00'];
     const offers: EraOffer[] = [];
     const products: EraProduct[] = [];
@@ -302,22 +301,23 @@ export class EraMockService {
 
     const departureDate = departureTime?.split('T')[0] || new Date().toISOString().split('T')[0];
 
-    // Generate journeys for each departure time
+    // Track for highlights
+    let cheapestPrice = Infinity;
+    let cheapestOfferId = '';
+    let fastestDuration = Infinity;
+    let fastestOfferId = '';
+
     departureTimes.forEach((time, timeIndex) => {
       const legSolutionId = this.generateShortId();
       
-      // Calculate arrival time
       const [hours, minutes] = time.split(':').map(Number);
       const departureMinutes = hours * 60 + minutes;
       const arrivalMinutes = departureMinutes + config.duration;
       const arrivalHours = Math.floor(arrivalMinutes / 60) % 24;
       const arrivalMins = arrivalMinutes % 60;
       const arrivalTime = `${arrivalHours.toString().padStart(2, '0')}:${arrivalMins.toString().padStart(2, '0')}`;
-
-      // Train number
       const trainNumber = `${config.trainPrefix} ${9000 + timeIndex * 100 + Math.floor(Math.random() * 50)}`;
 
-      // Create segment
       const segment: EraSegment = {
         id: this.generateShortId(),
         sequenceNumber: 1,
@@ -337,7 +337,6 @@ export class EraMockService {
         },
       };
 
-      // Create leg solution
       const legSolution: EraLegSolution = {
         id: legSolutionId,
         origin,
@@ -346,20 +345,29 @@ export class EraMockService {
         arrival: segment.arrival,
         duration: segment.duration,
         segments: [segment],
+        segmentCount: 1,
+        isDirect: true,
       };
       legSolutions.push(legSolution);
 
-      // Create offers for each class
-      this.classConfigs.forEach((classConfig, classIndex) => {
+      this.classConfigs.forEach((classConfig) => {
         const offerId = this.generateShortId();
         const productId = this.generateShortId();
-
-        // Price calculation with variation
-        const baseVariation = 0.85 + Math.random() * 0.3; // 85% - 115%
-        const timeMultiplier = this.getTimeMultiplier(time); // Peak hours cost more
+        const baseVariation = 0.85 + Math.random() * 0.3;
+        const timeMultiplier = this.getTimeMultiplier(time);
         const price = Math.round(config.basePrice * classConfig.priceMultiplier * baseVariation * timeMultiplier);
 
-        // Create product
+        // Track cheapest (standard class only for fair comparison)
+        if (classConfig.code === 'STANDARD' && price < cheapestPrice) {
+          cheapestPrice = price;
+          cheapestOfferId = offerId;
+        }
+        // Track fastest
+        if (classConfig.code === 'STANDARD' && config.duration < fastestDuration) {
+          fastestDuration = config.duration;
+          fastestOfferId = offerId;
+        }
+
         const product: EraProduct = {
           id: productId,
           code: `${config.carrier}_${classConfig.code}`,
@@ -368,9 +376,7 @@ export class EraMockService {
           supplier: config.carrier,
           marketingCarrier: config.carrier,
           segment: segment.id,
-          prices: {
-            total: { amount: price, currency: 'EUR' },
-          },
+          prices: { total: { amount: price, currency: 'EUR' } },
           comfortCategory: classConfig.comfortCategory,
           flexibility: {
             label: classConfig.flexibilityLabel,
@@ -381,21 +387,20 @@ export class EraMockService {
         };
         products.push(product);
 
-        // Create offer
         const offer: EraOffer = {
           id: offerId,
           legSolution: legSolutionId,
           offerLocation: `offer:${offerId}`,
           products: [productId],
-          prices: {
-            total: { amount: price * request.travelers.length, currency: 'EUR' },
-          },
+          prices: { total: { amount: price * request.travelers.length, currency: 'EUR' } },
           comfortCategory: classConfig.comfortCategory,
           flexibility: product.flexibility,
           ticketingOptions: [
             { code: 'ETK', label: 'E-Ticket' },
             { code: 'PAH', label: 'Print at Home' },
           ],
+          isDirect: true,
+          segmentCount: 1,
         };
         offers.push(offer);
       });
@@ -410,34 +415,30 @@ export class EraMockService {
         departure: `${departureDate}T00:00:00`,
         solutions: legSolutions,
       }],
-      travelers: request.travelers.map((t, i) => ({
+      travelers: request.travelers.map((t) => ({
         id: this.generateShortId(),
         type: t.type,
         dateOfBirth: t.dateOfBirth,
       })),
       offers,
       products,
+      highlights: {
+        cheapestOfferId,
+        fastestOfferId,
+      },
     };
 
-    // Cache for pagination
     this.mockSearches.set(searchId, response);
-
     return response;
   }
 
-  // Helper: Get time multiplier for peak hours
   private getTimeMultiplier(time: string): number {
     const hour = parseInt(time.split(':')[0]);
-    if ((hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 19)) {
-      return 1.15; // Peak hours 15% more
-    }
-    if (hour >= 10 && hour <= 15) {
-      return 0.95; // Off-peak 5% less
-    }
+    if ((hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 19)) return 1.15;
+    if (hour >= 10 && hour <= 15) return 0.95;
     return 1.0;
   }
 
-  // Helper: Format duration to ISO 8601
   private formatDuration(minutes: number): string {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -446,12 +447,8 @@ export class EraMockService {
     return `PT${hours}H${mins}M`;
   }
 
-  // Helper: Get default route config for unknown routes
   private getDefaultRouteConfig(origin: EraPlace, destination: EraPlace): RouteConfig {
-    // Estimate duration based on typical European rail speeds
-    const baseDuration = 180; // 3 hours default
-    
-    // Determine carrier based on countries
+    const baseDuration = 180;
     const originCountry = origin.country?.code || '';
     const destCountry = destination.country?.code || '';
     
@@ -467,15 +464,12 @@ export class EraMockService {
     if (originCountry === 'ES' || destCountry === 'ES') {
       return { duration: baseDuration, basePrice: 69, carrier: 'RENFE', carrierName: 'AVE', trainType: 'High-Speed', trainPrefix: 'AVE' };
     }
-    
     return { duration: baseDuration, basePrice: 69, carrier: 'RAIL', carrierName: 'EuroRail', trainType: 'Inter-City', trainPrefix: 'IC' };
   }
 
   getAdditionalOffers(searchId: string, page: 'next' | 'previous'): EraSearchResponse {
     const cached = this.mockSearches.get(searchId);
-    if (!cached) {
-      throw new NotFoundException('Search not found or expired');
-    }
+    if (!cached) throw new NotFoundException('Search not found or expired');
     return cached;
   }
 
@@ -490,7 +484,6 @@ export class EraMockService {
   // ============================================================
 
   createBooking(offerLocations: string[]): EraBooking {
-    // Use short ID instead of UUID
     const bookingId = this.generateShortId();
     const reference = this.generateBookingReference();
 
@@ -504,16 +497,13 @@ export class EraMockService {
         status: 'CREATED',
       })),
       travelers: [],
-      prices: {
-        total: { amount: 0, currency: 'EUR' },
-      },
+      prices: { total: { amount: 0, currency: 'EUR' } },
       createdAt: new Date().toISOString(),
       expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     };
 
     this.mockBookings.set(bookingId, booking);
     this.logger.debug(`Mock booking created: ${bookingId} (ref: ${reference})`);
-
     return booking;
   }
 
@@ -521,11 +511,7 @@ export class EraMockService {
     return this.mockBookings.get(bookingId) || null;
   }
 
-  updateTravelers(
-    bookingId: string, 
-    itemId: string, 
-    travelers: EraBookingTravelerInput[]
-  ): EraBooking {
+  updateTravelers(bookingId: string, itemId: string, travelers: EraBookingTravelerInput[]): EraBooking {
     const booking = this.mockBookings.get(bookingId);
     if (!booking) throw new NotFoundException('Booking not found');
 
@@ -542,7 +528,6 @@ export class EraMockService {
 
     booking.updatedAt = new Date().toISOString();
     this.mockBookings.set(bookingId, booking);
-
     return booking;
   }
 
@@ -556,7 +541,6 @@ export class EraMockService {
     booking.status = 'PREBOOKED';
     booking.updatedAt = new Date().toISOString();
     this.mockBookings.set(bookingId, booking);
-
     return booking as EraPrebookResponse;
   }
 
@@ -569,24 +553,19 @@ export class EraMockService {
 
     booking.status = 'INVOICED';
     booking.updatedAt = new Date().toISOString();
-    
-    // Generate short, readable PNR for each item
-    booking.items.forEach((item, index) => {
+    booking.items.forEach((item) => {
       item.pnr = this.generateBookingReference();
     });
 
     this.mockBookings.set(bookingId, booking);
-
     return booking as EraConfirmResponse;
   }
 
   hold(bookingId: string): EraBooking {
     const booking = this.mockBookings.get(bookingId);
     if (!booking) throw new NotFoundException('Booking not found');
-
     booking.updatedAt = new Date().toISOString();
     this.mockBookings.set(bookingId, booking);
-
     return booking;
   }
 
@@ -621,7 +600,6 @@ export class EraMockService {
     booking.items = booking.items.filter(item => item.id !== itemId);
     booking.updatedAt = new Date().toISOString();
     this.mockBookings.set(bookingId, booking);
-
     return booking;
   }
 
@@ -665,13 +643,8 @@ export class EraMockService {
     };
   }
 
-  searchExchangeOffers(
-    bookingId: string, 
-    legs: EraLegRequest[], 
-    items?: string[]
-  ): EraExchangeSearchResponse {
+  searchExchangeOffers(bookingId: string, legs: EraLegRequest[], items?: string[]): EraExchangeSearchResponse {
     const searchResponse = this.searchJourneys({ legs, travelers: [{ type: 'ADULT' }] });
-    
     return {
       ...searchResponse,
       priceDifference: { amount: 10, currency: 'EUR' },

@@ -4,9 +4,11 @@ import { useEffect, useState, useMemo, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
-  Train, ArrowLeft, Clock, ArrowRight, Filter, ChevronDown, ChevronUp,
-  Loader2, AlertCircle, MapPin, Calendar, Users, Zap, Wifi, Coffee,
-  Check, X, RefreshCw, Info, ChevronRight, SlidersHorizontal
+  Train, ArrowLeft, Clock, ArrowRight, ChevronDown,
+  Loader2, AlertCircle, MapPin, Calendar, Users,
+  Check, X, RefreshCw, ChevronRight, SlidersHorizontal,
+  RotateCcw, Tag, Timer, ArrowRightLeft, Zap, Shield,
+  Sparkles, TrendingDown, ChevronUp
 } from 'lucide-react';
 import { 
   searchJourneys, 
@@ -19,85 +21,77 @@ import {
 } from '@/lib/api/era-client';
 
 // ============================================================
+// TYPES
+// ============================================================
+
+type TripPhase = 'outbound' | 'return';
+type SortOption = 'departure' | 'price' | 'duration';
+
+interface SelectedJourneys {
+  outbound: Journey | null;
+  return: Journey | null;
+}
+
+// ============================================================
 // CONSTANTS
 // ============================================================
 
-const TIME_FILTERS = [
-  { id: 'night', label: 'Gece', shortLabel: '00-06', icon: '🌙', start: 0, end: 6 },
-  { id: 'morning', label: 'Sabah', shortLabel: '06-12', icon: '☀️', start: 6, end: 12 },
-  { id: 'afternoon', label: 'Öğlen', shortLabel: '12-18', icon: '🌤️', start: 12, end: 18 },
-  { id: 'evening', label: 'Akşam', shortLabel: '18-24', icon: '🌅', start: 18, end: 24 },
+const TIME_SLOTS = [
+  { id: 'early', label: 'Erken', range: '05:00-09:00', start: 5, end: 9, icon: '🌅' },
+  { id: 'morning', label: 'Sabah', range: '09:00-12:00', start: 9, end: 12, icon: '☀️' },
+  { id: 'afternoon', label: 'Öğlen', range: '12:00-17:00', start: 12, end: 17, icon: '🌤️' },
+  { id: 'evening', label: 'Akşam', range: '17:00-21:00', start: 17, end: 21, icon: '🌆' },
+  { id: 'night', label: 'Gece', range: '21:00-05:00', start: 21, end: 5, icon: '🌙' },
 ];
 
-const SORT_OPTIONS = [
-  { id: 'departure', label: 'Kalkış Saati' },
-  { id: 'price', label: 'Fiyat (En Ucuz)' },
-  { id: 'duration', label: 'Süre (En Kısa)' },
-];
+const CARRIER_STYLES: Record<string, { bg: string; text: string; name: string }> = {
+  'EUROSTAR': { bg: 'bg-yellow-400', text: 'text-slate-900', name: 'Eurostar' },
+  'Eurostar': { bg: 'bg-yellow-400', text: 'text-slate-900', name: 'Eurostar' },
+  'SNCF': { bg: 'bg-rose-600', text: 'text-white', name: 'TGV' },
+  'TGV': { bg: 'bg-rose-600', text: 'text-white', name: 'TGV' },
+  'THALYS': { bg: 'bg-purple-600', text: 'text-white', name: 'Thalys' },
+  'TRENITALIA': { bg: 'bg-emerald-600', text: 'text-white', name: 'Trenitalia' },
+  'Frecciarossa': { bg: 'bg-rose-500', text: 'text-white', name: 'Frecciarossa' },
+  'DBAHN': { bg: 'bg-red-600', text: 'text-white', name: 'ICE' },
+  'ICE': { bg: 'bg-red-600', text: 'text-white', name: 'ICE' },
+  'RENFE': { bg: 'bg-purple-700', text: 'text-white', name: 'AVE' },
+  'AVE': { bg: 'bg-purple-700', text: 'text-white', name: 'AVE' },
+  'SBB': { bg: 'bg-red-500', text: 'text-white', name: 'SBB' },
+  'OBB': { bg: 'bg-red-600', text: 'text-white', name: 'ÖBB' },
+  'Railjet': { bg: 'bg-red-600', text: 'text-white', name: 'Railjet' },
+  'TGV Lyria': { bg: 'bg-rose-600', text: 'text-white', name: 'TGV Lyria' },
+  'EuroCity': { bg: 'bg-blue-600', text: 'text-white', name: 'EuroCity' },
+};
 
-const COMFORT_CONFIG: Record<string, { 
-  label: string; 
-  labelTr: string; 
-  color: string; 
-  bgColor: string;
-  borderColor: string;
-  icon: string;
-  features: string[];
-}> = {
+const CLASS_CONFIG = {
   standard: { 
-    label: 'Standard', 
-    labelTr: 'Standart', 
-    color: 'text-slate-700',
-    bgColor: 'bg-slate-50',
-    borderColor: 'border-slate-200',
-    icon: '🎫',
-    features: ['Standart koltuk', '1 el bagajı', 'Elektrik prizi']
+    label: 'Standart', 
+    icon: '🎫', 
+    color: 'slate',
+    features: ['Standart koltuk', 'WiFi', 'Priz']
   },
   comfort: { 
     label: 'Business', 
-    labelTr: 'Business', 
-    color: 'text-amber-700',
-    bgColor: 'bg-amber-50',
-    borderColor: 'border-amber-300',
-    icon: '💼',
-    features: ['Geniş koltuk', 'Yemek servisi', 'Öncelikli biniş', 'Sessiz vagon']
+    icon: '💼', 
+    color: 'amber',
+    features: ['Geniş koltuk', 'Yemek', 'Öncelikli biniş', 'Sessiz vagon']
   },
   premier: { 
     label: 'First Class', 
-    labelTr: 'Birinci Sınıf', 
-    color: 'text-purple-700',
-    bgColor: 'bg-purple-50',
-    borderColor: 'border-purple-300',
-    icon: '👑',
-    features: ['Premium koltuk', 'Şampanya servisi', 'Lounge erişimi', 'Özel check-in', 'Ücretsiz WiFi']
+    icon: '👑', 
+    color: 'purple',
+    features: ['Premium koltuk', 'Şampanya', 'Lounge', 'Özel check-in']
   },
 };
 
-// Carrier logos/colors
-const CARRIER_CONFIG: Record<string, { color: string; textColor: string; abbrev: string }> = {
-  'EUROSTAR': { color: 'bg-yellow-400', textColor: 'text-slate-900', abbrev: 'ES' },
-  'Eurostar': { color: 'bg-yellow-400', textColor: 'text-slate-900', abbrev: 'ES' },
-  'SNCF': { color: 'bg-red-600', textColor: 'text-white', abbrev: 'TGV' },
-  'TGV': { color: 'bg-red-600', textColor: 'text-white', abbrev: 'TGV' },
-  'THALYS': { color: 'bg-red-700', textColor: 'text-white', abbrev: 'THA' },
-  'Thalys': { color: 'bg-red-700', textColor: 'text-white', abbrev: 'THA' },
-  'TRENITALIA': { color: 'bg-green-600', textColor: 'text-white', abbrev: 'TI' },
-  'Frecciarossa': { color: 'bg-red-500', textColor: 'text-white', abbrev: 'FR' },
-  'DBAHN': { color: 'bg-red-600', textColor: 'text-white', abbrev: 'DB' },
-  'ICE': { color: 'bg-red-600', textColor: 'text-white', abbrev: 'ICE' },
-  'RENFE': { color: 'bg-purple-600', textColor: 'text-white', abbrev: 'AVE' },
-  'AVE': { color: 'bg-purple-600', textColor: 'text-white', abbrev: 'AVE' },
-  'SBB': { color: 'bg-red-500', textColor: 'text-white', abbrev: 'SBB' },
-  'OBB': { color: 'bg-red-600', textColor: 'text-white', abbrev: 'ÖBB' },
-  'Railjet': { color: 'bg-red-600', textColor: 'text-white', abbrev: 'RJ' },
-  'TGV Lyria': { color: 'bg-red-600', textColor: 'text-white', abbrev: 'TGV' },
-  'EuroCity': { color: 'bg-blue-600', textColor: 'text-white', abbrev: 'EC' },
-  'DEFAULT': { color: 'bg-blue-600', textColor: 'text-white', abbrev: 'TR' },
-};
+// ============================================================
+// UTILITY FUNCTIONS
+// ============================================================
 
-// ============================================================
-// HELPER FUNCTIONS
-// ============================================================
+function getCarrierStyle(carrier: string) {
+  return CARRIER_STYLES[carrier] || CARRIER_STYLES[carrier?.toUpperCase()] || 
+    { bg: 'bg-blue-600', text: 'text-white', name: carrier };
+}
 
 function getHourFromDate(isoString: string): number {
   try {
@@ -107,607 +101,382 @@ function getHourFromDate(isoString: string): number {
   }
 }
 
-function getMinutesFromMidnight(isoString: string): number {
+function groupJourneysBySolution(journeys: Journey[]): Map<string, Journey[]> {
+  const grouped = new Map<string, Journey[]>();
+  journeys.forEach(journey => {
+    const key = `${journey.departure}-${journey.trainNumber}`;
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key)!.push(journey);
+  });
+  return grouped;
+}
+
+function formatDateShort(dateStr: string): string {
   try {
-    const date = new Date(isoString);
-    return date.getHours() * 60 + date.getMinutes();
+    return new Date(dateStr).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
   } catch {
-    return 0;
+    return dateStr;
   }
 }
 
-function formatMinutesToTime(minutes: number): string {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-}
-
-function getCarrierConfig(carrier: string) {
-  return CARRIER_CONFIG[carrier] || CARRIER_CONFIG[carrier?.toUpperCase()] || CARRIER_CONFIG.DEFAULT;
-}
-
-function groupJourneysBySolution(journeys: Journey[]): Map<string, Journey[]> {
-  const grouped = new Map<string, Journey[]>();
-  
-  journeys.forEach(journey => {
-    const key = `${journey.departure}-${journey.trainNumber}`;
-    if (!grouped.has(key)) {
-      grouped.set(key, []);
-    }
-    grouped.get(key)!.push(journey);
-  });
-
-  return grouped;
+function formatDateLong(dateStr: string): string {
+  try {
+    return new Date(dateStr).toLocaleDateString('tr-TR', { 
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' 
+    });
+  } catch {
+    return dateStr;
+  }
 }
 
 // ============================================================
 // COMPONENTS
 // ============================================================
 
-// Time Range Slider Component - DÜZELTILMIŞ
-function TimeRangeSlider({
+// Progress Steps (Google Flights style)
+function ProgressSteps({ 
+  phase, 
+  isRoundTrip,
+  outboundSelected,
+}: { 
+  phase: TripPhase;
+  isRoundTrip: boolean;
+  outboundSelected: boolean;
+}) {
+  if (!isRoundTrip) return null;
+  
+  return (
+    <div className="flex items-center justify-center gap-2 py-3 bg-slate-50 border-b border-slate-200">
+      {/* Step 1: Outbound */}
+      <div className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${
+        phase === 'outbound' 
+          ? 'bg-blue-600 text-white' 
+          : outboundSelected 
+            ? 'bg-green-100 text-green-700' 
+            : 'bg-slate-200 text-slate-500'
+      }`}>
+        {outboundSelected && phase !== 'outbound' ? (
+          <Check className="w-4 h-4" />
+        ) : (
+          <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">1</span>
+        )}
+        <span className="font-medium text-sm">Gidiş</span>
+      </div>
+      
+      <ChevronRight className="w-4 h-4 text-slate-400" />
+      
+      {/* Step 2: Return */}
+      <div className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${
+        phase === 'return' 
+          ? 'bg-blue-600 text-white' 
+          : 'bg-slate-200 text-slate-500'
+      }`}>
+        <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">2</span>
+        <span className="font-medium text-sm">Dönüş</span>
+      </div>
+    </div>
+  );
+}
+
+// Sticky Selected Journey Summary (Trainline style)
+function SelectedJourneySummary({
+  journey,
   label,
-  icon,
-  minValue,
-  maxValue,
-  onChange,
-  disabled = false,
+  onEdit,
 }: {
+  journey: Journey;
   label: string;
-  icon: React.ReactNode;
-  minValue: number; // minutes from midnight (0-1440)
-  maxValue: number;
-  onChange: (min: number, max: number) => void;
-  disabled?: boolean;
+  onEdit: () => void;
 }) {
-  const [localMin, setLocalMin] = useState(minValue);
-  const [localMax, setLocalMax] = useState(maxValue);
-
-  // Sync with parent
-  useEffect(() => {
-    setLocalMin(minValue);
-    setLocalMax(maxValue);
-  }, [minValue, maxValue]);
-
-  const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Math.min(parseInt(e.target.value), localMax - 30);
-    setLocalMin(value);
-    onChange(value, localMax);
-  };
-
-  const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Math.max(parseInt(e.target.value), localMin + 30);
-    setLocalMax(value);
-    onChange(localMin, value);
-  };
-
-  const minPercent = (localMin / 1440) * 100;
-  const maxPercent = (localMax / 1440) * 100;
-
-  return (
-    <div className={`${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
-          {icon}
-          <span>{label}</span>
-        </div>
-        <div className="text-sm font-semibold text-blue-600">
-          {formatMinutesToTime(localMin)} - {formatMinutesToTime(localMax)}
-        </div>
-      </div>
-      
-      {/* Slider Container */}
-      <div className="relative h-6 flex items-center">
-        {/* Background Track */}
-        <div className="absolute w-full h-2 bg-slate-200 rounded-full" />
-        
-        {/* Active Range */}
-        <div 
-          className="absolute h-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full pointer-events-none"
-          style={{ 
-            left: `${minPercent}%`, 
-            width: `${maxPercent - minPercent}%` 
-          }}
-        />
-        
-        {/* Min Slider */}
-        <input
-          type="range"
-          min={0}
-          max={1440}
-          step={15}
-          value={localMin}
-          onChange={handleMinChange}
-          style={{ zIndex: localMin > localMax - 100 ? 5 : 4 }}
-          className="absolute w-full h-2 appearance-none bg-transparent cursor-pointer
-            [&::-webkit-slider-runnable-track]:appearance-none
-            [&::-webkit-slider-runnable-track]:bg-transparent
-            [&::-webkit-slider-thumb]:appearance-none
-            [&::-webkit-slider-thumb]:w-5
-            [&::-webkit-slider-thumb]:h-5
-            [&::-webkit-slider-thumb]:bg-white
-            [&::-webkit-slider-thumb]:border-2
-            [&::-webkit-slider-thumb]:border-blue-500
-            [&::-webkit-slider-thumb]:rounded-full
-            [&::-webkit-slider-thumb]:shadow-lg
-            [&::-webkit-slider-thumb]:cursor-grab
-            [&::-webkit-slider-thumb]:active:cursor-grabbing
-            [&::-webkit-slider-thumb]:hover:scale-110
-            [&::-webkit-slider-thumb]:hover:border-blue-600
-            [&::-webkit-slider-thumb]:transition-all
-            [&::-moz-range-track]:appearance-none
-            [&::-moz-range-track]:bg-transparent
-            [&::-moz-range-thumb]:appearance-none
-            [&::-moz-range-thumb]:w-5
-            [&::-moz-range-thumb]:h-5
-            [&::-moz-range-thumb]:bg-white
-            [&::-moz-range-thumb]:border-2
-            [&::-moz-range-thumb]:border-blue-500
-            [&::-moz-range-thumb]:rounded-full
-            [&::-moz-range-thumb]:shadow-lg
-            [&::-moz-range-thumb]:cursor-grab
-          "
-        />
-        
-        {/* Max Slider */}
-        <input
-          type="range"
-          min={0}
-          max={1440}
-          step={15}
-          value={localMax}
-          onChange={handleMaxChange}
-          style={{ zIndex: localMin > localMax - 100 ? 4 : 5 }}
-          className="absolute w-full h-2 appearance-none bg-transparent cursor-pointer
-            [&::-webkit-slider-runnable-track]:appearance-none
-            [&::-webkit-slider-runnable-track]:bg-transparent
-            [&::-webkit-slider-thumb]:appearance-none
-            [&::-webkit-slider-thumb]:w-5
-            [&::-webkit-slider-thumb]:h-5
-            [&::-webkit-slider-thumb]:bg-white
-            [&::-webkit-slider-thumb]:border-2
-            [&::-webkit-slider-thumb]:border-blue-500
-            [&::-webkit-slider-thumb]:rounded-full
-            [&::-webkit-slider-thumb]:shadow-lg
-            [&::-webkit-slider-thumb]:cursor-grab
-            [&::-webkit-slider-thumb]:active:cursor-grabbing
-            [&::-webkit-slider-thumb]:hover:scale-110
-            [&::-webkit-slider-thumb]:hover:border-blue-600
-            [&::-webkit-slider-thumb]:transition-all
-            [&::-moz-range-track]:appearance-none
-            [&::-moz-range-track]:bg-transparent
-            [&::-moz-range-thumb]:appearance-none
-            [&::-moz-range-thumb]:w-5
-            [&::-moz-range-thumb]:h-5
-            [&::-moz-range-thumb]:bg-white
-            [&::-moz-range-thumb]:border-2
-            [&::-moz-range-thumb]:border-blue-500
-            [&::-moz-range-thumb]:rounded-full
-            [&::-moz-range-thumb]:shadow-lg
-            [&::-moz-range-thumb]:cursor-grab
-          "
-        />
-      </div>
-      
-      {/* Time Labels */}
-      <div className="flex justify-between mt-1 text-[10px] text-slate-400">
-        <span>00:00</span>
-        <span>06:00</span>
-        <span>12:00</span>
-        <span>18:00</span>
-        <span>24:00</span>
-      </div>
-    </div>
-  );
-}
-
-// Advanced Filters Panel
-function AdvancedFiltersPanel({
-  isOpen,
-  onClose,
-  departureRange,
-  arrivalRange,
-  onDepartureChange,
-  onArrivalChange,
-  onReset,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  departureRange: { min: number; max: number };
-  arrivalRange: { min: number; max: number };
-  onDepartureChange: (min: number, max: number) => void;
-  onArrivalChange: (min: number, max: number) => void;
-  onReset: () => void;
-}) {
-  if (!isOpen) return null;
-
-  const hasActiveFilters = 
-    departureRange.min > 0 || 
-    departureRange.max < 1440 || 
-    arrivalRange.min > 0 || 
-    arrivalRange.max < 1440;
-
-  return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 mb-4 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-          <SlidersHorizontal className="w-4 h-4" />
-          Detaylı Saat Filtresi
-        </h3>
-        <div className="flex items-center gap-2">
-          {hasActiveFilters && (
-            <button
-              onClick={onReset}
-              className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
-            >
-              <RefreshCw className="w-3 h-3" />
-              Sıfırla
-            </button>
-          )}
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
-          >
-            <X className="w-4 h-4 text-slate-400" />
-          </button>
-        </div>
-      </div>
-
-      <div className="space-y-6">
-        {/* Departure Time Slider */}
-        <TimeRangeSlider
-          label="Kalkış Saati"
-          icon={<MapPin className="w-4 h-4 text-green-600" />}
-          minValue={departureRange.min}
-          maxValue={departureRange.max}
-          onChange={onDepartureChange}
-        />
-
-        {/* Arrival Time Slider */}
-        <TimeRangeSlider
-          label="Varış Saati"
-          icon={<MapPin className="w-4 h-4 text-red-500" />}
-          minValue={arrivalRange.min}
-          maxValue={arrivalRange.max}
-          onChange={onArrivalChange}
-        />
-      </div>
-
-      {/* Info Text */}
-      <div className="mt-4 pt-4 border-t border-slate-100">
-        <p className="text-xs text-slate-500 flex items-start gap-1.5">
-          <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-          <span>Slider'ları sürükleyerek tam saat aralığı belirleyebilirsiniz. Hızlı filtreler ile birlikte kullanılabilir.</span>
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// Carrier Logo Badge
-function CarrierBadge({ carrier, operatorName }: { carrier: string; operatorName?: string }) {
-  const config = getCarrierConfig(operatorName || carrier);
+  const carrierStyle = getCarrierStyle(journey.operator);
   
   return (
-    <div className={`
-      inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-bold
-      ${config.color} ${config.textColor}
-    `}>
-      <Train className="w-3 h-3" />
-      <span>{operatorName || config.abbrev}</span>
-    </div>
-  );
-}
-
-// Feature Tags (for collapsed view)
-function FeatureTags({ journey }: { journey: Journey }) {
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {journey.trainType === 'High-Speed' && (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs">
-          <Zap className="w-3 h-3" /> Yüksek Hız
-        </span>
-      )}
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs">
-        <Wifi className="w-3 h-3" /> WiFi
-      </span>
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs">
-        <Coffee className="w-3 h-3" /> Restoran
-      </span>
-    </div>
-  );
-}
-
-// Class Selection Card - Trainline Style
-function ClassCard({ 
-  journey, 
-  isSelected,
-  isPopular, 
-  onSelect,
-  onBook
-}: { 
-  journey: Journey; 
-  isSelected: boolean;
-  isPopular: boolean;
-  onSelect: () => void;
-  onBook: () => void;
-}) {
-  const config = COMFORT_CONFIG[journey.comfortCategory] || COMFORT_CONFIG.standard;
-  const flexibilityLabel = typeof journey.flexibility === 'string' 
-    ? journey.flexibility 
-    : (journey.flexibility as any)?.label || '';
-  
-  return (
-    <div 
-      className={`
-        relative rounded-xl border-2 transition-all duration-200 overflow-hidden cursor-pointer
-        ${isSelected 
-          ? `${config.borderColor} ${config.bgColor} shadow-md` 
-          : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'
-        }
-      `}
-      onClick={onSelect}
-    >
-      {/* Popular Badge */}
-      {isPopular && (
-        <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-amber-400 to-amber-500 text-white text-xs font-bold py-1 text-center">
-          ⭐ En Popüler
-        </div>
-      )}
-
-      {/* Main Content */}
-      <div className={`p-4 ${isPopular ? 'pt-8' : ''}`}>
-        {/* Header: Icon + Name + Price */}
-        <div className="flex items-center justify-between mb-3">
+    <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 mb-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">{config.icon}</span>
-            <span className={`font-semibold ${config.color}`}>{config.labelTr}</span>
-          </div>
-          <div className="text-right">
-            <div className="text-xl font-bold text-slate-800">
-              {formatPrice(journey.price.amount, journey.price.currency)}
+            <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
+              <Check className="w-5 h-5 text-white" />
             </div>
-            <div className="text-xs text-slate-500">kişi başı</div>
-          </div>
-        </div>
-
-        {/* Quick Info: Refund + Exchange */}
-        <div className="flex items-center gap-4 text-sm mb-3">
-          <div className="flex items-center gap-1">
-            {journey.isRefundable ? (
-              <Check className="w-4 h-4 text-green-600" />
-            ) : (
-              <X className="w-4 h-4 text-slate-400" />
-            )}
-            <span className={journey.isRefundable ? 'text-green-700' : 'text-slate-400'}>
-              İade
-            </span>
-          </div>
-          <div className="flex items-center gap-1">
-            {journey.isExchangeable ? (
-              <Check className="w-4 h-4 text-green-600" />
-            ) : (
-              <X className="w-4 h-4 text-slate-400" />
-            )}
-            <span className={journey.isExchangeable ? 'text-green-700' : 'text-slate-400'}>
-              Değişiklik
-            </span>
-          </div>
-        </div>
-
-        {/* Expand indicator when not selected */}
-        {!isSelected && (
-          <div className="text-xs text-blue-600 flex items-center gap-1">
-            <Info className="w-3 h-3" />
-            Detaylar için tıklayın
-          </div>
-        )}
-      </div>
-
-      {/* Expanded Details - Only when selected */}
-      {isSelected && (
-        <div className={`border-t ${config.borderColor} ${config.bgColor} p-4`}>
-          {/* Features */}
-          <div className="mb-4">
-            <div className="text-xs font-semibold text-slate-600 mb-2">Bu sınıfa dahil:</div>
-            <div className="grid grid-cols-1 gap-1.5">
-              {config.features.map((feature, i) => (
-                <div key={i} className="flex items-center gap-2 text-sm text-slate-700">
-                  <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
-                  <span>{feature}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Flexibility Rules */}
-          <div className="mb-4 p-3 bg-white/60 rounded-lg">
-            <div className="text-xs font-semibold text-slate-600 mb-2">Bilet Koşulları:</div>
-            <div className="space-y-2 text-sm">
-              <div className="flex items-start gap-2">
-                {journey.isRefundable ? (
-                  <>
-                    <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <span className="text-green-700 font-medium">İade Edilebilir</span>
-                      <p className="text-xs text-slate-500">Kalkıştan 24 saat öncesine kadar tam iade</p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <X className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <span className="text-red-600 font-medium">İade Edilemez</span>
-                      <p className="text-xs text-slate-500">Bu bilet iade edilemez</p>
-                    </div>
-                  </>
-                )}
-              </div>
-              <div className="flex items-start gap-2">
-                {journey.isExchangeable ? (
-                  <>
-                    <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <span className="text-green-700 font-medium">Değiştirilebilir</span>
-                      <p className="text-xs text-slate-500">Kalkıştan önce ücretsiz değişiklik</p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <X className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <span className="text-red-600 font-medium">Değiştirilemez</span>
-                      <p className="text-xs text-slate-500">Bu bilet değiştirilemez</p>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-            {flexibilityLabel && (
-              <div className="mt-2 pt-2 border-t border-slate-200 text-xs text-slate-600">
-                Esneklik seviyesi: <span className="font-semibold">{flexibilityLabel}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Book Button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onBook();
-            }}
-            className={`
-              w-full py-3 rounded-lg font-semibold text-white transition-all
-              flex items-center justify-center gap-2
-              ${isPopular 
-                ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700' 
-                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
-              }
-            `}
-          >
-            <span>Bu Bileti Seç</span>
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Journey Card (Accordion)
-function JourneyCard({ 
-  journeys, 
-  isExpanded, 
-  onToggle, 
-  onSelect,
-}: { 
-  journeys: Journey[];
-  isExpanded: boolean;
-  onToggle: () => void;
-  onSelect: (journey: Journey) => void;
-}) {
-  const [selectedClass, setSelectedClass] = useState<string | null>(null);
-  
-  // Sort by comfort category order: standard, comfort, premier
-  const sortedJourneys = [...journeys].sort((a, b) => {
-    const order: Record<string, number> = { standard: 0, comfort: 1, premier: 2 };
-    return (order[a.comfortCategory] || 0) - (order[b.comfortCategory] || 0);
-  });
-  
-  const cheapest = sortedJourneys.reduce((min, j) => j.price.amount < min.price.amount ? j : min, sortedJourneys[0]);
-
-  // Reset selected class when collapsed
-  useEffect(() => {
-    if (!isExpanded) {
-      setSelectedClass(null);
-    }
-  }, [isExpanded]);
-
-  return (
-    <div className={`
-      bg-white rounded-xl border-2 transition-all duration-300 overflow-hidden
-      ${isExpanded ? 'border-blue-400 shadow-lg' : 'border-slate-200 hover:border-slate-300'}
-    `}>
-      {/* Header - Click to expand/collapse */}
-      <button
-        onClick={onToggle}
-        className="w-full p-4 text-left"
-      >
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-          {/* Carrier Badge */}
-          <div className="flex items-center gap-2">
-            <CarrierBadge carrier={cheapest.operator} operatorName={cheapest.operatorName} />
-            <span className="text-xs text-slate-500">{cheapest.trainNumber}</span>
-          </div>
-
-          {/* Time & Route */}
-          <div className="flex items-center gap-3 flex-1">
-            <div className="text-center min-w-[50px]">
-              <div className="text-lg sm:text-xl font-bold text-slate-800">{formatTime(cheapest.departure)}</div>
-              <div className="text-[10px] sm:text-xs text-slate-500 truncate max-w-[60px] sm:max-w-[80px]">{cheapest.origin.city}</div>
-            </div>
-            
-            <div className="flex flex-col items-center flex-1 min-w-[50px]">
-              <div className="w-full flex items-center">
-                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-500" />
-                <div className="flex-1 h-0.5 bg-gradient-to-r from-blue-500 to-blue-300" />
-                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-300" />
-              </div>
-              <span className="text-[10px] sm:text-xs text-slate-500 mt-1">{formatDuration(cheapest.durationMinutes)}</span>
-              <span className="text-[9px] sm:text-[10px] text-green-600 font-medium">Direkt</span>
-            </div>
-            
-            <div className="text-center min-w-[50px]">
-              <div className="text-lg sm:text-xl font-bold text-slate-800">{formatTime(cheapest.arrival)}</div>
-              <div className="text-[10px] sm:text-xs text-slate-500 truncate max-w-[60px] sm:max-w-[80px]">{cheapest.destination.city}</div>
-            </div>
-          </div>
-
-          {/* Price & Expand */}
-          <div className="flex items-center justify-between sm:justify-end gap-4">
-            <div className="text-right">
-              <div className="text-[10px] sm:text-xs text-slate-500">başlayan fiyat</div>
-              <div className="text-lg sm:text-xl font-bold text-green-600">
-                {formatPrice(cheapest.price.amount, cheapest.price.currency)}
-              </div>
-            </div>
-            <div className={`
-              p-2 rounded-full bg-slate-100 transition-transform duration-300
-              ${isExpanded ? 'rotate-180' : ''}
-            `}>
-              <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 text-slate-500" />
-            </div>
-          </div>
-        </div>
-
-        {/* Feature Tags - Only in collapsed state */}
-        {!isExpanded && (
-          <div className="mt-3 pt-3 border-t border-slate-100">
-            <FeatureTags journey={cheapest} />
-          </div>
-        )}
-      </button>
-
-      {/* Expanded Content - Class Selection */}
-      {isExpanded && (
-        <div className="border-t border-slate-200 p-4 bg-slate-50/50">
-          <div className="mb-4">
-            <h4 className="text-sm font-semibold text-slate-700 mb-1">Bilet Sınıfı Seçin</h4>
-            <p className="text-xs text-slate-500">Detayları görmek için bir sınıfa tıklayın</p>
+            <span className="font-medium text-green-800">{label} Seçildi</span>
           </div>
           
-          {/* Class Cards */}
+          <div className="h-6 w-px bg-green-200" />
+          
+          <div className="flex items-center gap-3">
+            <span className={`px-2 py-1 rounded text-xs font-bold ${carrierStyle.bg} ${carrierStyle.text}`}>
+              {carrierStyle.name}
+            </span>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="font-semibold text-slate-800">{formatTime(journey.departure)}</span>
+              <ArrowRight className="w-3 h-3 text-slate-400" />
+              <span className="font-semibold text-slate-800">{formatTime(journey.arrival)}</span>
+            </div>
+            <span className="text-sm text-slate-500">{formatDuration(journey.durationMinutes)}</span>
+            <span className="text-sm font-semibold text-green-600">
+              {formatPrice(journey.price.amount, journey.price.currency)}
+            </span>
+          </div>
+        </div>
+        
+        <button
+          onClick={onEdit}
+          className="text-sm text-green-600 hover:text-green-700 font-medium flex items-center gap-1"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Değiştir
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Filter Pills
+function FilterPills({
+  selectedSlots,
+  onToggle,
+  directOnly,
+  onDirectChange,
+  directCount,
+  totalCount,
+}: {
+  selectedSlots: string[];
+  onToggle: (id: string) => void;
+  directOnly: boolean;
+  onDirectChange: (checked: boolean) => void;
+  directCount: number;
+  totalCount: number;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 mb-4">
+      {/* Direct Only Toggle */}
+      <button
+        onClick={() => onDirectChange(!directOnly)}
+        className={`
+          flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-all
+          ${directOnly 
+            ? 'bg-green-100 text-green-700 ring-2 ring-green-500 ring-offset-1' 
+            : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'
+          }
+        `}
+      >
+        {directOnly && <Check className="w-4 h-4" />}
+        <Zap className="w-4 h-4" />
+        <span>Sadece Direkt</span>
+        <span className="text-xs opacity-70">({directCount})</span>
+      </button>
+      
+      <div className="h-6 w-px bg-slate-200 mx-1" />
+      
+      {/* Time Slots */}
+      {TIME_SLOTS.map(slot => (
+        <button
+          key={slot.id}
+          onClick={() => onToggle(slot.id)}
+          className={`
+            flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-all
+            ${selectedSlots.includes(slot.id)
+              ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-500 ring-offset-1'
+              : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'
+            }
+          `}
+        >
+          <span>{slot.icon}</span>
+          <span className="hidden sm:inline">{slot.label}</span>
+          <span className="sm:hidden text-xs">{slot.range.split('-')[0]}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// Journey Card - Trainline inspired
+function JourneyCard({
+  journey,
+  variants,
+  isSelected,
+  isCheapest,
+  isFastest,
+  onSelect,
+}: {
+  journey: Journey;
+  variants: Journey[];
+  isSelected: boolean;
+  isCheapest: boolean;
+  isFastest: boolean;
+  onSelect: (journey: Journey) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const carrierStyle = getCarrierStyle(journey.operator);
+  const cheapestVariant = variants.reduce((min, v) => v.price.amount < min.price.amount ? v : min, variants[0]);
+  const isDirect = !journey.segments || journey.segments.length <= 1;
+  
+  const sortedVariants = [...variants].sort((a, b) => {
+    const order = { standard: 0, comfort: 1, premier: 2 };
+    return (order[a.comfortCategory as keyof typeof order] || 0) - (order[b.comfortCategory as keyof typeof order] || 0);
+  });
+
+  return (
+    <div className={`
+      bg-white rounded-2xl border-2 transition-all duration-200 overflow-hidden
+      ${isSelected 
+        ? 'border-green-500 ring-4 ring-green-100' 
+        : isCheapest || isFastest
+          ? 'border-blue-200 hover:border-blue-400'
+          : 'border-slate-200 hover:border-slate-300'
+      }
+    `}>
+      {/* Badges */}
+      {(isCheapest || isFastest) && (
+        <div className="flex gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100">
+          {isCheapest && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-500 text-white text-xs font-bold rounded-full">
+              <TrendingDown className="w-3 h-3" />
+              En Ucuz
+            </span>
+          )}
+          {isFastest && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-500 text-white text-xs font-bold rounded-full">
+              <Zap className="w-3 h-3" />
+              En Hızlı
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Main Row */}
+      <div className="p-4">
+        <div className="flex items-center gap-4">
+          {/* Carrier */}
+          <div className="flex flex-col items-center gap-1 min-w-[60px]">
+            <span className={`px-2 py-1 rounded-lg text-xs font-bold ${carrierStyle.bg} ${carrierStyle.text}`}>
+              {carrierStyle.name}
+            </span>
+            <span className="text-[10px] text-slate-400">{journey.trainNumber}</span>
+          </div>
+
+          {/* Timeline */}
+          <div className="flex-1 flex items-center gap-3">
+            {/* Departure */}
+            <div className="text-center">
+              <div className="text-xl font-bold text-slate-900">{formatTime(journey.departure)}</div>
+              <div className="text-xs text-slate-500 truncate max-w-[80px]">{journey.origin.city}</div>
+            </div>
+
+            {/* Duration Line */}
+            <div className="flex-1 flex flex-col items-center min-w-[100px]">
+              <div className="w-full flex items-center">
+                <div className="w-2 h-2 rounded-full bg-blue-500" />
+                <div className="flex-1 h-[2px] bg-gradient-to-r from-blue-500 via-blue-300 to-blue-500 relative">
+                  {!isDirect && (
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-amber-400 rounded-full border-2 border-white" />
+                  )}
+                </div>
+                <div className="w-2 h-2 rounded-full bg-blue-500" />
+              </div>
+              <span className="text-xs text-slate-500 mt-1">{formatDuration(journey.durationMinutes)}</span>
+              <span className={`text-[10px] font-medium ${isDirect ? 'text-green-600' : 'text-amber-600'}`}>
+                {isDirect ? 'Direkt' : `${(journey.segments?.length || 1) - 1} Aktarma`}
+              </span>
+            </div>
+
+            {/* Arrival */}
+            <div className="text-center">
+              <div className="text-xl font-bold text-slate-900">{formatTime(journey.arrival)}</div>
+              <div className="text-xs text-slate-500 truncate max-w-[80px]">{journey.destination.city}</div>
+            </div>
+          </div>
+
+          {/* Price & Action */}
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <div className="text-xs text-slate-500">kişi başı</div>
+              <div className="text-xl font-bold text-green-600">
+                {formatPrice(cheapestVariant.price.amount, cheapestVariant.price.currency)}
+              </div>
+            </div>
+            
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className={`
+                p-3 rounded-xl transition-all
+                ${expanded ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}
+              `}
+            >
+              <ChevronDown className={`w-5 h-5 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Expanded: Class Selection (Trainline style) */}
+      {expanded && (
+        <div className="border-t border-slate-100 bg-slate-50 p-4">
+          <h4 className="text-sm font-semibold text-slate-700 mb-3">Bilet Sınıfı Seçin</h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {sortedJourneys.map((journey) => (
-              <ClassCard
-                key={journey.id}
-                journey={journey}
-                isSelected={selectedClass === journey.id}
-                isPopular={journey.comfortCategory === 'comfort'}
-                onSelect={() => setSelectedClass(selectedClass === journey.id ? null : journey.id)}
-                onBook={() => onSelect(journey)}
-              />
-            ))}
+            {sortedVariants.map((variant) => {
+              const config = CLASS_CONFIG[variant.comfortCategory as keyof typeof CLASS_CONFIG] || CLASS_CONFIG.standard;
+              const isPopular = variant.comfortCategory === 'comfort';
+              
+              return (
+                <button
+                  key={variant.id}
+                  onClick={() => onSelect(variant)}
+                  className={`
+                    relative p-4 rounded-xl border-2 text-left transition-all hover:shadow-md
+                    ${isPopular 
+                      ? `border-amber-300 bg-amber-50 hover:border-amber-400` 
+                      : `border-slate-200 bg-white hover:border-blue-400`
+                    }
+                  `}
+                >
+                  {isPopular && (
+                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-amber-500 text-white text-[10px] font-bold rounded-full">
+                      En Popüler
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-lg">{config.icon}</span>
+                    <span className="text-lg font-bold text-slate-900">
+                      {formatPrice(variant.price.amount, variant.price.currency)}
+                    </span>
+                  </div>
+                  
+                  <h5 className="font-semibold text-slate-800 mb-2">{config.label}</h5>
+                  
+                  <div className="space-y-1 mb-3">
+                    {config.features.slice(0, 3).map((feature, i) => (
+                      <div key={i} className="flex items-center gap-1.5 text-xs text-slate-600">
+                        <Check className="w-3 h-3 text-green-500" />
+                        {feature}
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="flex items-center gap-3 text-xs">
+                    {variant.isRefundable ? (
+                      <span className="text-green-600 flex items-center gap-1">
+                        <Check className="w-3 h-3" /> İade
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 flex items-center gap-1">
+                        <X className="w-3 h-3" /> İade Yok
+                      </span>
+                    )}
+                    {variant.isExchangeable ? (
+                      <span className="text-green-600 flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Değişim
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 flex items-center gap-1">
+                        <X className="w-3 h-3" /> Değişim Yok
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -727,24 +496,28 @@ function SearchContent() {
   const origin = searchParams.get('origin') || '';
   const destination = searchParams.get('destination') || '';
   const date = searchParams.get('date') || '';
+  const returnDate = searchParams.get('returnDate') || '';
+  const tripType = searchParams.get('tripType') || 'oneway';
+  const directOnlyParam = searchParams.get('directOnly') === 'true';
   const adults = parseInt(searchParams.get('adults') || '1');
   const children = parseInt(searchParams.get('children') || '0');
 
+  const isRoundTrip = tripType === 'roundtrip' && !!returnDate;
+
   // State
-  const [searchResponse, setSearchResponse] = useState<EraSearchResponse | null>(null);
-  const [journeys, setJourneys] = useState<Journey[]>([]);
+  const [outboundJourneys, setOutboundJourneys] = useState<Journey[]>([]);
+  const [returnJourneys, setReturnJourneys] = useState<Journey[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // UI State
-  const [expandedJourney, setExpandedJourney] = useState<string | null>(null);
-  const [selectedTimeFilters, setSelectedTimeFilters] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<'departure' | 'price' | 'duration'>('departure');
-  
-  // Advanced Filters State
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const [departureRange, setDepartureRange] = useState({ min: 0, max: 1440 });
-  const [arrivalRange, setArrivalRange] = useState({ min: 0, max: 1440 });
+  // Round-trip flow state
+  const [phase, setPhase] = useState<TripPhase>('outbound');
+  const [selectedJourneys, setSelectedJourneys] = useState<SelectedJourneys>({ outbound: null, return: null });
+
+  // Filter state
+  const [selectedTimeSlots, setSelectedTimeSlots] = useState<string[]>([]);
+  const [directOnly, setDirectOnly] = useState(directOnlyParam);
+  const [sortBy, setSortBy] = useState<SortOption>('departure');
 
   // Fetch journeys
   useEffect(() => {
@@ -759,18 +532,27 @@ function SearchContent() {
       setError(null);
 
       try {
-        const response = await searchJourneys({
+        // Fetch outbound
+        const outboundRes = await searchJourneys({
           origin,
           destination,
           departureDate: date,
           adults,
           children,
         });
+        setOutboundJourneys(toJourneyArray(outboundRes));
 
-        setSearchResponse(response);
-        const journeyList = toJourneyArray(response);
-        setJourneys(journeyList);
-        
+        // Fetch return if round-trip
+        if (isRoundTrip && returnDate) {
+          const returnRes = await searchJourneys({
+            origin: destination,
+            destination: origin,
+            departureDate: returnDate,
+            adults,
+            children,
+          });
+          setReturnJourneys(toJourneyArray(returnRes));
+        }
       } catch (err) {
         console.error('Search error:', err);
         setError('Seferler yüklenirken bir hata oluştu');
@@ -780,276 +562,249 @@ function SearchContent() {
     };
 
     fetchJourneys();
-  }, [origin, destination, date, adults, children]);
+  }, [origin, destination, date, returnDate, adults, children, isRoundTrip]);
 
-  // Filter and sort journeys
-  const filteredAndSortedGroups = useMemo(() => {
-    let filtered = [...journeys];
+  // Current journeys based on phase
+  const currentJourneys = phase === 'outbound' ? outboundJourneys : returnJourneys;
 
-    // Quick Time filter (buttons)
-    if (selectedTimeFilters.length > 0) {
+  // Direct count
+  const directCount = useMemo(() => 
+    currentJourneys.filter(j => !j.segments || j.segments.length <= 1).length,
+  [currentJourneys]);
+
+  // Find cheapest and fastest
+  const { cheapestId, fastestId } = useMemo(() => {
+    if (currentJourneys.length === 0) return { cheapestId: '', fastestId: '' };
+    
+    const standardJourneys = currentJourneys.filter(j => j.comfortCategory === 'standard');
+    if (standardJourneys.length === 0) return { cheapestId: '', fastestId: '' };
+    
+    const cheapest = standardJourneys.reduce((min, j) => j.price.amount < min.price.amount ? j : min, standardJourneys[0]);
+    const fastest = standardJourneys.reduce((min, j) => j.durationMinutes < min.durationMinutes ? j : min, standardJourneys[0]);
+    
+    return { cheapestId: cheapest.id, fastestId: fastest.id };
+  }, [currentJourneys]);
+
+  // Filter and sort
+  const filteredGroups = useMemo(() => {
+    let filtered = [...currentJourneys];
+
+    // Direct only
+    if (directOnly) {
+      filtered = filtered.filter(j => !j.segments || j.segments.length <= 1);
+    }
+
+    // Time slots
+    if (selectedTimeSlots.length > 0) {
       filtered = filtered.filter(j => {
         const hour = getHourFromDate(j.departure);
-        return selectedTimeFilters.some(filterId => {
-          const filter = TIME_FILTERS.find(f => f.id === filterId);
-          return filter && hour >= filter.start && hour < filter.end;
+        return selectedTimeSlots.some(slotId => {
+          const slot = TIME_SLOTS.find(s => s.id === slotId);
+          if (!slot) return false;
+          if (slot.start < slot.end) {
+            return hour >= slot.start && hour < slot.end;
+          } else {
+            return hour >= slot.start || hour < slot.end;
+          }
         });
       });
     }
 
-    // Advanced Time Range filter (sliders)
-    if (departureRange.min > 0 || departureRange.max < 1440) {
-      filtered = filtered.filter(j => {
-        const minutes = getMinutesFromMidnight(j.departure);
-        return minutes >= departureRange.min && minutes <= departureRange.max;
-      });
-    }
-
-    if (arrivalRange.min > 0 || arrivalRange.max < 1440) {
-      filtered = filtered.filter(j => {
-        const minutes = getMinutesFromMidnight(j.arrival);
-        return minutes >= arrivalRange.min && minutes <= arrivalRange.max;
-      });
-    }
-
-    // Group by solution
+    // Group and sort
     const grouped = groupJourneysBySolution(filtered);
-    
-    // Convert to array and sort
     const groupedArray = Array.from(grouped.entries());
-    
+
     groupedArray.sort((a, b) => {
-      const aJourneys = a[1];
-      const bJourneys = b[1];
-      const aCheapest = aJourneys.reduce((min, j) => j.price.amount < min.price.amount ? j : min, aJourneys[0]);
-      const bCheapest = bJourneys.reduce((min, j) => j.price.amount < min.price.amount ? j : min, bJourneys[0]);
+      const aCheapest = a[1].reduce((min, j) => j.price.amount < min.price.amount ? j : min, a[1][0]);
+      const bCheapest = b[1].reduce((min, j) => j.price.amount < min.price.amount ? j : min, b[1][0]);
 
       switch (sortBy) {
-        case 'price':
-          return aCheapest.price.amount - bCheapest.price.amount;
-        case 'duration':
-          return aCheapest.durationMinutes - bCheapest.durationMinutes;
-        case 'departure':
-        default:
-          return new Date(aCheapest.departure).getTime() - new Date(bCheapest.departure).getTime();
+        case 'price': return aCheapest.price.amount - bCheapest.price.amount;
+        case 'duration': return aCheapest.durationMinutes - bCheapest.durationMinutes;
+        default: return new Date(aCheapest.departure).getTime() - new Date(bCheapest.departure).getTime();
       }
     });
 
     return groupedArray;
-  }, [journeys, selectedTimeFilters, sortBy, departureRange, arrivalRange]);
+  }, [currentJourneys, directOnly, selectedTimeSlots, sortBy]);
 
-  // Toggle time filter
-  const toggleTimeFilter = (filterId: string) => {
-    setSelectedTimeFilters(prev => 
-      prev.includes(filterId) 
-        ? prev.filter(id => id !== filterId)
-        : [...prev, filterId]
+  // Toggle time slot
+  const toggleTimeSlot = useCallback((slotId: string) => {
+    setSelectedTimeSlots(prev => 
+      prev.includes(slotId) ? prev.filter(id => id !== slotId) : [...prev, slotId]
     );
-  };
-
-  // Reset advanced filters
-  const resetAdvancedFilters = useCallback(() => {
-    setDepartureRange({ min: 0, max: 1440 });
-    setArrivalRange({ min: 0, max: 1440 });
   }, []);
 
   // Handle journey selection
-  const handleSelectJourney = (journey: Journey) => {
-    sessionStorage.setItem('selectedJourney', JSON.stringify(journey));
-    sessionStorage.setItem('searchResponse', JSON.stringify(searchResponse));
-    sessionStorage.setItem('passengers', JSON.stringify({ adults, children }));
-    router.push('/booking');
-  };
-
-  // Format date display
-  const formatDateDisplay = (dateStr: string) => {
-    try {
-      return new Date(dateStr).toLocaleDateString('tr-TR', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-        weekday: 'long'
-      });
-    } catch {
-      return dateStr;
+  const handleSelectJourney = useCallback((journey: Journey) => {
+    if (isRoundTrip) {
+      if (phase === 'outbound') {
+        setSelectedJourneys(prev => ({ ...prev, outbound: journey }));
+        setPhase('return');
+        setSelectedTimeSlots([]);
+      } else {
+        // Both selected - go to booking
+        const outbound = selectedJourneys.outbound!;
+        sessionStorage.setItem('selectedOutbound', JSON.stringify(outbound));
+        sessionStorage.setItem('selectedReturn', JSON.stringify(journey));
+        sessionStorage.setItem('passengers', JSON.stringify({ adults, children }));
+        sessionStorage.setItem('tripType', 'roundtrip');
+        router.push('/booking');
+      }
+    } else {
+      sessionStorage.setItem('selectedJourney', JSON.stringify(journey));
+      sessionStorage.setItem('passengers', JSON.stringify({ adults, children }));
+      sessionStorage.setItem('tripType', 'oneway');
+      router.push('/booking');
     }
-  };
+  }, [isRoundTrip, phase, selectedJourneys.outbound, adults, children, router]);
 
-  // Origin/destination names
-  const originName = searchResponse?.legs?.[0]?.origin?.label || origin;
-  const destinationName = searchResponse?.legs?.[0]?.destination?.label || destination;
+  // Edit outbound selection
+  const handleEditOutbound = useCallback(() => {
+    setPhase('outbound');
+    setSelectedJourneys(prev => ({ ...prev, outbound: null }));
+  }, []);
 
-  // Check if any advanced filter is active
-  const hasAdvancedFilters = departureRange.min > 0 || departureRange.max < 1440 || arrivalRange.min > 0 || arrivalRange.max < 1440;
+  // Clear filters
+  const clearFilters = useCallback(() => {
+    setSelectedTimeSlots([]);
+    setDirectOnly(false);
+  }, []);
+
+  // Route display names
+  const originName = outboundJourneys[0]?.origin?.city || origin;
+  const destinationName = outboundJourneys[0]?.destination?.city || destination;
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+    <main className="min-h-screen bg-gradient-to-b from-slate-100 to-white">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14 sm:h-16">
-            <Link href="/" className="flex items-center gap-2 sm:gap-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
-                <Train className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="flex items-center justify-between h-14">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+                <Train className="w-4 h-4 text-white" />
               </div>
-              <span className="text-lg sm:text-xl font-bold text-slate-900">EuroTrain</span>
+              <span className="font-bold text-slate-900">EuroTrain</span>
             </Link>
-            
-            <Link
-              href="/"
-              className="flex items-center gap-1 sm:gap-2 text-slate-600 hover:text-blue-600 transition-colors text-sm sm:text-base"
-            >
+            <Link href="/" className="text-sm text-slate-600 hover:text-blue-600 flex items-center gap-1">
               <ArrowLeft className="w-4 h-4" />
-              <span>Yeni Arama</span>
+              Yeni Arama
             </Link>
           </div>
         </div>
       </header>
 
+      {/* Progress Steps */}
+      <ProgressSteps 
+        phase={phase} 
+        isRoundTrip={isRoundTrip} 
+        outboundSelected={!!selectedJourneys.outbound}
+      />
+
       {/* Route Summary */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 sm:py-6">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-blue-200" />
-              <span className="font-semibold text-sm sm:text-base">{originName}</span>
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <MapPin className="w-5 h-5 text-blue-200" />
+              <span className="font-semibold">{phase === 'outbound' ? originName : destinationName}</span>
               <ArrowRight className="w-4 h-4 text-blue-200" />
-              <span className="font-semibold text-sm sm:text-base">{destinationName}</span>
+              <span className="font-semibold">{phase === 'outbound' ? destinationName : originName}</span>
             </div>
-            <div className="flex items-center gap-3 sm:gap-4 text-blue-100 text-xs sm:text-sm">
-              <div className="flex items-center gap-1 bg-white/10 px-2 sm:px-3 py-1 rounded-full">
-                <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span>{formatDateDisplay(date)}</span>
+            <div className="flex items-center gap-3 text-sm text-blue-100">
+              <div className="flex items-center gap-1 bg-white/10 px-3 py-1 rounded-full">
+                <Calendar className="w-4 h-4" />
+                {formatDateShort(phase === 'outbound' ? date : returnDate)}
               </div>
-              <div className="flex items-center gap-1 bg-white/10 px-2 sm:px-3 py-1 rounded-full">
-                <Users className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span>{adults + children} Yolcu</span>
+              <div className="flex items-center gap-1 bg-white/10 px-3 py-1 rounded-full">
+                <Users className="w-4 h-4" />
+                {adults + children} Yolcu
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-        {/* Filters */}
-        <div className="mb-4 sm:mb-6">
-          {/* Quick Time Filters + Advanced Toggle */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-xs sm:text-sm text-slate-600">Kalkış:</div>
-              <button
-                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                className={`
-                  flex items-center gap-1.5 text-xs sm:text-sm px-3 py-1.5 rounded-lg transition-all
-                  ${showAdvancedFilters || hasAdvancedFilters
-                    ? 'bg-blue-100 text-blue-700 font-medium'
-                    : 'text-slate-600 hover:bg-slate-100'
-                  }
-                `}
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-                <span>Detaylı Filtre</span>
-                {hasAdvancedFilters && (
-                  <span className="w-2 h-2 bg-blue-600 rounded-full" />
-                )}
-              </button>
-            </div>
-            <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
-              {TIME_FILTERS.map(filter => (
-                <button
-                  key={filter.id}
-                  onClick={() => toggleTimeFilter(filter.id)}
-                  className={`
-                    flex flex-col items-center justify-center p-2 sm:p-3 rounded-lg sm:rounded-xl border-2 transition-all
-                    ${selectedTimeFilters.includes(filter.id)
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                    }
-                  `}
-                >
-                  <span className="text-base sm:text-lg">{filter.icon}</span>
-                  <span className="text-[10px] sm:text-xs font-medium mt-0.5">{filter.shortLabel}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Advanced Filters Panel */}
-          <AdvancedFiltersPanel
-            isOpen={showAdvancedFilters}
-            onClose={() => setShowAdvancedFilters(false)}
-            departureRange={departureRange}
-            arrivalRange={arrivalRange}
-            onDepartureChange={(min, max) => setDepartureRange({ min, max })}
-            onArrivalChange={(min, max) => setArrivalRange({ min, max })}
-            onReset={resetAdvancedFilters}
+      <div className="max-w-5xl mx-auto px-4 py-6">
+        {/* Selected Outbound Summary (when on return phase) */}
+        {isRoundTrip && phase === 'return' && selectedJourneys.outbound && (
+          <SelectedJourneySummary
+            journey={selectedJourneys.outbound}
+            label="Gidiş"
+            onEdit={handleEditOutbound}
           />
+        )}
 
-          {/* Sort */}
-          <div className="flex items-center justify-between">
-            <div className="text-xs sm:text-sm text-slate-600">
-              {filteredAndSortedGroups.length} Sefer Bulundu
-            </div>
-            <div className="flex items-center gap-2">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="text-xs sm:text-sm border border-slate-200 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {SORT_OPTIONS.map(opt => (
-                  <option key={opt.id} value={opt.id}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
+        {/* Filters */}
+        <FilterPills
+          selectedSlots={selectedTimeSlots}
+          onToggle={toggleTimeSlot}
+          directOnly={directOnly}
+          onDirectChange={setDirectOnly}
+          directCount={directCount}
+          totalCount={currentJourneys.length}
+        />
+
+        {/* Sort & Count */}
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-sm text-slate-600">
+            <strong className="text-slate-900">{filteredGroups.length}</strong> sefer bulundu
+          </span>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortOption)}
+            className="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white"
+          >
+            <option value="departure">Kalkış Saati</option>
+            <option value="price">Fiyat (En Ucuz)</option>
+            <option value="duration">Süre (En Kısa)</option>
+          </select>
         </div>
 
         {/* Results */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
+            <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
             <p className="text-slate-600">Seferler aranıyor...</p>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
-            <p className="text-slate-800 font-medium mb-2">Bir hata oluştu</p>
-            <p className="text-slate-600 text-sm">{error}</p>
+            <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
+            <p className="text-slate-800 font-medium">{error}</p>
           </div>
-        ) : filteredAndSortedGroups.length === 0 ? (
+        ) : filteredGroups.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <Train className="w-12 h-12 text-slate-400 mb-4" />
+            <Train className="w-10 h-10 text-slate-300 mb-4" />
             <p className="text-slate-800 font-medium mb-2">Sefer bulunamadı</p>
-            <p className="text-slate-600 text-sm">Farklı tarih veya güzergah deneyin</p>
-            {(selectedTimeFilters.length > 0 || hasAdvancedFilters) && (
-              <button
-                onClick={() => {
-                  setSelectedTimeFilters([]);
-                  resetAdvancedFilters();
-                }}
-                className="mt-4 text-blue-600 hover:text-blue-700 text-sm flex items-center gap-1"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Filtreleri Temizle
-              </button>
-            )}
+            <p className="text-slate-500 text-sm mb-4">Filtreleri değiştirmeyi deneyin</p>
+            <button
+              onClick={clearFilters}
+              className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Filtreleri Temizle
+            </button>
           </div>
         ) : (
-          <div className="space-y-3 sm:space-y-4">
-            {/* Info text */}
-            <p className="text-xs sm:text-sm text-slate-500">
-              Fiyatlar kişi başı gösterilmektedir • Sınıf seçmek için sefere tıklayın
-            </p>
-            
-            {filteredAndSortedGroups.map(([key, groupJourneys]) => (
-              <JourneyCard
-                key={key}
-                journeys={groupJourneys}
-                isExpanded={expandedJourney === key}
-                onToggle={() => setExpandedJourney(expandedJourney === key ? null : key)}
-                onSelect={handleSelectJourney}
-              />
-            ))}
+          <div className="space-y-3">
+            {filteredGroups.map(([key, variants]) => {
+              const journey = variants[0];
+              const isCheapest = variants.some(v => v.id === cheapestId);
+              const isFastest = variants.some(v => v.id === fastestId);
+              
+              return (
+                <JourneyCard
+                  key={key}
+                  journey={journey}
+                  variants={variants}
+                  isSelected={false}
+                  isCheapest={isCheapest}
+                  isFastest={isFastest && !isCheapest}
+                  onSelect={handleSelectJourney}
+                />
+              );
+            })}
           </div>
         )}
       </div>
@@ -1064,11 +819,8 @@ function SearchContent() {
 export default function SearchPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
-          <p className="text-slate-600">Yükleniyor...</p>
-        </div>
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+        <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
       </div>
     }>
       <SearchContent />
