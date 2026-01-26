@@ -1,0 +1,65 @@
+﻿Folder PATH listing for volume Windows
+Volume serial number is 9C12-D20C
+C:\DEV\EUROTRAIN-B2C-APP\FRONTEND\APP
+ª   favicon.ico
+ª   globals.css
+ª   layout.tsx
+ª   page.tsx
+ª   page.tsx.backup
+ª   
++---admin
+ª   ª   layout.tsx
+ª   ª   page.tsx
+ª   ª   
+ª   +---bookings
+ª   ª       page.tsx
+ª   ª       
+ª   +---campaigns
+ª   ª   ª   page.tsx
+ª   ª   ª   
+ª   ª   +---new
+ª   ª   ª       page.tsx
+ª   ª   ª       
+ª   ª   +---[id]
+ª   ª           page.tsx
+ª   ª           
+ª   +---components
+ª   ª       DataTable.tsx
+ª   ª       Header.tsx
+ª   ª       index.ts
+ª   ª       Sidebar.tsx
+ª   ª       StatsCard.tsx
+ª   ª       
+ª   +---login
+ª   ª       page.tsx
+ª   ª       
+ª   +---settings
+ª           page.tsx
+ª           
++---booking
+ª   ª   page.tsx
+ª   ª   
+ª   +---checkout
+ª           page.tsx
+ª           
++---checkout
+ª   +---[session]
+ª           page.tsx
+ª           
++---my-trips
+ª       page.tsx
+ª       
++---payment
+ª   ª   page.tsx
+ª   ª   
+ª   +---error
+ª   ª       page.tsx
+ª   ª       
+ª   +---success
+ª           page.tsx
+ª           
++---search
+        page.backup.tsx
+        page.tsx
+        page.tsx.bak
+        

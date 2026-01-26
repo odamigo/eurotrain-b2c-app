@@ -1,0 +1,170 @@
+﻿Folder PATH listing for volume Windows
+Volume serial number is 9C12-D20C
+C:\DEV\EUROTRAIN-B2C-APP\BACKEND\SRC
+ª   app.controller.spec.ts
+ª   app.controller.ts
+ª   app.module.ts
+ª   app.service.ts
+ª   main.ts
+ª   
++---assets
+ª       logo.png
+ª       
++---booking
+ª   ª   booking.controller.ts
+ª   ª   booking.module.ts
+ª   ª   booking.service.ts
+ª   ª   
+ª   +---entities
+ª           booking.entity.ts
+ª           
++---bookings
+ª   ª   bookings.controller.spec.ts
+ª   ª   bookings.controller.ts
+ª   ª   bookings.module.ts
+ª   ª   bookings.service.spec.ts
+ª   ª   bookings.service.ts
+ª   ª   
+ª   +---dto
+ª   ª       create-booking.dto.ts
+ª   ª       update-booking.dto.ts
+ª   ª       
+ª   +---entities
+ª           booking.entity.ts
+ª           
++---campaigns
+ª   ª   campaigns.controller.spec.ts
+ª   ª   campaigns.controller.ts
+ª   ª   campaigns.module.ts
+ª   ª   campaigns.service.spec.ts
+ª   ª   campaigns.service.ts
+ª   ª   
+ª   +---dto
+ª   ª       create-campaign.dto.ts
+ª   ª       update-campaign.dto.ts
+ª   ª       
+ª   +---entities
+ª           campaign.entity.ts
+ª           
++---email
+ª       email.controller.ts
+ª       email.module.ts
+ª       email.service.ts
+ª       
++---era
+ª   ª   era.controller.ts
+ª   ª   era.module.ts
+ª   ª   
+ª   +---dto
+ª   ª       create-booking.dto.ts
+ª   ª       index.ts
+ª   ª       search-journeys.dto.ts
+ª   ª       update-travelers.dto.ts
+ª   ª       
+ª   +---entities
+ª   +---interfaces
+ª   ª       era-api.types.ts
+ª   ª       
+ª   +---mock
+ª   ª       era-mock.service.ts
+ª   ª       
+ª   +---services
+ª           era-auth.service.ts
+ª           era-booking.service.ts
+ª           era-places.service.ts
+ª           era-refund.service.ts
+ª           era-search.service.ts
+ª           
++---era-backup-20260124-212353
+ª   ª   era-mock.service.ts
+ª   ª   era.controller.ts
+ª   ª   era.module.ts
+ª   ª   
+ª   +---dto
+ª   ª       create-booking.dto.ts
+ª   ª       search-journey.dto.ts
+ª   ª       
+ª   +---entities
+ª           booking.entity.ts
+ª           journey.entity.ts
+ª           station.entity.ts
+ª           
++---mcp
+ª   ª   mcp-booking.controller.ts
+ª   ª   mcp-booking.module.ts
+ª   ª   mcp.controller.ts
+ª   ª   mcp.module.ts
+ª   ª   
+ª   +---docs
+ª   ª       MCP_ARCHITECTURE.md
+ª   ª       STRATEGIC_ROADMAP.md
+ª   ª       WHERE_WE_LEFT.md
+ª   ª       
+ª   +---dto
+ª   ª       mcp.dto.ts
+ª   ª       
+ª   +---services
+ª           checkout.service.ts
+ª           offer-cache.service.ts
+ª           session-cache.service.ts
+ª           
++---my-trips
+ª       my-trips.controller.ts
+ª       my-trips.module.ts
+ª       my-trips.service.ts
+ª       
++---payment
+ª   ª   msu.config.ts
+ª   ª   msu.service.ts
+ª   ª   payment.controller.ts
+ª   ª   payment.module.ts
+ª   ª   payment.service.ts
+ª   ª   
+ª   +---dto
+ª   ª       payment.dto.ts
+ª   ª       
+ª   +---entities
+ª           payment.entity.ts
+ª           
++---pdf
+ª       index.ts
+ª       pdf.controller.ts
+ª       pdf.module.ts
+ª       pdf.service.ts
+ª       qr.service.ts
+ª       
++---pricing
+ª       pricing.controller.spec.ts
+ª       pricing.controller.ts
+ª       pricing.module.ts
+ª       pricing.service.spec.ts
+ª       pricing.service.ts
+ª       
++---security
+ª   ª   auth.controller.ts
+ª   ª   auth.module.ts
+ª   ª   auth.service.ts
+ª   ª   global-exception.filter.ts
+ª   ª   health.controller.ts
+ª   ª   index.ts
+ª   ª   jwt-auth.guard.ts
+ª   ª   jwt.strategy.ts
+ª   ª   logger.service.ts
+ª   ª   logs.controller.ts
+ª   ª   security.module.ts
+ª   ª   
+ª   +---entities
+ª           admin-user.entity.ts
+ª           
++---settings
+ª       settings.controller.ts
+ª       settings.entity.ts
+ª       settings.module.ts
+ª       settings.service.ts
+ª       
++---stations
+ª   +---dto
++---trains
+        trains.controller.spec.ts
+        trains.controller.ts
+        
