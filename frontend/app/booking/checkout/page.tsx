@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -226,7 +226,6 @@ function TravelerCard({
                 maxLength={15}
                 className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <p className="text-xs text-slate-400 mt-1">Kimliğinizdeki ad ile aynı olmalıdır</p>
             </div>
 
             {/* Soyad */}
@@ -239,12 +238,12 @@ function TravelerCard({
                 value={traveler.lastName}
                 onChange={(e) => onChange('lastName', e.target.value)}
                 placeholder="Soyadınız"
-                maxLength={35}
+                maxLength={20}
                 className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
-            {/* Email - sadece ana yolcu için zorunlu */}
+            {/* Email - sadece lead traveler için */}
             {isLeadTraveler && (
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -260,11 +259,10 @@ function TravelerCard({
                     className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-                <p className="text-xs text-slate-400 mt-1">E-biletiniz bu adrese gönderilecek</p>
               </div>
             )}
 
-            {/* Telefon - sadece ana yolcu için zorunlu */}
+            {/* Telefon - sadece lead traveler için */}
             {isLeadTraveler && (
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -283,11 +281,11 @@ function TravelerCard({
               </div>
             )}
 
-            {/* Doğum Tarihi - çocuklar için zorunlu, yetişkinler için bazı rotalar */}
-            {(traveler.type === 'child' || requiresPassport) && (
-              <div>
+            {/* Doğum Tarihi - çocuklar için zorunlu */}
+            {traveler.type === 'child' && (
+              <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Doğum Tarihi {traveler.type === 'child' && <span className="text-red-500">*</span>}
+                  Doğum Tarihi <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -301,32 +299,32 @@ function TravelerCard({
               </div>
             )}
 
-            {/* Passport Fields - for international routes */}
+            {/* Passport fields - for international routes */}
             {requiresPassport && (
               <>
-                <div className="sm:col-span-2 pt-3 border-t border-slate-200 mt-2">
-                  <div className="flex items-center gap-2 text-amber-700 mb-3">
+                <div className="sm:col-span-2 mt-4 pt-4 border-t border-slate-200">
+                  <div className="flex items-center gap-2 text-amber-600 mb-4">
                     <Globe className="w-5 h-5" />
-                    <span className="font-medium">Uluslararası Seyahat - Kimlik Bilgileri</span>
+                    <span className="font-medium">Sınır Geçişi için Gerekli Bilgiler</span>
                   </div>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Pasaport / Kimlik No <span className="text-red-500">*</span>
+                    Pasaport/Kimlik No <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={traveler.passportNumber || ''}
                     onChange={(e) => onChange('passportNumber', e.target.value)}
-                    placeholder="Belge numarası"
+                    placeholder="Pasaport veya kimlik numarası"
                     className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Son Geçerlilik Tarihi <span className="text-red-500">*</span>
+                    Geçerlilik Tarihi <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="date"
@@ -338,14 +336,13 @@ function TravelerCard({
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Belgeyi Veren Ülke <span className="text-red-500">*</span>
+                    Ülke <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={traveler.passportCountry || ''}
-                    onChange={(e) => onChange('passportCountry', e.target.value.toUpperCase())}
-                    placeholder="TR, GB, FR, DE..."
-                    maxLength={2}
+                    onChange={(e) => onChange('passportCountry', e.target.value)}
+                    placeholder="Türkiye"
                     className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -359,90 +356,15 @@ function TravelerCard({
 }
 
 // ============================================================
-// PRICE BREAKDOWN COMPONENT - Normal akışla aynı
-// ============================================================
-
-function PriceBreakdown({ 
-  basePrice,
-  passengerCount,
-  promoDiscount = 0,
-  currency = 'EUR'
-}: { 
-  basePrice: number;
-  passengerCount: number;
-  promoDiscount?: number;
-  currency?: string;
-}) {
-  const ticketPrice = basePrice * passengerCount;
-  const serviceFee = Math.round(ticketPrice * SERVICE_FEE_PERCENT * 100) / 100;
-  const totalBeforeDiscount = ticketPrice + serviceFee;
-  const finalTotal = totalBeforeDiscount - promoDiscount;
-
-  return (
-    <div className="space-y-3">
-      {/* Bilet Ücreti */}
-      <div className="flex justify-between items-center">
-        <div className="text-slate-600">
-          Bilet Ücreti ({passengerCount} kişi)
-        </div>
-        <div className="font-medium text-slate-800">
-          {formatPrice(ticketPrice, currency)}
-        </div>
-      </div>
-
-      {/* Hizmet Bedeli */}
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-1.5 text-slate-600">
-          <span>Hizmet Bedeli</span>
-          <div className="group relative">
-            <Info className="w-4 h-4 text-slate-400 cursor-help" />
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-              Platform ve müşteri hizmetleri bedeli (%5)
-            </div>
-          </div>
-        </div>
-        <div className="font-medium text-slate-800">
-          {formatPrice(serviceFee, currency)}
-        </div>
-      </div>
-
-      {/* İndirim */}
-      {promoDiscount > 0 && (
-        <div className="flex justify-between items-center text-green-600">
-          <div>İndirim</div>
-          <div className="font-medium">-{formatPrice(promoDiscount, currency)}</div>
-        </div>
-      )}
-
-      {/* Ayırıcı */}
-      <div className="border-t border-slate-200 pt-3" />
-
-      {/* Toplam */}
-      <div className="flex justify-between items-center">
-        <div className="text-lg font-semibold text-slate-800">Toplam</div>
-        <div className="text-xl font-bold text-slate-900">
-          {formatPrice(finalTotal, currency)}
-        </div>
-      </div>
-
-      {/* Vergi notu */}
-      <div className="text-xs text-slate-500 text-right">
-        Tüm vergiler dahil
-      </div>
-    </div>
-  );
-}
-
-// ============================================================
 // TICKET CONDITIONS COMPONENT
 // ============================================================
 
-function TicketConditions({ 
+function TicketConditions({
   comfortClass,
   operator,
   isRefundable,
-  isExchangeable 
-}: { 
+  isExchangeable,
+}: {
   comfortClass: string;
   operator: string;
   isRefundable: boolean;
@@ -539,6 +461,79 @@ function TicketConditions({
 }
 
 // ============================================================
+// PRICE BREAKDOWN COMPONENT
+// ============================================================
+
+function PriceBreakdown({ 
+  basePrice, 
+  passengerCount,
+  promoDiscount = 0
+}: { 
+  basePrice: number;
+  passengerCount: number;
+  promoDiscount?: number;
+}) {
+  const ticketPrice = basePrice * passengerCount;
+  const serviceFee = Math.round(ticketPrice * SERVICE_FEE_PERCENT * 100) / 100;
+  const totalBeforeDiscount = ticketPrice + serviceFee;
+  const finalTotal = totalBeforeDiscount - promoDiscount;
+
+  return (
+    <div className="space-y-3">
+      {/* Bilet Ücreti */}
+      <div className="flex justify-between items-center">
+        <div className="text-slate-600">
+          Bilet Ücreti ({passengerCount} kişi)
+        </div>
+        <div className="font-medium text-slate-800">
+          {formatPrice(ticketPrice)}
+        </div>
+      </div>
+
+      {/* Hizmet Bedeli */}
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-1.5 text-slate-600">
+          <span>Hizmet Bedeli</span>
+          <div className="group relative">
+            <Info className="w-4 h-4 text-slate-400 cursor-help" />
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              Platform ve müşteri hizmetleri bedeli
+            </div>
+          </div>
+        </div>
+        <div className="font-medium text-slate-800">
+          {formatPrice(serviceFee)}
+        </div>
+      </div>
+
+      {/* İndirim */}
+      {promoDiscount > 0 && (
+        <div className="flex justify-between items-center text-green-600">
+          <div>İndirim</div>
+          <div className="font-medium">-{formatPrice(promoDiscount)}</div>
+        </div>
+      )}
+
+      {/* Ayırıcı */}
+      <div className="border-t border-slate-200 pt-3" />
+
+      {/* Toplam */}
+      <div className="flex justify-between items-center">
+        <div className="text-lg font-semibold text-slate-800">Toplam</div>
+        <div className="text-xl font-bold text-slate-900">
+          {formatPrice(finalTotal)}
+        </div>
+      </div>
+
+      {/* Vergi notu */}
+      <div className="text-xs text-slate-500 text-right">
+        Tüm vergiler dahil
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // TERMS CHECKBOX COMPONENT
 // ============================================================
 
@@ -551,8 +546,8 @@ function TermsCheckbox({
   onChange: (checked: boolean) => void;
   comfortClass: string;
 }) {
-  const comfortConfig = COMFORT_CONFIG[comfortClass] || COMFORT_CONFIG.standard;
   const isRefundable = comfortClass === 'comfort' || comfortClass === 'premier';
+  const isExchangeable = true;
 
   return (
     <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
@@ -568,17 +563,33 @@ function TermsCheckbox({
             `}
             onClick={() => onChange(!checked)}
           >
-            {checked && <Check className="w-3 h-3 text-white" />}
+            {checked && <Check className="w-3.5 h-3.5 text-white" />}
           </div>
         </div>
-        <div className="text-sm text-slate-600">
-          <span className="font-medium text-slate-800">{comfortConfig.labelTr}</span> sınıfı bilet koşullarını,{' '}
-          <a href="/terms" target="_blank" className="text-blue-600 hover:underline">Genel Satış Koşulları</a>'nı,{' '}
-          <a href="/privacy" target="_blank" className="text-blue-600 hover:underline">Gizlilik Politikası</a>'nı ve{' '}
-          {!isRefundable && (
-            <span className="text-red-600 font-medium">bu biletin iade edilemez olduğunu </span>
-          )}
-          okudum ve kabul ediyorum.
+        <div className="flex-1" onClick={() => onChange(!checked)}>
+          <div className="text-sm text-slate-700">
+            <Link href="/terms" className="text-blue-600 hover:underline font-medium" target="_blank" onClick={(e) => e.stopPropagation()}>
+              Satış Koşulları
+            </Link>
+            {', '}
+            <Link href="/privacy" className="text-blue-600 hover:underline font-medium" target="_blank" onClick={(e) => e.stopPropagation()}>
+              Gizlilik Politikası
+            </Link>
+            {' ve '}
+            <Link href="/cancellation" className="text-blue-600 hover:underline font-medium" target="_blank" onClick={(e) => e.stopPropagation()}>
+              İptal/İade Koşulları
+            </Link>
+            'nı okudum ve kabul ediyorum.
+          </div>
+          <div className="text-xs text-slate-500 mt-1.5">
+            {isRefundable 
+              ? '✓ Bu bilet iade edilebilir' 
+              : '⚠ Bu bilet iade edilemez'}
+            {' • '}
+            {isExchangeable 
+              ? '✓ Değişiklik yapılabilir' 
+              : '⚠ Değişiklik yapılamaz'}
+          </div>
         </div>
       </label>
     </div>
@@ -589,13 +600,13 @@ function TermsCheckbox({
 // PRICE UPDATE MODAL
 // ============================================================
 
-function PriceUpdateModal({ 
-  priceVerification, 
+function PriceUpdateModal({
+  priceVerification,
   passengerCount,
-  onAccept, 
+  onAccept,
   onReject,
-  onSearchAlternatives 
-}: { 
+  onSearchAlternatives,
+}: {
   priceVerification: PriceVerification;
   passengerCount: number;
   onAccept: () => void;
@@ -766,10 +777,28 @@ function PriceUpdateModal({
 }
 
 // ============================================================
-// MAIN CHECKOUT PAGE
+// LOADING COMPONENT
 // ============================================================
 
-export default function McpCheckoutPage() {
+function CheckoutLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+        </div>
+        <h1 className="text-xl font-semibold text-slate-800 mb-2">Yükleniyor...</h1>
+        <p className="text-slate-500">Rezervasyon bilgileri alınıyor</p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// MAIN CHECKOUT CONTENT (useSearchParams kullanıyor)
+// ============================================================
+
+function McpCheckoutContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get('token');
@@ -900,10 +929,9 @@ export default function McpCheckoutPage() {
     if (remainingTime <= 0) return;
 
     const interval = setInterval(() => {
-      setRemainingTime((prev) => {
+      setRemainingTime(prev => {
         if (prev <= 1) {
           clearInterval(interval);
-          setError('Rezervasyon süresi doldu. Lütfen yeni bir rezervasyon oluşturun.');
           return 0;
         }
         return prev - 1;
@@ -913,34 +941,34 @@ export default function McpCheckoutPage() {
     return () => clearInterval(interval);
   }, [remainingTime]);
 
-  const formatTime = (seconds: number) => {
+  // Format time for display
+  const formatTimeDisplay = useCallback((seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }, []);
 
   // Validation
-  const isTravelerValid = (traveler: TravelerForm, isLeadTraveler: boolean): boolean => {
-    if (!traveler.firstName || !traveler.lastName || !traveler.title) return false;
+  const isTravelerValid = useCallback((traveler: TravelerForm, isLeadTraveler: boolean): boolean => {
+    if (!traveler.firstName || !traveler.lastName) return false;
     if (isLeadTraveler && (!traveler.email || !traveler.phone)) return false;
     if (traveler.type === 'child' && !traveler.dateOfBirth) return false;
     if (requiresPassport && (!traveler.passportNumber || !traveler.passportExpiry || !traveler.passportCountry)) return false;
     return true;
-  };
+  }, [requiresPassport]);
 
   const allTravelersValid = travelers.every((t, i) => isTravelerValid(t, i === 0 && t.type === 'adult'));
 
   // Handlers
-  const handleTravelerChange = (index: number, field: keyof TravelerForm, value: string) => {
+  const handleTravelerChange = useCallback((index: number, field: keyof TravelerForm, value: string) => {
     setTravelers(prev => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
       return updated;
     });
-  };
+  }, []);
 
-  const handleApplyPromo = async () => {
-    // Mock promo code logic - connect to real campaign service
+  const handleApplyPromo = useCallback(() => {
     if (promoCode.toUpperCase() === 'EUROTRAIN10') {
       setPromoDiscount(10);
     } else if (promoCode.toUpperCase() === 'WELCOME20') {
@@ -949,7 +977,7 @@ export default function McpCheckoutPage() {
       setPromoDiscount(0);
       alert('Geçersiz kampanya kodu');
     }
-  };
+  }, [promoCode]);
 
   const handleAcceptPrice = useCallback(() => {
     if (priceVerification?.currentPrice) {
@@ -963,113 +991,123 @@ export default function McpCheckoutPage() {
   }, [router]);
 
   const handleSearchAlternatives = useCallback(() => {
-    router.push('/search');
-  }, [router]);
+    // Redirect to search with same route
+    if (booking) {
+      router.push(`/search?from=${encodeURIComponent(booking.fromStation)}&to=${encodeURIComponent(booking.toStation)}&date=${booking.departureDate}`);
+    } else {
+      router.push('/');
+    }
+  }, [router, booking]);
 
-  // Calculate final price
-  const basePrice = acceptedPrice || Number(booking?.price) || 0;
-  const ticketPrice = basePrice * passengerCount;
-  const serviceFee = Math.round(ticketPrice * SERVICE_FEE_PERCENT * 100) / 100;
-  const totalBeforeDiscount = ticketPrice + serviceFee;
-  const finalTotal = totalBeforeDiscount - promoDiscount;
-
-  // Payment
-  const handlePayment = async () => {
-    if (!token || !termsAccepted || !allTravelersValid) return;
-
+  const handlePayment = useCallback(async () => {
+    if (!booking || !termsAccepted || !allTravelersValid) return;
+    
     setProcessingPayment(true);
     setError(null);
 
     try {
-      // Send traveler data with payment
-      const response = await fetch(`${API_URL}/mcp/booking/initiate-payment/${token}`, {
+      // Update travelers first
+      const travelersRes = await fetch(`${API_URL}/mcp/booking/${booking.id}/travelers`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ travelers }),
+      });
+
+      if (!travelersRes.ok) {
+        throw new Error('Yolcu bilgileri kaydedilemedi');
+      }
+
+      // Initiate payment
+      const paymentRes = await fetch(`${API_URL}/mcp/booking/${booking.id}/payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          acceptedPrice: finalTotal,
-          travelers: travelers.map(t => ({
-            title: t.title,
-            firstName: t.firstName,
-            lastName: t.lastName,
-            email: t.email,
-            phone: t.phone,
-            dateOfBirth: t.dateOfBirth,
-            type: t.type,
-            passportNumber: t.passportNumber,
-            passportExpiry: t.passportExpiry,
-            passportCountry: t.passportCountry,
-          })),
-          promoCode: promoDiscount > 0 ? promoCode : null,
+          returnUrl: `${window.location.origin}/payment/success`,
+          cancelUrl: `${window.location.origin}/payment/error`,
+          acceptedPrice: acceptedPrice,
         }),
       });
 
-      const data = await response.json();
+      const paymentData = await paymentRes.json();
 
-      if (data.success && data.redirectUrl) {
-        window.location.href = data.redirectUrl;
+      if (paymentData.redirectUrl) {
+        window.location.href = paymentData.redirectUrl;
       } else {
-        setError(data.message || 'Ödeme başlatılamadı.');
-        setProcessingPayment(false);
+        throw new Error('Ödeme başlatılamadı');
       }
-    } catch (err) {
-      setError('Ödeme işlemi başlatılamadı.');
+    } catch (err: any) {
+      setError(err.message || 'Bir hata oluştu');
       setProcessingPayment(false);
     }
-  };
+  }, [booking, termsAccepted, allTravelersValid, travelers, acceptedPrice]);
 
-  // Loading
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Rezervasyon bilgileri yükleniyor...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Error
-  if (error && !booking) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold mb-2">Rezervasyon Hatası</h1>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <button onClick={() => router.push('/')} className="bg-blue-600 text-white px-6 py-3 rounded-xl">
-            Ana Sayfaya Dön
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!booking) return null;
-
+  // Calculated values
+  const basePrice = acceptedPrice || priceVerification?.currentPrice || booking?.price || 0;
+  const ticketPrice = basePrice * passengerCount;
+  const serviceFee = Math.round(ticketPrice * SERVICE_FEE_PERCENT * 100) / 100;
+  const finalTotal = ticketPrice + serviceFee - promoDiscount;
   const isExpired = remainingTime <= 0;
-  const isUrgent = remainingTime > 0 && remainingTime < 300;
   const comfortConfig = COMFORT_CONFIG[comfortClass] || COMFORT_CONFIG.standard;
 
+  // Loading state
+  if (loading) {
+    return <CheckoutLoading />;
+  }
+
+  // Error state
+  if (error && !booking) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-red-500" />
+          </div>
+          <h1 className="text-xl font-bold text-slate-800 mb-2">Bir Sorun Oluştu</h1>
+          <p className="text-slate-600 mb-6">{error}</p>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
+          >
+            Ana Sayfaya Dön
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!booking) {
+    return <CheckoutLoading />;
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Train className="w-8 h-8 text-blue-600" />
-            <span className="text-xl font-bold text-slate-800">EuroTrain</span>
-          </Link>
-          
-          {/* Timer */}
-          {!isExpired && (
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-full ${
-              isUrgent ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
-            }`}>
-              <Timer className="w-5 h-5" />
-              <span className="font-mono font-bold">{formatTime(remainingTime)}</span>
-            </div>
-          )}
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center">
+                <Train className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xl font-bold text-slate-900">EuroTrain</span>
+            </Link>
+
+            {/* Timer */}
+            {!isExpired ? (
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-full ${
+                remainingTime < 300 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+              }`}>
+                <Timer className="w-4 h-4" />
+                <span className="font-mono font-semibold">{formatTimeDisplay(remainingTime)}</span>
+                <span className="text-sm">kaldı</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-red-100 text-red-700">
+                <XCircle className="w-4 h-4" />
+                <span className="font-semibold">Süre Doldu</span>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -1293,5 +1331,17 @@ export default function McpCheckoutPage() {
         />
       )}
     </div>
+  );
+}
+
+// ============================================================
+// MAIN PAGE EXPORT - Suspense ile sarılmış
+// ============================================================
+
+export default function McpCheckoutPage() {
+  return (
+    <Suspense fallback={<CheckoutLoading />}>
+      <McpCheckoutContent />
+    </Suspense>
   );
 }
