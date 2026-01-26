@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, Like } from 'typeorm';
+import { Repository, Between, Like, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
 import { Booking, BookingStatus } from './entities/booking.entity';
 
 export interface BookingSearchParams {
@@ -104,7 +104,6 @@ export class BookingService {
   }
 
   async getUpcomingBookings(email: string): Promise<Booking[]> {
-    const now = new Date().toISOString();
     return this.bookingRepository.find({
       where: {
         customerEmail: email,
@@ -115,12 +114,27 @@ export class BookingService {
   }
 
   async getPastBookings(email: string): Promise<Booking[]> {
-    const now = new Date().toISOString();
     return this.bookingRepository.find({
       where: {
         customerEmail: email,
       },
       order: { departureDate: 'DESC' },
+    });
+  }
+
+  /**
+   * Get today's bookings (for admin dashboard)
+   */
+  async getTodayBookings(): Promise<Booking[]> {
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+
+    return this.bookingRepository.find({
+      where: {
+        createdAt: Between(startOfDay, endOfDay),
+      },
+      order: { createdAt: 'DESC' },
     });
   }
 
@@ -135,7 +149,9 @@ export class BookingService {
     }
 
     booking.status = status;
-    booking.statusReason = reason || null;
+    if (reason) {
+      booking.statusReason = reason;
+    }
     booking.lastStatusChange = new Date();
 
     if (status === BookingStatus.CONFIRMED) {
@@ -160,15 +176,56 @@ export class BookingService {
       throw new NotFoundException('Booking not found');
     }
 
-    if (ticketData.ticketPdfUrl) booking.ticketPdfUrl = ticketData.ticketPdfUrl;
-    if (ticketData.ticketPkpassUrl) booking.ticketPkpassUrl = ticketData.ticketPkpassUrl;
-    if (ticketData.ticketData) booking.ticketData = ticketData.ticketData;
-
-    booking.status = BookingStatus.TICKETED;
+    if (ticketData.ticketPdfUrl) {
+      booking.ticketPdfUrl = ticketData.ticketPdfUrl;
+    }
+    if (ticketData.ticketPkpassUrl) {
+      booking.ticketPkpassUrl = ticketData.ticketPkpassUrl;
+    }
+    if (ticketData.ticketData) {
+      booking.ticketData = ticketData.ticketData;
+    }
 
     return this.bookingRepository.save(booking);
   }
 
+  async updatePaymentInfo(
+    id: number,
+    paymentInfo: {
+      paymentId?: string;
+      paymentMethod?: string;
+      paymentTransactionId?: string;
+    },
+  ): Promise<Booking> {
+    const booking = await this.findById(id);
+    if (!booking) {
+      throw new NotFoundException('Booking not found');
+    }
+
+    if (paymentInfo.paymentId) {
+      booking.paymentId = paymentInfo.paymentId;
+    }
+    if (paymentInfo.paymentMethod) {
+      booking.paymentMethod = paymentInfo.paymentMethod;
+    }
+    if (paymentInfo.paymentTransactionId) {
+      booking.paymentTransactionId = paymentInfo.paymentTransactionId;
+    }
+
+    return this.bookingRepository.save(booking);
+  }
+
+  // ============================================================
+  // REFUND
+  // ============================================================
+
+  /**
+   * Process refund for a booking
+   * @param id - Booking ID
+   * @param amount - Refund amount
+   * @param reason - Refund reason
+   * @param refundedBy - Admin email who processed the refund
+   */
   async processRefund(
     id: number,
     amount: number,
@@ -180,19 +237,35 @@ export class BookingService {
       throw new NotFoundException('Booking not found');
     }
 
-    const newRefundedAmount = Number(booking.refundedAmount || 0) + amount;
-    booking.refundedAmount = newRefundedAmount;
+    booking.refundedAmount = amount;
     booking.refundReason = reason;
     booking.refundedBy = refundedBy;
     booking.refundedAt = new Date();
 
-    if (newRefundedAmount >= Number(booking.totalPrice)) {
+    // Determine status based on refund amount
+    if (amount >= Number(booking.totalPrice)) {
       booking.status = BookingStatus.REFUNDED;
     } else {
       booking.status = BookingStatus.PARTIALLY_REFUNDED;
     }
 
+    booking.lastStatusChange = new Date();
+
+    this.logger.log(`Refund processed for booking ${id}: ${amount} by ${refundedBy}`);
+
     return this.bookingRepository.save(booking);
+  }
+
+  // ============================================================
+  // DELETE
+  // ============================================================
+
+  async delete(id: number): Promise<void> {
+    const booking = await this.findById(id);
+    if (!booking) {
+      throw new NotFoundException('Booking not found');
+    }
+    await this.bookingRepository.remove(booking);
   }
 
   // ============================================================
@@ -202,43 +275,39 @@ export class BookingService {
   async getStats(): Promise<{
     total: number;
     confirmed: number;
+    pending: number;
     cancelled: number;
+    refunded: number;
     revenue: number;
   }> {
     const total = await this.bookingRepository.count();
     const confirmed = await this.bookingRepository.count({
       where: { status: BookingStatus.CONFIRMED },
     });
+    const pending = await this.bookingRepository.count({
+      where: { status: BookingStatus.PENDING },
+    });
     const cancelled = await this.bookingRepository.count({
       where: { status: BookingStatus.CANCELLED },
     });
+    const refunded = await this.bookingRepository.count({
+      where: { status: BookingStatus.REFUNDED },
+    });
 
+    // Calculate revenue from confirmed bookings
     const revenueResult = await this.bookingRepository
       .createQueryBuilder('booking')
-      .select('SUM(booking.totalPrice)', 'total')
-      .where('booking.status IN (:...statuses)', {
-        statuses: [BookingStatus.CONFIRMED, BookingStatus.TICKETED],
-      })
+      .select('SUM(booking.totalPrice)', 'revenue')
+      .where('booking.status = :status', { status: BookingStatus.CONFIRMED })
       .getRawOne();
 
     return {
       total,
       confirmed,
+      pending,
       cancelled,
-      revenue: parseFloat(revenueResult?.total || '0'),
+      refunded,
+      revenue: parseFloat(revenueResult?.revenue || '0'),
     };
-  }
-
-  async getTodayBookings(): Promise<Booking[]> {
-    const today = new Date();
-    const startOfDay = new Date(today.setHours(0, 0, 0, 0)).toISOString();
-    const endOfDay = new Date(today.setHours(23, 59, 59, 999)).toISOString();
-
-    return this.bookingRepository.find({
-      where: {
-        createdAt: Between(new Date(startOfDay), new Date(endOfDay)),
-      },
-      order: { createdAt: 'DESC' },
-    });
   }
 }

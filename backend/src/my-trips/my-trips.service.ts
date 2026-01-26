@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan, LessThan } from 'typeorm';
+import { Repository, MoreThan } from 'typeorm';
 import { Booking } from '../bookings/entities/booking.entity';
 import * as crypto from 'crypto';
 
@@ -33,11 +33,12 @@ export class MyTripsService {
     expiresAt.setHours(expiresAt.getHours() + 24);
 
     // Tüm booking'lere aynı token'ı ata
+    // REFACTORED: magic_token → magicToken, token_expires_at → tokenExpiresAt
     await this.bookingRepository.update(
       { customerEmail: email },
       { 
-        magic_token: token, 
-        token_expires_at: expiresAt 
+        magicToken: token, 
+        tokenExpiresAt: expiresAt 
       },
     );
 
@@ -45,13 +46,14 @@ export class MyTripsService {
   }
 
   // Token ile biletleri getir
+  // REFACTORED: snake_case → camelCase
   async getBookingsByToken(token: string): Promise<Booking[]> {
     const bookings = await this.bookingRepository.find({
       where: {
-        magic_token: token,
-        token_expires_at: MoreThan(new Date()),
+        magicToken: token,
+        tokenExpiresAt: MoreThan(new Date()),
       },
-      order: { departure_date: 'ASC', departure_time: 'ASC' },
+      order: { departureDate: 'ASC', departureTime: 'ASC' },
     });
 
     if (bookings.length === 0) {
@@ -62,21 +64,23 @@ export class MyTripsService {
   }
 
   // Email ile biletleri getir (admin veya internal kullanım)
+  // REFACTORED: departure_date → departureDate
   async getBookingsByEmail(email: string): Promise<Booking[]> {
     return this.bookingRepository.find({
       where: { customerEmail: email },
-      order: { departure_date: 'ASC', departure_time: 'ASC' },
+      order: { departureDate: 'ASC', departureTime: 'ASC' },
     });
   }
 
   // Tek bilet detayı
+  // REFACTORED: magic_token → magicToken, token_expires_at → tokenExpiresAt
   async getBookingById(id: number, token?: string): Promise<Booking> {
     const whereClause: any = { id };
     
     // Token varsa doğrula
     if (token) {
-      whereClause.magic_token = token;
-      whereClause.token_expires_at = MoreThan(new Date());
+      whereClause.magicToken = token;
+      whereClause.tokenExpiresAt = MoreThan(new Date());
     }
 
     const booking = await this.bookingRepository.findOne({
@@ -91,6 +95,7 @@ export class MyTripsService {
   }
 
   // Biletleri kategorize et (upcoming / past)
+  // REFACTORED: departure_date → departureDate
   categorizeBookings(bookings: Booking[]): { upcoming: Booking[]; past: Booking[] } {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -99,8 +104,8 @@ export class MyTripsService {
     const past: Booking[] = [];
 
     for (const booking of bookings) {
-      if (booking.departure_date) {
-        const departureDate = new Date(booking.departure_date);
+      if (booking.departureDate) {
+        const departureDate = new Date(booking.departureDate);
         if (departureDate >= today) {
           upcoming.push(booking);
         } else {
@@ -122,9 +127,17 @@ export class MyTripsService {
 
   // Order ID ile bilet getir
   async getBookingByOrderId(orderId: string): Promise<Booking> {
-    const booking = await this.bookingRepository.findOne({
+    // Önce PNR ile ara
+    let booking = await this.bookingRepository.findOne({
       where: { pnr: orderId },
     });
+
+    // PNR bulunamazsa bookingReference ile ara
+    if (!booking) {
+      booking = await this.bookingRepository.findOne({
+        where: { bookingReference: orderId },
+      });
+    }
 
     if (!booking) {
       throw new NotFoundException('Bilet bulunamadı');

@@ -1,16 +1,16 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  Train, 
-  Calendar, 
-  Clock, 
-  User, 
-  Mail, 
+import {
+  Train,
+  Calendar,
+  Clock,
+  User,
+  Mail,
   Phone,
-  CreditCard, 
+  CreditCard,
   AlertCircle,
   CheckCircle,
   Loader2,
@@ -34,6 +34,7 @@ import {
   getSession,
   updateTravelers,
   applyPromoCode,
+  initiatePayment,
   SessionData,
   TravelerData,
   getComfortConfig,
@@ -159,7 +160,7 @@ function TravelerCard({
           </div>
           <div>
             <div className="font-medium text-slate-800">
-              {traveler.firstName && traveler.lastName 
+              {traveler.firstName && traveler.lastName
                 ? `${traveler.title === 'MR' ? 'Bay' : 'Bayan'} ${traveler.firstName} ${traveler.lastName}`
                 : `${index + 1}. Yolcu`
               }
@@ -516,12 +517,15 @@ function SuccessScreen({ booking, onDownloadPdf, onAddToCalendar }: {
 
 export default function SessionCheckoutPage() {
   const params = useParams();
-  const router = useRouter();
+  const searchParams = useSearchParams();
   const sessionToken = params.session as string;
+
+  // Check for error from payment callback
+  const paymentError = searchParams.get('error');
 
   // State
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(paymentError);
   const [session, setSession] = useState<SessionData | null>(null);
   const [travelers, setTravelers] = useState<TravelerForm[]>([]);
   const [expandedTraveler, setExpandedTraveler] = useState(0);
@@ -533,7 +537,7 @@ export default function SessionCheckoutPage() {
   const [bookingComplete, setBookingComplete] = useState(false);
   const [bookingResult, setBookingResult] = useState<BookingResult | null>(null);
   const [remainingTime, setRemainingTime] = useState(0);
-  
+
   // Timer ref
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -551,10 +555,16 @@ export default function SessionCheckoutPage() {
         setSession(data);
         setRemainingTime(data.remaining_seconds);
 
+        // Check if session is already completed
+        if (data.status === 'COMPLETED') {
+          setError('Bu rezervasyon zaten tamamlanmış.');
+          setLoading(false);
+          return;
+        }
+
         // Initialize travelers
-        const totalPassengers = data.passengers.adults + data.passengers.children;
         const initialTravelers: TravelerForm[] = [];
-        
+
         for (let i = 0; i < data.passengers.adults; i++) {
           initialTravelers.push(createEmptyTraveler('adult', i));
         }
@@ -629,7 +639,7 @@ export default function SessionCheckoutPage() {
     return true;
   }, [requiresPassport]);
 
-  const allTravelersValid = travelers.every((t, i) => 
+  const allTravelersValid = travelers.every((t, i) =>
     isTravelerValid(t, i === 0 && t.type === 'adult')
   );
 
@@ -662,6 +672,9 @@ export default function SessionCheckoutPage() {
     }
   };
 
+  // ============================================================
+  // PAYMENT HANDLER - REAL API INTEGRATION
+  // ============================================================
   const handlePayment = async () => {
     if (!session || !allTravelersValid || !termsAccepted || processingPayment) return;
 
@@ -685,40 +698,38 @@ export default function SessionCheckoutPage() {
 
       await updateTravelers(sessionToken, travelerData);
 
-      // 2. Simulate payment (in production, redirect to Payten)
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // 2. Initiate payment - get payment URL from backend
+      const paymentResult = await initiatePayment(sessionToken);
 
-      // 3. Set booking result (mock)
-      const result: BookingResult = {
-        booking_reference: `ET-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
-        pnr: `PNR${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
-        journey: {
-          origin: session.journey.origin,
-          destination: session.journey.destination,
-          departure: session.journey.departure,
-          arrival: session.journey.arrival,
-          date: session.journey.departure,
-          operator: session.journey.operator,
-          train_number: session.journey.train_number,
-        },
-        passengers: travelers,
-        total_paid: session.pricing.total_price,
-        currency: session.pricing.currency,
-      };
+      if (!paymentResult.success) {
+        setError(paymentResult.error_message || 'Ödeme başlatılamadı. Lütfen tekrar deneyin.');
+        setProcessingPayment(false);
+        return;
+      }
 
-      setBookingResult(result);
-      setBookingComplete(true);
+      // 3. Redirect to payment gateway
+      if (paymentResult.payment_url) {
+        // Save session token to localStorage for recovery
+        localStorage.setItem('eurotrain_payment_session', sessionToken);
+        
+        // Redirect to Payten hosted page (or mock callback in dev)
+        window.location.href = paymentResult.payment_url;
+      } else {
+        setError('Ödeme URL\'i alınamadı. Lütfen tekrar deneyin.');
+        setProcessingPayment(false);
+      }
 
     } catch (err: any) {
-      setError('Ödeme işlemi başarısız oldu. Lütfen tekrar deneyin.');
-    } finally {
+      console.error('Payment error:', err);
+      setError('Ödeme işlemi başlatılamadı. Lütfen tekrar deneyin.');
       setProcessingPayment(false);
     }
   };
 
   const handleDownloadPdf = () => {
+    if (!bookingResult) return;
     // TODO: Implement actual PDF download
-    alert('PDF indirme özelliği yakında eklenecek');
+    window.open(`/api/bookings/${bookingResult.booking_reference}/ticket.pdf`, '_blank');
   };
 
   const handleAddToCalendar = () => {
@@ -759,8 +770,8 @@ END:VCALENDAR`;
     );
   }
 
-  // Error state
-  if (error || !session) {
+  // Error state (but allow retry if session exists)
+  if ((error && !session) || !session) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
@@ -829,7 +840,7 @@ END:VCALENDAR`;
           <Link href="/" className="text-xl font-bold text-blue-600">
             🚂 EuroTrain
           </Link>
-          
+
           {/* Timer */}
           <div className={`
             flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium
@@ -925,7 +936,7 @@ END:VCALENDAR`;
             {/* Error */}
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
-                <AlertCircle className="w-5 h-5 text-red-600" />
+                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
                 <p className="text-red-800">{error}</p>
               </div>
             )}
@@ -945,7 +956,7 @@ END:VCALENDAR`;
               {processingPayment ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Ödeme İşleniyor...</span>
+                  <span>Ödeme Sayfasına Yönlendiriliyor...</span>
                 </>
               ) : (
                 <>

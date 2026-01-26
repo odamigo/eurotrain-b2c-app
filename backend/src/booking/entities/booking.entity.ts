@@ -1,4 +1,4 @@
-import {
+﻿import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
@@ -201,7 +201,7 @@ export class Booking {
   status: BookingStatus;
 
   @Column({ nullable: true })
-  statusReason: string;
+  statusReason?: string;
 
   @Column({ nullable: true })
   lastStatusChange: Date;

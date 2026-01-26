@@ -144,7 +144,7 @@ function groupJourneysBySolution(journeys: Journey[]): Map<string, Journey[]> {
 // COMPONENTS
 // ============================================================
 
-// Time Range Slider Component - DÜZELTILMIŞ
+// Time Range Slider Component - FlixBus/Omio tarzı
 function TimeRangeSlider({
   label,
   icon,
@@ -162,6 +162,7 @@ function TimeRangeSlider({
 }) {
   const [localMin, setLocalMin] = useState(minValue);
   const [localMax, setLocalMax] = useState(maxValue);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Sync with parent
   useEffect(() => {
@@ -172,13 +173,16 @@ function TimeRangeSlider({
   const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = Math.min(parseInt(e.target.value), localMax - 30);
     setLocalMin(value);
-    onChange(value, localMax);
   };
 
   const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = Math.max(parseInt(e.target.value), localMin + 30);
     setLocalMax(value);
-    onChange(localMin, value);
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    onChange(localMin, localMax);
   };
 
   const minPercent = (localMin / 1440) * 100;
@@ -196,14 +200,11 @@ function TimeRangeSlider({
         </div>
       </div>
       
-      {/* Slider Container */}
-      <div className="relative h-6 flex items-center">
-        {/* Background Track */}
-        <div className="absolute w-full h-2 bg-slate-200 rounded-full" />
-        
+      {/* Slider Track */}
+      <div className="relative h-2 bg-slate-200 rounded-full">
         {/* Active Range */}
         <div 
-          className="absolute h-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full pointer-events-none"
+          className="absolute h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full"
           style={{ 
             left: `${minPercent}%`, 
             width: `${maxPercent - minPercent}%` 
@@ -218,10 +219,11 @@ function TimeRangeSlider({
           step={15}
           value={localMin}
           onChange={handleMinChange}
-          style={{ zIndex: localMin > localMax - 100 ? 5 : 4 }}
-          className="absolute w-full h-2 appearance-none bg-transparent cursor-pointer
-            [&::-webkit-slider-runnable-track]:appearance-none
-            [&::-webkit-slider-runnable-track]:bg-transparent
+          onMouseDown={() => setIsDragging(true)}
+          onMouseUp={handleMouseUp}
+          onTouchEnd={handleMouseUp}
+          className="absolute w-full h-full appearance-none bg-transparent pointer-events-none
+            [&::-webkit-slider-thumb]:pointer-events-auto
             [&::-webkit-slider-thumb]:appearance-none
             [&::-webkit-slider-thumb]:w-5
             [&::-webkit-slider-thumb]:h-5
@@ -229,14 +231,12 @@ function TimeRangeSlider({
             [&::-webkit-slider-thumb]:border-2
             [&::-webkit-slider-thumb]:border-blue-500
             [&::-webkit-slider-thumb]:rounded-full
-            [&::-webkit-slider-thumb]:shadow-lg
+            [&::-webkit-slider-thumb]:shadow-md
             [&::-webkit-slider-thumb]:cursor-grab
             [&::-webkit-slider-thumb]:active:cursor-grabbing
             [&::-webkit-slider-thumb]:hover:scale-110
-            [&::-webkit-slider-thumb]:hover:border-blue-600
-            [&::-webkit-slider-thumb]:transition-all
-            [&::-moz-range-track]:appearance-none
-            [&::-moz-range-track]:bg-transparent
+            [&::-webkit-slider-thumb]:transition-transform
+            [&::-moz-range-thumb]:pointer-events-auto
             [&::-moz-range-thumb]:appearance-none
             [&::-moz-range-thumb]:w-5
             [&::-moz-range-thumb]:h-5
@@ -244,7 +244,7 @@ function TimeRangeSlider({
             [&::-moz-range-thumb]:border-2
             [&::-moz-range-thumb]:border-blue-500
             [&::-moz-range-thumb]:rounded-full
-            [&::-moz-range-thumb]:shadow-lg
+            [&::-moz-range-thumb]:shadow-md
             [&::-moz-range-thumb]:cursor-grab
           "
         />
@@ -257,10 +257,11 @@ function TimeRangeSlider({
           step={15}
           value={localMax}
           onChange={handleMaxChange}
-          style={{ zIndex: localMin > localMax - 100 ? 4 : 5 }}
-          className="absolute w-full h-2 appearance-none bg-transparent cursor-pointer
-            [&::-webkit-slider-runnable-track]:appearance-none
-            [&::-webkit-slider-runnable-track]:bg-transparent
+          onMouseDown={() => setIsDragging(true)}
+          onMouseUp={handleMouseUp}
+          onTouchEnd={handleMouseUp}
+          className="absolute w-full h-full appearance-none bg-transparent pointer-events-none
+            [&::-webkit-slider-thumb]:pointer-events-auto
             [&::-webkit-slider-thumb]:appearance-none
             [&::-webkit-slider-thumb]:w-5
             [&::-webkit-slider-thumb]:h-5
@@ -268,14 +269,12 @@ function TimeRangeSlider({
             [&::-webkit-slider-thumb]:border-2
             [&::-webkit-slider-thumb]:border-blue-500
             [&::-webkit-slider-thumb]:rounded-full
-            [&::-webkit-slider-thumb]:shadow-lg
+            [&::-webkit-slider-thumb]:shadow-md
             [&::-webkit-slider-thumb]:cursor-grab
             [&::-webkit-slider-thumb]:active:cursor-grabbing
             [&::-webkit-slider-thumb]:hover:scale-110
-            [&::-webkit-slider-thumb]:hover:border-blue-600
-            [&::-webkit-slider-thumb]:transition-all
-            [&::-moz-range-track]:appearance-none
-            [&::-moz-range-track]:bg-transparent
+            [&::-webkit-slider-thumb]:transition-transform
+            [&::-moz-range-thumb]:pointer-events-auto
             [&::-moz-range-thumb]:appearance-none
             [&::-moz-range-thumb]:w-5
             [&::-moz-range-thumb]:h-5
@@ -283,7 +282,7 @@ function TimeRangeSlider({
             [&::-moz-range-thumb]:border-2
             [&::-moz-range-thumb]:border-blue-500
             [&::-moz-range-thumb]:rounded-full
-            [&::-moz-range-thumb]:shadow-lg
+            [&::-moz-range-thumb]:shadow-md
             [&::-moz-range-thumb]:cursor-grab
           "
         />

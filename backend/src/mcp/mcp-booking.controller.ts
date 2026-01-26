@@ -17,7 +17,7 @@ import { PaymentCurrency } from '../payment/entities/payment.entity';
 import * as crypto from 'crypto';
 
 // ============================================================
-// CONSTANTS - Normal akışla aynı
+// CONSTANTS
 // ============================================================
 
 const SERVICE_FEE_PERCENT = 0.05; // %5 hizmet bedeli
@@ -94,7 +94,7 @@ export class CreateMcpBookingDto {
   trainNumber: string;
   operator: string;
   comfortClass: string;
-  price: number;  // Base price (without service fee)
+  price: number;
   currency: string;
   passengerName: string;
   passengerEmail: string;
@@ -118,7 +118,7 @@ export interface TravelerDto {
 }
 
 export class InitiatePaymentDto {
-  acceptedPrice: number;  // Final price with service fee
+  acceptedPrice: number;
   travelers?: TravelerDto[];
   promoCode?: string;
   customerIp?: string;
@@ -163,7 +163,6 @@ export interface PriceVerificationResponse {
   error?: string;
 }
 
-// Price tolerance
 const PRICE_TOLERANCE = {
   percentageThreshold: 2,
   absoluteThreshold: 2,
@@ -251,32 +250,30 @@ export class McpBookingController {
       const adults = dto.adults || 1;
       const children = dto.children || 0;
 
-      // Create booking in DB
-      // Note: ticket_class stored in metadata or separate field if available
+      // REFACTORED: camelCase kullan
       const booking = await this.bookingsService.create({
         customerName: sanitizedName,
         customerEmail: dto.passengerEmail.toLowerCase().trim(),
         fromStation: sanitizedOrigin,
         toStation: sanitizedDestination,
         price: dto.price,
-        departure_date: dto.departureDate,
-        departure_time: dto.departureTime,
-        arrival_time: dto.arrivalTime,
-        train_number: dto.trainNumber ? sanitizeInput(dto.trainNumber) : undefined,
+        departureDate: dto.departureDate,
+        departureTime: dto.departureTime,
+        arrivalTime: dto.arrivalTime,
+        trainNumber: dto.trainNumber ? sanitizeInput(dto.trainNumber) : undefined,
         operator: dto.operator ? sanitizeInput(dto.operator) : undefined,
-      });
+      } as any);
 
       const bookingToken = this.generateBookingToken();
       const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
 
-      // Cache token with passenger count
       this.bookingTokens.set(bookingToken, {
         bookingId: booking.id,
         expiresAt,
         used: false,
         adults,
         children,
-        comfortClass,  // Store comfort class
+        comfortClass,
         originalSearch: {
           originCode: dto.originCode || sanitizedOrigin,
           destinationCode: dto.destinationCode || sanitizedDestination,
@@ -289,7 +286,6 @@ export class McpBookingController {
       const baseUrl = process.env.FRONTEND_URL || 'https://eurotrain.net';
       const checkoutUrl = `${baseUrl}/booking/checkout?token=${bookingToken}`;
 
-      // Calculate total with service fee for display
       const passengerCount = adults + children;
       const ticketTotal = dto.price * passengerCount;
       const serviceFee = Math.round(ticketTotal * SERVICE_FEE_PERCENT * 100) / 100;
@@ -301,7 +297,7 @@ export class McpBookingController {
         time: `${dto.departureTime} - ${dto.arrivalTime}`,
         train: `${dto.operator || ''} ${dto.trainNumber || ''}`.trim(),
         class: comfortClass,
-        price: `€${grandTotal.toFixed(2)}`,  // Show total with service fee
+        price: `€${grandTotal.toFixed(2)}`,
         passenger: sanitizedName,
         adults,
         children,
@@ -351,6 +347,7 @@ export class McpBookingController {
       return { valid: false, error: 'Booking not found' };
     }
 
+    // REFACTORED: camelCase kullan
     return {
       valid: true,
       booking: {
@@ -359,13 +356,13 @@ export class McpBookingController {
         customerEmail: booking.customerEmail,
         fromStation: booking.fromStation,
         toStation: booking.toStation,
-        departureDate: booking.departure_date,
-        departureTime: booking.departure_time,
-        arrivalTime: booking.arrival_time,
-        trainNumber: booking.train_number,
+        departureDate: booking.departureDate,
+        departureTime: booking.departureTime,
+        arrivalTime: booking.arrivalTime,
+        trainNumber: booking.trainNumber,
         operator: booking.operator,
         ticketClass: tokenData.comfortClass || 'standard',
-        price: booking.price,
+        price: booking.totalPrice,
         status: booking.status,
         adults: tokenData.adults,
         children: tokenData.children,
@@ -415,22 +412,24 @@ export class McpBookingController {
       };
     }
 
-    const originalPrice = Number(booking.price);
+    // REFACTORED: booking.price → booking.totalPrice
+    const originalPrice = Number(booking.totalPrice);
     const searchParams = tokenData.originalSearch;
 
     try {
+      // REFACTORED: camelCase kullan
       const searchResult = await this.eraSearchService.simpleSearch(
         searchParams?.originCode || booking.fromStation,
         searchParams?.destinationCode || booking.toStation,
-        searchParams?.date || booking.departure_date?.toString() || '',
+        searchParams?.date || booking.departureDate?.toString() || '',
         { adults: tokenData.adults, children: tokenData.children }
       );
 
       const matchingJourney = this.findMatchingJourney(
         searchResult,
-        booking.train_number,
+        booking.trainNumber,
         booking.operator,
-        booking.departure_time
+        booking.departureTime
       );
 
       if (!matchingJourney) {
@@ -448,7 +447,9 @@ export class McpBookingController {
 
       const currentPrice = matchingJourney.price;
       const priceDifference = currentPrice - originalPrice;
-      const percentageChange = ((currentPrice - originalPrice) / originalPrice) * 100;
+      const percentageChange = originalPrice > 0 
+        ? (priceDifference / originalPrice) * 100 
+        : 0;
 
       const isWithinTolerance = 
         Math.abs(percentageChange) <= PRICE_TOLERANCE.percentageThreshold ||
@@ -517,14 +518,15 @@ export class McpBookingController {
     const payments = await this.paymentService.getPaymentsByBookingId(tokenData.bookingId);
     const completedPayment = payments.find(p => p.status === 'completed');
 
+    // REFACTORED: camelCase kullan
     return {
       success: true,
       booking: {
         id: booking.id,
         status: booking.status,
         route: `${booking.fromStation} → ${booking.toStation}`,
-        date: booking.departure_date,
-        price: booking.price,
+        date: booking.departureDate,
+        price: booking.totalPrice,
         pnr: booking.pnr,
       },
       payment: {
@@ -566,19 +568,16 @@ export class McpBookingController {
     if (body.travelers && body.travelers.length > 0) {
       const leadTraveler = body.travelers[0];
       
-      // Update booking with lead traveler info
-      // Note: Full traveler data will be sent to ERA API during confirm
       await this.bookingsService.update(tokenData.bookingId, {
         customerName: `${leadTraveler.firstName} ${leadTraveler.lastName}`,
         customerEmail: leadTraveler.email || booking.customerEmail,
       });
       
-      // Store travelers in token cache for later use
       (tokenData as any).travelers = body.travelers;
     }
 
-    // Use accepted price (with service fee) or calculate
-    const finalPrice = body.acceptedPrice || Number(booking.price);
+    // REFACTORED: booking.price → booking.totalPrice
+    const finalPrice = body.acceptedPrice || Number(booking.totalPrice);
 
     const orderId = `MCP-${booking.id}-${Date.now()}`;
     
@@ -595,11 +594,10 @@ export class McpBookingController {
     if (paymentResult.success) {
       tokenData.used = true;
       
-      // Update booking price if different
-      if (body.acceptedPrice && body.acceptedPrice !== Number(booking.price)) {
+      if (body.acceptedPrice && body.acceptedPrice !== Number(booking.totalPrice)) {
         await this.bookingsService.update(tokenData.bookingId, {
           price: body.acceptedPrice,
-        });
+        } as any);
       }
     }
 

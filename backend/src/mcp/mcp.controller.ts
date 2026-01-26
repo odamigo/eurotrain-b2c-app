@@ -225,7 +225,7 @@ export class McpController {
         trace_id: traceId,
       };
 
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`[${traceId}] search-trains error: ${error.message}`);
       return this.errorResponse(
         MCP_ERROR_CODES.SERVICE_UNAVAILABLE,
@@ -258,9 +258,19 @@ export class McpController {
         );
       }
 
-      const offer = this.offerCache.getOffer(input.offer_ref, input.search_id);
+      // FIX: getOffer only takes 1 parameter
+      const offer = this.offerCache.getOffer(input.offer_ref);
       
       if (!offer) {
+        return this.errorResponse(
+          MCP_ERROR_CODES.OFFER_EXPIRED,
+          'Teklif bulunamadı veya süresi dolmuş. Lütfen yeni bir arama yapın.',
+          traceId
+        );
+      }
+
+      // Verify search_id matches
+      if (offer.search_id !== input.search_id) {
         return this.errorResponse(
           MCP_ERROR_CODES.OFFER_EXPIRED,
           'Teklif bulunamadı veya süresi dolmuş. Lütfen yeni bir arama yapın.',
@@ -338,7 +348,7 @@ export class McpController {
         trace_id: traceId,
       };
 
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`[${traceId}] get-offer-details error: ${error.message}`);
       return this.errorResponse(
         MCP_ERROR_CODES.INTERNAL_ERROR,
@@ -372,9 +382,19 @@ export class McpController {
         );
       }
 
-      const offer = this.offerCache.getOffer(input.offer_ref, input.search_id);
+      // FIX: getOffer only takes 1 parameter
+      const offer = this.offerCache.getOffer(input.offer_ref);
       
       if (!offer) {
+        return this.errorResponse(
+          MCP_ERROR_CODES.OFFER_EXPIRED,
+          'Teklif bulunamadı veya süresi dolmuş. Lütfen yeni bir arama yapın.',
+          traceId
+        );
+      }
+
+      // Verify search_id matches
+      if (offer.search_id !== input.search_id) {
         return this.errorResponse(
           MCP_ERROR_CODES.OFFER_EXPIRED,
           'Teklif bulunamadı veya süresi dolmuş. Lütfen yeni bir arama yapın.',
@@ -432,7 +452,7 @@ export class McpController {
           date: this.formatDate(session.departure),
           time: `${this.formatTime(session.departure)} - ${this.formatTime(session.arrival)}`,
           operator: session.operator,
-          train: session.train_number,
+          train_number: session.train_number,
           class: this.getClassName(session.comfort_class),
         },
         
@@ -460,7 +480,7 @@ export class McpController {
       this.logger.log(`[${traceId}] create-booking-session completed: ${session.session_token}`);
       return response;
 
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`[${traceId}] create-booking-session error: ${error.message}`);
       return this.errorResponse(
         MCP_ERROR_CODES.INTERNAL_ERROR,
@@ -507,7 +527,7 @@ export class McpController {
         trace_id: traceId,
       };
 
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`[${traceId}] get-booking-status error: ${error.message}`);
       return this.errorResponse(
         MCP_ERROR_CODES.INTERNAL_ERROR,
@@ -630,13 +650,9 @@ export class McpController {
   }
 
   // ============================================================
-  // PAYMENT ENDPOINTS (NEW)
+  // PAYMENT ENDPOINTS
   // ============================================================
 
-  /**
-   * Initiate payment for a session
-   * Called when user clicks "Pay" button
-   */
   @Post('session/:token/initiate-payment')
   async initiatePayment(
     @Param('token') token: string,
@@ -652,8 +668,9 @@ export class McpController {
     });
 
     if (!result.success) {
+      // FIX: Don't spread result after success: false (it would overwrite)
       throw new HttpException(
-        { success: false, ...result },
+        result,
         HttpStatus.BAD_REQUEST
       );
     }
@@ -661,10 +678,6 @@ export class McpController {
     return result;
   }
 
-  /**
-   * Payment callback handler
-   * Called by Payten after payment completion
-   */
   @Get('payment/callback')
   async handlePaymentCallbackGet(
     @Query() query: any,
@@ -711,9 +724,6 @@ export class McpController {
     res.redirect(result.redirect_url);
   }
 
-  /**
-   * Get booking details after successful payment
-   */
   @Get('booking/:reference')
   async getBooking(@Param('reference') reference: string): Promise<any> {
     const booking = await this.checkoutService.getBookingByReference(reference);

@@ -1,4 +1,4 @@
-﻿import { Controller, Get, Param, Res, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Param, Res, NotFoundException } from '@nestjs/common';
 import type { Response } from 'express';
 import { PdfService } from './pdf.service';
 import { BookingsService } from '../bookings/bookings.service';
@@ -32,6 +32,7 @@ export class PdfController {
 
     const pnr = booking.pnr || 'ET' + bookingId.padStart(8, '0');
 
+    // REFACTORED: snake_case → camelCase
     const ticketData = {
       id: booking.id,
       pnr: pnr,
@@ -40,16 +41,16 @@ export class PdfController {
       passengerEmail: booking.customerEmail,
       fromStation: booking.fromStation,
       toStation: booking.toStation,
-      departureDate: this.formatDate(booking.departure_date),
-      departureTime: booking.departure_time || '-',
-      arrivalTime: booking.arrival_time || '-',
-      trainNumber: booking.train_number || '-',
+      departureDate: this.formatDate(booking.departureDate),
+      departureTime: booking.departureTime || '-',
+      arrivalTime: booking.arrivalTime || '-',
+      trainNumber: booking.trainNumber || '-',
       coach: booking.coach || '-',
       seat: booking.seat || '-',
-      class: booking.ticket_class || 'Standard',
+      class: booking.ticketClass || 'Standard',
       operator: booking.operator || 'Rail Europe',
-      price: Number(booking.price) || 0,
-      currency: 'EUR ',
+      price: Number(booking.totalPrice) || 0,
+      currency: 'EUR',
     };
 
     await this.pdfService.generateTicketPdf(ticketData, res as any);
@@ -65,6 +66,7 @@ export class PdfController {
       throw new NotFoundException('Bilet bulunamadi');
     }
 
+    // REFACTORED: snake_case → camelCase
     const ticketData = {
       id: booking.id,
       pnr: booking.pnr,
@@ -73,16 +75,16 @@ export class PdfController {
       passengerEmail: booking.customerEmail,
       fromStation: booking.fromStation,
       toStation: booking.toStation,
-      departureDate: this.formatDate(booking.departure_date),
-      departureTime: booking.departure_time || '-',
-      arrivalTime: booking.arrival_time || '-',
-      trainNumber: booking.train_number || '-',
+      departureDate: this.formatDate(booking.departureDate),
+      departureTime: booking.departureTime || '-',
+      arrivalTime: booking.arrivalTime || '-',
+      trainNumber: booking.trainNumber || '-',
       coach: booking.coach || '-',
       seat: booking.seat || '-',
-      class: booking.ticket_class || 'Standard',
+      class: booking.ticketClass || 'Standard',
       operator: booking.operator || 'Rail Europe',
-      price: Number(booking.price) || 0,
-      currency: 'EUR ',
+      price: Number(booking.totalPrice) || 0,
+      currency: 'EUR',
     };
 
     await this.pdfService.generateTicketPdf(ticketData, res as any);

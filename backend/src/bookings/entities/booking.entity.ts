@@ -1,25 +1,54 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+} from 'typeorm';
 
 export enum BookingStatus {
-  PENDING = 'PENDING',
-  CONFIRMED = 'CONFIRMED',
-  TICKETED = 'TICKETED',
-  CANCELLED = 'CANCELLED',
-  REFUNDED = 'REFUNDED',
-  PARTIALLY_REFUNDED = 'PARTIALLY_REFUNDED',
-  EXPIRED = 'EXPIRED',
+  PENDING = 'pending',
+  CONFIRMED = 'confirmed',
+  TICKETED = 'ticketed',
+  CANCELLED = 'cancelled',
+  REFUNDED = 'refunded',
+  PARTIALLY_REFUNDED = 'partially_refunded',
+  EXCHANGED = 'exchanged',
+  EXPIRED = 'expired',
 }
 
-@Entity()
+@Entity('bookings')
+@Index(['bookingReference'], { unique: true })
 @Index(['pnr'])
 @Index(['customerEmail'])
 @Index(['status'])
-@Index(['bookingReference'], { unique: true, where: '"bookingReference" IS NOT NULL' })
+@Index(['departureDate'])
+@Index(['magicToken'])
 export class Booking {
   @PrimaryGeneratedColumn()
   id: number;
 
-  // ===== TEMEL MUSTERI BILGILERI =====
+  // ============================================================
+  // BOOKING IDENTIFIERS
+  // ============================================================
+
+  @Column({ unique: true })
+  bookingReference: string;
+
+  @Column({ nullable: true })
+  pnr: string;
+
+  @Column({ nullable: true })
+  eraBookingId: string;
+
+  @Column({ nullable: true })
+  eraPnr: string;
+
+  // ============================================================
+  // CUSTOMER INFO
+  // ============================================================
+
   @Column()
   customerName: string;
 
@@ -29,7 +58,10 @@ export class Booking {
   @Column({ nullable: true })
   customerPhone: string;
 
-  // ===== GUZERGAH BILGILERI =====
+  // ============================================================
+  // JOURNEY DETAILS
+  // ============================================================
+
   @Column()
   fromStation: string;
 
@@ -42,93 +74,31 @@ export class Booking {
   @Column({ nullable: true })
   toStationCode: string;
 
-  // ===== FIYAT BILGILERI =====
-  @Column('decimal', { precision: 10, scale: 2 })
-  price: number;
+  @Column()
+  departureDate: string;
 
-  @Column('decimal', { precision: 10, scale: 2, nullable: true })
-  serviceFee: number;
+  @Column()
+  departureTime: string;
 
-  @Column('decimal', { precision: 10, scale: 2, nullable: true })
-  totalPrice: number;
+  @Column()
+  arrivalTime: string;
 
-  @Column({ nullable: true, length: 3, default: 'EUR' })
-  currency: string;
+  @Column()
+  trainNumber: string;
 
-  @Column({ nullable: true })
-  promoCode: string;
-
-  @Column('decimal', { precision: 10, scale: 2, nullable: true })
-  promoDiscount: number;
-
-  // ===== DURUM =====
-  @Column({ default: 'PENDING' })
-  status: string;
-
-  @Column({ nullable: true })
-  statusReason: string;
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
-
-  @Column({ nullable: true })
-  confirmedAt: Date;
-
-  @Column({ nullable: true })
-  cancelledAt: Date;
-
-  // ===== EUROTRAIN REFERANS =====
-  @Column({ nullable: true, unique: true })
-  bookingReference: string;  // ET-XXXXXX (bizim referansımız)
-
-  // ===== MY TRIPS ICIN KOLONLAR =====
-  @Column({ nullable: true, length: 64 })
-  magic_token: string;
-
-  @Column({ type: 'timestamp', nullable: true })
-  token_expires_at: Date;
-
-  // ===== BILET BILGILERI =====
-  @Column({ nullable: true, length: 20 })
-  pnr: string;
-
-  @Column({ nullable: true, length: 20 })
-  train_number: string;
-
-  @Column({ nullable: true, length: 10 })
-  coach: string;
-
-  @Column({ nullable: true, length: 10 })
-  seat: string;
-
-  @Column({ type: 'time', nullable: true })
-  departure_time: string;
-
-  @Column({ type: 'time', nullable: true })
-  arrival_time: string;
-
-  @Column({ type: 'date', nullable: true })
-  departure_date: Date;
-
-  @Column({ nullable: true, length: 50 })
+  @Column()
   operator: string;
 
-  @Column({ nullable: true, length: 50 })
+  @Column({ nullable: true })
   operatorCode: string;
 
-  @Column({ nullable: true, length: 20, default: 'Standard' })
-  ticket_class: string;
+  @Column()
+  ticketClass: string;
 
-  @Column({ type: 'text', nullable: true })
-  ticket_pdf_url: string;
+  // ============================================================
+  // PASSENGERS
+  // ============================================================
 
-  @Column({ type: 'text', nullable: true })
-  ticket_pkpass_url: string;
-
-  // ===== YOLCU BILGILERI =====
   @Column({ default: 1 })
   adults: number;
 
@@ -149,7 +119,32 @@ export class Booking {
     passport_country?: string;
   }>;
 
-  // ===== ODEME BILGILERI =====
+  // ============================================================
+  // PRICING
+  // ============================================================
+
+  @Column('decimal', { precision: 10, scale: 2 })
+  ticketPrice: number;
+
+  @Column('decimal', { precision: 10, scale: 2, default: 0 })
+  serviceFee: number;
+
+  @Column('decimal', { precision: 10, scale: 2 })
+  totalPrice: number;
+
+  @Column({ default: 'EUR' })
+  currency: string;
+
+  @Column({ nullable: true })
+  promoCode: string;
+
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  promoDiscount: number;
+
+  // ============================================================
+  // PAYMENT
+  // ============================================================
+
   @Column({ nullable: true })
   paymentId: string;
 
@@ -159,7 +154,10 @@ export class Booking {
   @Column({ nullable: true })
   paymentTransactionId: string;
 
-  // ===== IADE BILGILERI =====
+  // ============================================================
+  // REFUND
+  // ============================================================
+
   @Column('decimal', { precision: 10, scale: 2, default: 0 })
   refundedAmount: number;
 
@@ -172,45 +170,67 @@ export class Booking {
   @Column({ nullable: true })
   refundedBy: string;
 
-  // ===== ERA (RAIL EUROPE) ENTEGRASYONU =====
-  @Column({ nullable: true, length: 50 })
-  era_booking_reference: string;
-
-  @Column({ nullable: true, length: 50 })
-  era_pnr: string;
-
-  @Column({ nullable: true, length: 100 })
-  era_ticket_number: string;
-
-  @Column({ nullable: true, length: 50 })
-  era_carrier: string;
-
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  era_gross_amount: number;
-
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  era_net_amount: number;
-
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  era_commission: number;
-
-  @Column({ nullable: true, length: 3, default: 'EUR' })
-  era_currency: string;
-
-  @Column({ nullable: true, length: 20, default: 'Sale' })
-  era_transaction_type: string;
-
-  @Column({ type: 'timestamp', nullable: true })
-  era_synced_at: Date;
-
-  // ===== MCP SESSION BILGILERI =====
-  @Column({ nullable: true })
-  sessionToken: string;
+  // ============================================================
+  // TICKET
+  // ============================================================
 
   @Column({ nullable: true })
-  traceId: string;
+  ticketPdfUrl: string;
 
-  // ===== METADATA =====
+  @Column({ nullable: true })
+  ticketPkpassUrl: string;
+
+  @Column('simple-json', { nullable: true })
+  ticketData: {
+    issued_at?: string;
+    valid_from?: string;
+    valid_until?: string;
+    seat_numbers?: string[];
+    coach_numbers?: string[];
+    qr_code?: string;
+  };
+
+  // ============================================================
+  // STATUS
+  // ============================================================
+
+  @Column({
+    type: 'enum',
+    enum: BookingStatus,
+    default: BookingStatus.PENDING,
+  })
+  status: BookingStatus;
+
+  @Column({ nullable: true })
+  statusReason?: string;
+
+  @Column({ nullable: true })
+  lastStatusChange: Date;
+
+  // ============================================================
+  // MAGIC LINK (My Trips Access) - REFACTORED to camelCase
+  // ============================================================
+
+  @Column({ nullable: true })
+  magicToken: string;
+
+  @Column({ nullable: true })
+  tokenExpiresAt: Date;
+
+  // ============================================================
+  // SEAT ASSIGNMENT
+  // ============================================================
+
+  @Column({ nullable: true })
+  coach: string;
+
+  @Column({ nullable: true })
+  seat: string;
+
+  // ============================================================
+  // METADATA
+  // ============================================================
+
   @Column({ nullable: true })
   locale: string;
 
@@ -220,6 +240,28 @@ export class Booking {
   @Column({ nullable: true })
   ipAddress: string;
 
+  @Column({ nullable: true })
+  sessionToken: string;
+
+  @Column({ nullable: true })
+  traceId: string;
+
   @Column('simple-json', { nullable: true })
   metadata: Record<string, any>;
+
+  // ============================================================
+  // TIMESTAMPS
+  // ============================================================
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @Column({ nullable: true })
+  confirmedAt: Date;
+
+  @Column({ nullable: true })
+  cancelledAt: Date;
 }

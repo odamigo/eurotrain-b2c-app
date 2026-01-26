@@ -19,7 +19,7 @@ export class BookingsService {
   ) {}
 
   // ============================================================
-  // MEVCUT METODLAR (Değişmedi)
+  // MEVCUT METODLAR
   // ============================================================
 
   async create(createBookingDto: CreateBookingDto) {
@@ -55,13 +55,16 @@ export class BookingsService {
       }
     }
 
+    // REFACTORED: snake_case → camelCase
     const booking = this.bookingsRepository.create({
       ...createBookingDto,
-      price: finalPrice,
-      departure_date: createBookingDto.departure_date,
-      departure_time: createBookingDto.departure_time,
-      arrival_time: createBookingDto.arrival_time,
-      train_number: createBookingDto.train_number,
+      totalPrice: finalPrice,
+      ticketPrice: basePrice,
+      serviceFee: priceCalculation.serviceFee,
+      departureDate: createBookingDto.departureDate,
+      departureTime: createBookingDto.departureTime,
+      arrivalTime: createBookingDto.arrivalTime,
+      trainNumber: createBookingDto.trainNumber,
       operator: createBookingDto.operator,
     });
 
@@ -144,6 +147,7 @@ export class BookingsService {
 
   /**
    * MCP/Payment akışı için booking oluştur
+   * REFACTORED: snake_case → camelCase
    */
   async createFromSession(data: {
     bookingReference: string;
@@ -155,17 +159,17 @@ export class BookingsService {
     toStation: string;
     fromStationCode?: string;
     toStationCode?: string;
-    departure_date: Date | string;
-    departure_time: string;
-    arrival_time: string;
-    train_number: string;
+    departureDate: string;
+    departureTime: string;
+    arrivalTime: string;
+    trainNumber: string;
     operator: string;
     operatorCode?: string;
-    ticket_class: string;
+    ticketClass: string;
     adults: number;
     children: number;
     travelersData?: any[];
-    price: number;
+    ticketPrice: number;
     serviceFee: number;
     totalPrice: number;
     currency: string;
@@ -175,16 +179,18 @@ export class BookingsService {
     paymentMethod?: string;
     sessionToken?: string;
     traceId?: string;
-    era_booking_reference?: string;
-    era_pnr?: string;
+    eraBookingId?: string;
+    eraPnr?: string;
   }): Promise<Booking> {
-    const booking = this.bookingsRepository.create({
+    const bookingData: Partial<Booking> = {
       ...data,
       status: BookingStatus.CONFIRMED,
       confirmedAt: new Date(),
-    });
-
+    };
+    
+    const booking = this.bookingsRepository.create(bookingData);
     const saved = await this.bookingsRepository.save(booking);
+    
     this.logger.log(`Booking created from session: ${saved.bookingReference}`);
     
     return saved;
@@ -192,10 +198,11 @@ export class BookingsService {
 
   /**
    * Durumu güncelle
+   * REFACTORED: status type → BookingStatus
    */
   async updateStatus(
     id: number, 
-    status: string, 
+    status: BookingStatus, 
     reason?: string
   ): Promise<Booking> {
     const booking = await this.findOne(id);
@@ -219,12 +226,13 @@ export class BookingsService {
 
   /**
    * Bilet bilgilerini güncelle
+   * REFACTORED: snake_case → camelCase
    */
   async updateTicketInfo(
     id: number,
     ticketData: {
-      ticket_pdf_url?: string;
-      ticket_pkpass_url?: string;
+      ticketPdfUrl?: string;
+      ticketPkpassUrl?: string;
       pnr?: string;
       coach?: string;
       seat?: string;
@@ -261,7 +269,8 @@ export class BookingsService {
     booking.refundedBy = refundedBy;
     booking.refundedAt = new Date();
 
-    const totalPrice = Number(booking.totalPrice || booking.price);
+    // REFACTORED: booking.price → booking.totalPrice
+    const totalPrice = Number(booking.totalPrice);
     if (newRefundedAmount >= totalPrice) {
       booking.status = BookingStatus.REFUNDED;
     } else {
@@ -274,6 +283,7 @@ export class BookingsService {
 
   /**
    * Arama (admin için)
+   * REFACTORED: departure_date → departureDate
    */
   async search(params: {
     query?: string;
@@ -299,7 +309,8 @@ export class BookingsService {
     }
 
     if (fromDate && toDate) {
-      qb.andWhere('booking.departure_date BETWEEN :fromDate AND :toDate', {
+      // REFACTORED: departure_date → departureDate
+      qb.andWhere('booking.departureDate BETWEEN :fromDate AND :toDate', {
         fromDate,
         toDate,
       });
@@ -345,10 +356,10 @@ export class BookingsService {
       },
     });
 
-    // Toplam gelir
+    // Toplam gelir - REFACTORED: booking.price → booking.totalPrice
     const revenueResult = await this.bookingsRepository
       .createQueryBuilder('booking')
-      .select('COALESCE(SUM(COALESCE(booking.totalPrice, booking.price)), 0)', 'total')
+      .select('COALESCE(SUM(booking.totalPrice), 0)', 'total')
       .where('booking.status IN (:...statuses)', {
         statuses: [BookingStatus.CONFIRMED, BookingStatus.TICKETED],
       })
@@ -381,6 +392,7 @@ export class BookingsService {
 
   /**
    * Yaklaşan yolculuklar (müşteri için)
+   * REFACTORED: departure_date → departureDate
    */
   async getUpcomingByEmail(email: string): Promise<Booking[]> {
     const today = new Date();
@@ -388,16 +400,17 @@ export class BookingsService {
     return this.bookingsRepository
       .createQueryBuilder('booking')
       .where('booking.customerEmail = :email', { email })
-      .andWhere('booking.departure_date >= :today', { today })
+      .andWhere('booking.departureDate >= :today', { today })
       .andWhere('booking.status IN (:...statuses)', {
         statuses: [BookingStatus.CONFIRMED, BookingStatus.TICKETED],
       })
-      .orderBy('booking.departure_date', 'ASC')
+      .orderBy('booking.departureDate', 'ASC')
       .getMany();
   }
 
   /**
    * Geçmiş yolculuklar (müşteri için)
+   * REFACTORED: departure_date → departureDate
    */
   async getPastByEmail(email: string): Promise<Booking[]> {
     const today = new Date();
@@ -405,8 +418,8 @@ export class BookingsService {
     return this.bookingsRepository
       .createQueryBuilder('booking')
       .where('booking.customerEmail = :email', { email })
-      .andWhere('booking.departure_date < :today', { today })
-      .orderBy('booking.departure_date', 'DESC')
+      .andWhere('booking.departureDate < :today', { today })
+      .orderBy('booking.departureDate', 'DESC')
       .getMany();
   }
 }

@@ -6,10 +6,10 @@ export class CreateBookingDto {
   price: number;
   promoCode?: string;
   
-  // YENİ ALANLAR
-  departure_date?: string;
-  departure_time?: string;
-  arrival_time?: string;
-  train_number?: string;
+  // Journey details - camelCase
+  departureDate?: string;
+  departureTime?: string;
+  arrivalTime?: string;
+  trainNumber?: string;
   operator?: string;
 }

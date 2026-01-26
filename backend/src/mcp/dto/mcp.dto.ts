@@ -50,10 +50,10 @@ export class SearchTrainsInput {
 
 export interface SearchTrainsOffer {
   offer_ref: string;
-  departure: string;       // "08:15"
-  arrival: string;         // "10:30"
-  departure_datetime: string;  // ISO
-  arrival_datetime: string;    // ISO
+  departure: string;
+  arrival: string;
+  departure_datetime: string;
+  arrival_datetime: string;
   duration_minutes: number;
   operator: string;
   train_number: string;
@@ -65,7 +65,7 @@ export interface SearchTrainsOffer {
   seats_available: boolean;
   is_refundable: boolean;
   is_exchangeable: boolean;
-  offer_expires_at: string;  // ISO
+  offer_expires_at: string;
 }
 
 export interface SearchTrainsOutput {
@@ -82,7 +82,7 @@ export interface SearchTrainsOutput {
   };
   offers: SearchTrainsOffer[];
   offers_count: number;
-  search_expires_at: string;  // ISO
+  search_expires_at: string;
   trace_id: string;
   error?: string;
 }
@@ -104,77 +104,61 @@ export class GetOfferDetailsInput {
   trace_id: string;
 }
 
-export interface RefundPolicy {
-  refundable: boolean;
-  conditions: string;
-  fee?: {
-    amount: number;
-    currency: string;
-  };
-}
-
-export interface ExchangePolicy {
-  exchangeable: boolean;
-  conditions: string;
-  fee?: {
-    amount: number;
-    currency: string;
-  };
-}
-
-export interface BaggageInfo {
-  included: string;
-  max_weight_kg?: number;
-  restrictions?: string[];
-}
-
-export interface BoardingInfo {
-  check_in_minutes: number;
-  documents_required: string[];
-  special_instructions?: string;
-}
-
 export interface GetOfferDetailsOutput {
   success: boolean;
   offer_ref: string;
-  
+
   journey: {
     origin: string;
+    origin_code: string;
     destination: string;
-    date: string;
+    destination_code: string;
     departure: string;
     arrival: string;
     duration_minutes: number;
+    departure_formatted: string;
+    arrival_formatted: string;
+    date_formatted: string;
   };
-  
+
   train: {
     operator: string;
-    operator_logo?: string;
+    operator_name: string;
     train_number: string;
-    train_type?: string;
+    train_type: string;
   };
-  
-  class_info: {
-    name: string;
+
+  class: {
     code: string;
+    name: string;
     amenities: string[];
   };
-  
-  refund_policy: RefundPolicy;
-  exchange_policy: ExchangePolicy;
-  baggage: BaggageInfo;
-  boarding: BoardingInfo;
-  
-  price_breakdown: {
+
+  pricing: {
     ticket_price: number;
+    ticket_total: number;
     service_fee: number;
-    total: number;
+    total_price: number;
     currency: string;
     per_passenger: number;
-    passengers: number;
+    passenger_count: number;
   };
-  
-  offer_valid_until: string;  // ISO
+
+  rules: {
+    is_refundable: boolean;
+    is_exchangeable: boolean;
+    refund_conditions: string;
+    exchange_conditions: string;
+    baggage: string;
+  };
+
+  boarding: {
+    check_in_minutes: number;
+    documents_required: string[];
+    boarding_info: string[];
+  };
+
+  offer_expires_at: string;
   trace_id: string;
   error?: string;
 }
@@ -218,15 +202,7 @@ export interface CreateSessionOutput {
   success: boolean;
   session_token: string;
   checkout_url: string;
-  
-  price_summary: {
-    ticket_total: number;
-    service_fee: number;
-    grand_total: number;
-    currency: string;
-    passengers: number;
-  };
-  
+
   journey_summary: {
     route: string;
     date: string;
@@ -235,12 +211,20 @@ export interface CreateSessionOutput {
     train_number: string;
     class: string;
   };
-  
-  session_expires_at: string;  // ISO
+
+  pricing_summary: {
+    ticket_price: number;
+    service_fee: number;
+    total_price: number;
+    currency: string;
+    passengers: string;
+  };
+
+  session_expires_at: string;
   remaining_seconds: number;
-  
+
   next_steps: string[];
-  
+
   trace_id: string;
   error?: string;
 }
@@ -260,21 +244,14 @@ export class GetBookingStatusInput {
 
 export interface GetBookingStatusOutput {
   success: boolean;
-  
   booking_reference: string;
-  status: 'PENDING_PAYMENT' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'REFUNDED';
-  
-  journey: {
-    route: string;
-    date: string;
-    departure_time: string;
-  };
-  
-  tickets_available: boolean;
-  download_url?: string;  // Only if confirmed
-  
-  next_action?: string;
-  
+  pnr?: string;
+  status: string;
+  journey: any;
+  travelers?: any[];
+  pricing?: any;
+  ticket_url?: string;
+  created_at?: string;
   trace_id: string;
   error?: string;
 }

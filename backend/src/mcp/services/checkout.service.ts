@@ -90,7 +90,6 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 export class CheckoutService {
   private readonly logger = new Logger(CheckoutService.name);
 
-  // Payment-Session link storage (in-memory, Redis'e taşınacak)
   private paymentSessionLinks: Map<string, string> = new Map();
 
   constructor(
@@ -108,7 +107,6 @@ export class CheckoutService {
     
     this.logger.log(`Initiating payment for session: ${session_token}`);
 
-    // 1. Get and validate session
     const session = this.sessionCache.getSession(session_token);
     if (!session) {
       return {
@@ -118,7 +116,6 @@ export class CheckoutService {
       };
     }
 
-    // 2. Validate session status
     if (session.status === 'PAYMENT_INITIATED') {
       return {
         success: false,
@@ -135,7 +132,6 @@ export class CheckoutService {
       };
     }
 
-    // 3. Validate travelers
     if (!session.travelers || session.travelers.length === 0) {
       return {
         success: false,
@@ -153,7 +149,6 @@ export class CheckoutService {
       };
     }
 
-    // Validate lead traveler has email and phone
     const leadTraveler = session.travelers.find(t => t.type === 'adult');
     if (!leadTraveler?.email || !leadTraveler?.phone) {
       return {
@@ -164,16 +159,11 @@ export class CheckoutService {
     }
 
     try {
-      // 4. Generate unique order ID
       const orderId = this.generateOrderId();
-      
-      // 5. Create ERA booking (prebook) - Mock for now
       const eraBookingId = await this.createEraBooking(session);
       
-      // 6. Mark session as payment initiated
       this.sessionCache.markPaymentInitiated(session_token, eraBookingId);
 
-      // 7. Create payment record
       const paymentResult = await this.paymentService.initiatePayment({
         orderId,
         bookingId: 0,
@@ -185,7 +175,6 @@ export class CheckoutService {
       }, customer_ip);
 
       if (!paymentResult.success) {
-        // Rollback session status
         const sess = this.sessionCache.getSession(session_token);
         if (sess) sess.status = 'TRAVELERS_ADDED';
         
@@ -196,7 +185,6 @@ export class CheckoutService {
         };
       }
 
-      // 8. Store session token in payment metadata for callback
       this.paymentSessionLinks.set(orderId, session_token);
 
       this.logger.log(`Payment initiated: order=${orderId}, payment=${paymentResult.paymentId}, session=${session_token}`);
@@ -210,7 +198,7 @@ export class CheckoutService {
       };
 
     } catch (error) {
-      this.logger.error(`Payment initiation failed: ${error.message}`, error.stack);
+      this.logger.error(`Payment initiation failed: ${(error as Error).message}`, (error as Error).stack);
       
       const sess = this.sessionCache.getSession(session_token);
       if (sess) sess.status = 'TRAVELERS_ADDED';
@@ -233,7 +221,6 @@ export class CheckoutService {
     this.logger.log(`Payment callback: order=${order_id}, code=${response_code}`);
 
     try {
-      // 1. Get payment record
       const payment = await this.paymentService.getPaymentByOrderId(order_id);
       if (!payment) {
         this.logger.error(`Payment not found for order: ${order_id}`);
@@ -244,11 +231,9 @@ export class CheckoutService {
         };
       }
 
-      // 2. Get session token from payment link
       const sessionToken = this.paymentSessionLinks.get(order_id);
       const session = sessionToken ? this.sessionCache.getSession(sessionToken) : null;
 
-      // 3. Check payment result
       const isSuccess = response_code === '00';
 
       if (isSuccess) {
@@ -258,11 +243,11 @@ export class CheckoutService {
       }
 
     } catch (error) {
-      this.logger.error(`Payment callback error: ${error.message}`, error.stack);
+      this.logger.error(`Payment callback error: ${(error as Error).message}`, (error as Error).stack);
       return {
         success: false,
         redirect_url: `${FRONTEND_URL}/payment/error?message=İşlem+sırasında+hata+oluştu`,
-        error_message: error.message,
+        error_message: (error as Error).message,
       };
     }
   }
@@ -280,17 +265,15 @@ export class CheckoutService {
     this.logger.log(`Completing booking for payment: ${payment.id}`);
 
     try {
-      // 1. Confirm ERA booking (mock for now)
       const eraConfirmation = await this.confirmEraBooking(session?.era_booking_id);
 
-      // 2. Generate booking reference
       const bookingReference = this.generateBookingReference();
       const pnr = this.generatePnr();
 
-      // 3. Create booking record in database
       let booking: Booking;
 
       if (session) {
+        // REFACTORED: camelCase kullan
         booking = await this.bookingsService.createFromSession({
           bookingReference,
           pnr,
@@ -303,16 +286,16 @@ export class CheckoutService {
           toStation: session.destination_name,
           fromStationCode: session.origin_code,
           toStationCode: session.destination_code,
-          departure_date: session.departure,
-          departure_time: this.extractTime(session.departure),
-          arrival_time: this.extractTime(session.arrival),
-          train_number: session.train_number,
+          departureDate: session.departure,
+          departureTime: this.extractTime(session.departure),
+          arrivalTime: this.extractTime(session.arrival),
+          trainNumber: session.train_number,
           operator: session.operator,
-          ticket_class: session.comfort_class,
+          ticketClass: session.comfort_class,
           adults: session.adults,
           children: session.children,
           travelersData: session.travelers,
-          price: session.base_price * (session.adults + session.children),
+          ticketPrice: session.base_price * (session.adults + session.children),
           serviceFee: session.service_fee,
           totalPrice: session.total_price,
           currency: session.currency,
@@ -322,11 +305,11 @@ export class CheckoutService {
           paymentMethod: 'credit_card',
           sessionToken: session.session_token,
           traceId: session.trace_id,
-          era_booking_reference: session.era_booking_id,
-          era_pnr: eraConfirmation?.pnr,
+          eraBookingId: session.era_booking_id,
+          eraPnr: eraConfirmation?.pnr,
         });
       } else {
-        // Fallback - create minimal booking
+        // REFACTORED: camelCase kullan
         booking = await this.bookingsService.createFromSession({
           bookingReference,
           pnr,
@@ -334,15 +317,15 @@ export class CheckoutService {
           customerEmail: payment.customerEmail || '',
           fromStation: 'Unknown',
           toStation: 'Unknown',
-          departure_date: new Date(),
-          departure_time: '00:00',
-          arrival_time: '00:00',
-          train_number: '',
+          departureDate: new Date().toISOString(),
+          departureTime: '00:00',
+          arrivalTime: '00:00',
+          trainNumber: '',
           operator: '',
-          ticket_class: 'standard',
+          ticketClass: 'standard',
           adults: 1,
           children: 0,
-          price: Number(payment.amount),
+          ticketPrice: Number(payment.amount),
           serviceFee: 0,
           totalPrice: Number(payment.amount),
           currency: payment.currency || 'EUR',
@@ -350,12 +333,10 @@ export class CheckoutService {
         });
       }
 
-      // 4. Mark session as completed
       if (session) {
         this.sessionCache.markCompleted(session.session_token);
       }
 
-      // 5. Send confirmation email (async)
       this.sendConfirmationEmail(booking).catch(err => {
         this.logger.error(`Failed to send confirmation email: ${err.message}`);
       });
@@ -369,7 +350,7 @@ export class CheckoutService {
       };
 
     } catch (error) {
-      this.logger.error(`Complete booking failed: ${error.message}`, error.stack);
+      this.logger.error(`Complete booking failed: ${(error as Error).message}`, (error as Error).stack);
       
       return {
         success: false,
@@ -392,17 +373,14 @@ export class CheckoutService {
     this.logger.warn(`Payment failed: ${payment.id}, code: ${callbackInput.response_code}`);
 
     try {
-      // 1. Cancel ERA booking if exists
       if (session?.era_booking_id) {
         await this.cancelEraBooking(session.era_booking_id);
       }
 
-      // 2. Mark session as failed (allow retry)
       if (session) {
         session.status = 'TRAVELERS_ADDED';
       }
 
-      // 3. Get user-friendly error message
       const errorMessage = this.getPaymentErrorMessage(callbackInput.response_code);
 
       return {
@@ -412,11 +390,11 @@ export class CheckoutService {
       };
 
     } catch (error) {
-      this.logger.error(`Handle failed payment error: ${error.message}`);
+      this.logger.error(`Handle failed payment error: ${(error as Error).message}`);
       return {
         success: false,
         redirect_url: `${FRONTEND_URL}/payment/error?message=${encodeURIComponent(callbackInput.response_msg || 'Ödeme başarısız')}`,
-        error_message: error.message,
+        error_message: (error as Error).message,
       };
     }
   }
@@ -430,6 +408,7 @@ export class CheckoutService {
 
     if (!booking) return null;
 
+    // REFACTORED: camelCase kullan
     return {
       booking_reference: booking.bookingReference,
       pnr: booking.pnr || '',
@@ -437,22 +416,22 @@ export class CheckoutService {
       journey: {
         origin: booking.fromStation,
         destination: booking.toStation,
-        departure: booking.departure_date?.toString() || '',
-        arrival: booking.arrival_time || '',
+        departure: booking.departureDate?.toString() || '',
+        arrival: booking.arrivalTime || '',
         operator: booking.operator || '',
-        train_number: booking.train_number || '',
+        train_number: booking.trainNumber || '',
       },
       travelers: (booking.travelersData || []).map((t: TravelerData) => ({
         name: `${t.first_name} ${t.last_name}`,
         type: t.type,
       })),
       pricing: {
-        ticket_price: Number(booking.price),
+        ticket_price: Number(booking.ticketPrice),
         service_fee: Number(booking.serviceFee || 0),
-        total_paid: Number(booking.totalPrice || booking.price),
+        total_paid: Number(booking.totalPrice),
         currency: booking.currency || 'EUR',
       },
-      ticket_url: booking.ticket_pdf_url,
+      ticket_url: booking.ticketPdfUrl,
       created_at: booking.createdAt.toISOString(),
     };
   }
