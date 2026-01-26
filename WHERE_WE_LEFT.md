@@ -1,186 +1,209 @@
-# EuroTrain - Where We Left Off
+# 🚂 EUROTRAIN - NEREDE KALDIK
 
-> **Last Session:** 2025-01-26  
-> **Status:** MCP v2.0 Architecture Complete
-
----
-
-## 🎯 Bu Oturumda Yapılanlar
-
-### MCP Server v2.0 - Dünya Standartlarında Yeniden Tasarım
-
-1. **Mimari Kararlar**
-   - In-memory cache (Redis yerine, MVP için yeterli)
-   - Prebook at payment (checkout'ta değil, hayalet rezervasyon riski yok)
-   - 4 tool only (minimal surface area)
-   - Offer reference hashing (ERA internals gizli)
-
-2. **Yeni Dosya Yapısı**
-   ```
-   backend/src/mcp/
-   ├── mcp.module.ts
-   ├── mcp.controller.ts
-   ├── services/
-   │   ├── offer-cache.service.ts    # 15 dk TTL
-   │   └── session-cache.service.ts  # 30 dk TTL
-   └── dto/
-       └── mcp.dto.ts                # Type-safe I/O
-   ```
-
-3. **4 Tool Implementasyonu**
-   - `search-trains` - Sefer arama, offer caching
-   - `get-offer-details` - Kurallar, fiyat dökümü, bagaj, biniş bilgisi
-   - `create-booking-session` - Checkout URL, idempotency desteği
-   - `get-booking-status` - Rezervasyon durumu sorgulama
-
-4. **Güvenlik Önlemleri**
-   - PII redaction (log'larda maskeleme)
-   - Rate limiting (30 req/min per IP)
-   - Trace ID her istekte zorunlu
-   - Input validation (regex patterns)
-   - Idempotency key desteği
-
-5. **Dokümantasyon**
-   - `MCP_ARCHITECTURE.md` - Tam mimari dokümantasyonu
-   - `STRATEGIC_ROADMAP.md` - Güncellenmiş yol haritası
+**Son Güncelleme:** 26 Ocak 2026, 12:45
+**Git Branch:** main
+**Son Commit:** `2cebe9c` - feat(checkout): Session-based checkout v4 - MCP flow complete
 
 ---
 
-## 📁 Oluşturulan Dosyalar
+## ✅ BU OTURUMDA TAMAMLANAN
 
-| Dosya | Açıklama | Durum |
-|-------|----------|-------|
-| `mcp.module.ts` | NestJS modül tanımı | ✅ Hazır |
-| `mcp.controller.ts` | 4 tool endpoint | ✅ Hazır |
-| `offer-cache.service.ts` | Offer caching (15 dk TTL) | ✅ Hazır |
-| `session-cache.service.ts` | Session caching (30 dk TTL) | ✅ Hazır |
-| `mcp.dto.ts` | Type-safe DTO'lar | ✅ Hazır |
-| `MCP_ARCHITECTURE.md` | Mimari dokümantasyonu | ✅ Hazır |
-| `STRATEGIC_ROADMAP.md` | Yol haritası | ✅ Hazır |
+### MCP v2.0 → Checkout v4 Tam Entegrasyon
+- [x] MCP v2.0 Architecture (4 tool) tamamlandı
+- [x] Session-based checkout page (`/checkout/[session]`)
+- [x] `mcp-client.ts` frontend API client
+- [x] Session extend endpoint (`POST /mcp/tools/session/:token/extend`)
+- [x] 30 dakika countdown timer
+- [x] Traveler forms (accordion, passport desteği)
+- [x] Promo code support (EUROTRAIN10, WELCOME20)
+- [x] Success screen (PDF, takvim, kopyala, paylaş)
+- [x] Full MCP flow test başarılı
 
----
-
-## ⏳ Bekleyen İşler
-
-### Hemen Yapılacak
-1. **Dosyaları projeye kopyala** - `/home/claude/mcp-v4/` → proje
-2. **TypeScript derlemesi test et**
-3. **Endpoint'leri Postman/curl ile test et**
-
-### Sonraki Adımlar
-1. **Checkout Page v4** - Session-based (`/checkout/[session]`)
-2. **ERA Sandbox Credentials** - Rail Europe'dan talep et
-3. **Production deployment** - Railway.app + Sentry
+### MCP Akış Testi ✅
+```
+search-trains → get-offer-details → create-booking-session → /checkout/sess_xxx → Success
+```
 
 ---
 
-## 🔧 Kurulum Talimatları
+## 🎯 MCP v2.0 DURUMU
 
+### 4 Core Tools
+| Tool | Durum | Açıklama |
+|------|-------|----------|
+| search-trains | ✅ 100% | Offer caching, rate limiting |
+| get-offer-details | ✅ 100% | Rules, pricing, baggage |
+| create-booking-session | ✅ 100% | Idempotency, 30 min TTL |
+| get-booking-status | 🟡 50% | DB integration bekleniyor |
+
+### MCP Infrastructure
+| Özellik | Durum |
+|---------|-------|
+| Offer Cache (15 min TTL) | ✅ |
+| Session Cache (30 min TTL) | ✅ |
+| PII Redaction | ✅ |
+| Rate Limiting (30/min) | ✅ |
+| Trace ID Support | ✅ |
+| Idempotency Keys | ✅ |
+
+---
+
+## 📋 ÖNCEKİ OTURUMLARDA TAMAMLANAN
+
+### Search Results Page v2 (25 Ocak)
+- [x] Accordion/Expandable Cards
+- [x] 3 Class karşılaştırma (Standart, Business, First)
+- [x] Quick time filters
+- [x] Detaylı filtre paneli
+- ⚠️ **BUG:** Slider sürükleme çalışmıyor
+
+### Booking Page v2 (25 Ocak)
+- [x] Yolcu bilgileri formu
+- [x] Koşulları kabul checkbox
+- [x] Success ekranı
+- [x] PDF/Takvim/Paylaş butonları
+
+### Backend ERA API (24 Ocak)
+- [x] ERA API types & interfaces
+- [x] Mock service (3 class destekli)
+- [x] Search, booking, refund services
+
+---
+
+## 🗂️ DOSYA YAPISI (Güncel)
+
+```
+backend/src/
+├── mcp/
+│   ├── mcp.controller.ts            ✅ 4 tools + session endpoints
+│   ├── mcp.module.ts                ✅
+│   ├── dto/mcp.dto.ts               ✅
+│   ├── services/
+│   │   ├── offer-cache.service.ts   ✅ 15 min TTL
+│   │   └── session-cache.service.ts ✅ 30 min TTL
+│   └── docs/
+│       ├── MCP_OVERVIEW.md          ✅
+│       ├── TOOL_SEARCH_TRAINS.md    ✅
+│       ├── TOOL_GET_OFFER.md        ✅
+│       ├── TOOL_CREATE_SESSION.md   ✅
+│       └── TOOL_BOOKING_STATUS.md   ✅
+├── era/
+│   ├── services/                    ✅ Auth, places, search, booking
+│   └── mock/era-mock.service.ts     ✅
+
+frontend/
+├── lib/api/
+│   ├── era-client.ts                ✅
+│   └── mcp-client.ts                ✅ NEW - Session API
+├── app/
+│   ├── page.tsx                     ✅ Homepage
+│   ├── search/page.tsx              ✅ v2 + Filters
+│   ├── booking/page.tsx             ✅ v2 + Terms
+│   └── checkout/
+│       └── [session]/page.tsx       ✅ NEW - Session checkout
+└── components/                      ✅
+```
+
+---
+
+## 🧪 TEST KOMUTLARI
+
+### Backend Başlat
 ```powershell
-# 1. MCP modülünü kopyala
-New-Item -ItemType Directory -Force -Path "C:\dev\eurotrain-b2c-app\backend\src\mcp\services"
-New-Item -ItemType Directory -Force -Path "C:\dev\eurotrain-b2c-app\backend\src\mcp\dto"
-
-# 2. Dosyaları indir ve kopyala (Downloads klasöründen)
-Copy-Item "$env:USERPROFILE\Downloads\mcp.module.ts" "C:\dev\eurotrain-b2c-app\backend\src\mcp\" -Force
-Copy-Item "$env:USERPROFILE\Downloads\mcp.controller.ts" "C:\dev\eurotrain-b2c-app\backend\src\mcp\" -Force
-Copy-Item "$env:USERPROFILE\Downloads\offer-cache.service.ts" "C:\dev\eurotrain-b2c-app\backend\src\mcp\services\" -Force
-Copy-Item "$env:USERPROFILE\Downloads\session-cache.service.ts" "C:\dev\eurotrain-b2c-app\backend\src\mcp\services\" -Force
-Copy-Item "$env:USERPROFILE\Downloads\mcp.dto.ts" "C:\dev\eurotrain-b2c-app\backend\src\mcp\dto\" -Force
-
-# 3. app.module.ts'de McpModule'ü import et
-# imports: [..., McpModule]
-
-# 4. Test et
+docker start eurotrain-db
 cd C:\dev\eurotrain-b2c-app\backend
 npm run start:dev
 ```
 
----
+### Frontend Başlat
+```powershell
+cd C:\dev\eurotrain-b2c-app\frontend
+npm run dev
+```
 
-## 🧪 Test Komutları
+### MCP Full Flow Test
+```powershell
+# 1. Search
+$body = @{
+    origin = "FRPNO"
+    destination = "GBSTP"
+    date = "2025-02-15"
+    passengers = @{ adults = 2; children = 0 }
+    trace_id = "test_flow"
+} | ConvertTo-Json
 
-```bash
-# 1. Search Trains
-curl -X POST http://localhost:3001/mcp/tools/search-trains \
-  -H "Content-Type: application/json" \
-  -d '{
-    "origin": "FRPAR",
-    "destination": "GBLST",
-    "date": "2025-02-15",
-    "passengers": { "adults": 2, "children": 0 },
-    "trace_id": "test_001"
-  }'
+$search = Invoke-RestMethod -Uri "http://localhost:3001/mcp/tools/search-trains" -Method POST -Body $body -ContentType "application/json"
 
-# 2. Get Offer Details (offer_ref'i search'ten al)
-curl -X POST http://localhost:3001/mcp/tools/get-offer-details \
-  -H "Content-Type: application/json" \
-  -d '{
-    "offer_ref": "offer_xxx",
-    "search_id": "search_xxx",
-    "trace_id": "test_002"
-  }'
+# 2. Create Session
+$sessionBody = @{
+    offer_ref = $search.offers[0].offer_ref
+    search_id = $search.search_id
+    passengers = @{ adults = 2; children = 0 }
+    trace_id = "test_flow"
+} | ConvertTo-Json
 
-# 3. Create Booking Session
-curl -X POST http://localhost:3001/mcp/tools/create-booking-session \
-  -H "Content-Type: application/json" \
-  -d '{
-    "offer_ref": "offer_xxx",
-    "search_id": "search_xxx",
-    "passengers": { "adults": 2, "children": 0 },
-    "trace_id": "test_003"
-  }'
+$session = Invoke-RestMethod -Uri "http://localhost:3001/mcp/tools/create-booking-session" -Method POST -Body $sessionBody -ContentType "application/json"
+
+# 3. Open Checkout
+Start-Process "http://localhost:3000/checkout/$($session.session_token)"
 ```
 
 ---
 
-## 📊 MCP Tool Özeti
+## 🐛 BİLİNEN BUGLAR
 
-| Tool | Input | Output | TTL |
-|------|-------|--------|-----|
-| search-trains | origin, destination, date, passengers | offer_refs, prices | 15 dk |
-| get-offer-details | offer_ref, search_id | rules, baggage, pricing | - |
-| create-booking-session | offer_ref, passengers | checkout_url, session_token | 30 dk |
-| get-booking-status | booking_reference | status, tickets_available | - |
+| Bug | Durum | Öncelik |
+|-----|-------|---------|
+| Search slider sürükleme | Açık | Düşük |
 
 ---
 
-## ⚠️ Önemli Notlar
+## 🔧 SONRAKİ OTURUMDA YAPILACAK
 
-1. **ERA API Sandbox Yok** - Mock mode ile çalışıyoruz
-2. **Prebook Zamanlaması** - Ödeme butonuna tıklandığında yapılacak
-3. **PII Güvenliği** - Log'larda asla tam isim/email görünmemeli
-4. **Idempotency** - Aynı istek tekrarında aynı session dönmeli
+### Öncelik 1: Deployment Hazırlığı
+- [ ] Railway.app backend deployment
+- [ ] Sentry.io hata izleme
+- [ ] BetterUptime monitoring
+- [ ] Environment variables
+
+### Öncelik 2: Legal Sayfalar
+- [ ] /terms - Satış Koşulları
+- [ ] /privacy - Gizlilik Politikası  
+- [ ] /cancellation - İptal/İade Koşulları
+
+### Öncelik 3: My Trips
+- [ ] /my-trips sayfası
+- [ ] Rezervasyon listesi (DB'den)
+- [ ] PDF gerçek indirme (pdfkit)
+
+### Öncelik 4: ERA API Sandbox
+- [ ] Rail Europe credentials al
+- [ ] Mock → Real API geçişi
 
 ---
 
-## 📝 Instructions'a Eklenenler
+## 📊 PROGRESS OVERVIEW
 
-```markdown
-## MCP GÜVENLİK KURALLARI
+```
+[██████████████████░░] 90%
 
-### PII Politikası:
-- Log'larda email maskelenmeli: `j***@email.com`
-- Pasaport numarası asla log'lanmaz
-- Tool output'larında minimum veri prensibi
-
-### Tool Çağrı Kuralları:
-- Her çağrıda trace_id zorunlu
-- Timeout: 30 saniye
-- Retry: Max 2 kez, exponential backoff
-- Rate limit aşımında: "Lütfen biraz bekleyin" mesajı
-
-### Fail-Safe Davranış:
-- Tool hata verirse: Asla "rezervasyon yapıldı" deme
-- API down ise: "Şu an sorgulama yapamıyorum, lütfen tekrar deneyin"
-- Fiyat tutarsızlığında: "Fiyatlar değişmiş olabilir, checkout'ta güncel fiyatı göreceksiniz"
+✅ Core Platform      - 95%
+✅ MCP v2.0           - 100%
+✅ Checkout Flow      - 100%
+🟡 Deployment         - 0%
+🟡 Legal Pages        - 0%
+🟡 ERA Integration    - 0% (waiting credentials)
 ```
 
 ---
 
-## 🔗 Sonraki Oturum İçin
+## 🔗 ÖNEMLİ LİNKLER
 
-1. Dosyaları projeye kopyala ve test et
-2. Checkout page v4 (session-based) oluştur
-3. Git commit + push
-4. ERA sandbox credentials takibi
+- **GitHub:** https://github.com/odamigo/eurotrain-b2c-app
+- **Localhost Frontend:** http://localhost:3000
+- **Localhost Backend:** http://localhost:3001
+- **MCP Endpoint:** http://localhost:3001/mcp/tools/
+
+---
+
+**Sorun mu var?** Bu dosyayı oku, test komutlarını çalıştır.
