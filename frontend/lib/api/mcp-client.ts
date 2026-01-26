@@ -1,6 +1,6 @@
 // ============================================================
 // MCP API Client for Frontend
-// EuroTrain B2C Platform - Session-based Checkout
+// EuroTrain B2C Platform - Session-based Checkout with Payment
 // ============================================================
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -63,8 +63,44 @@ export interface PromoResult {
   new_total: number;
 }
 
+export interface InitiatePaymentResult {
+  success: boolean;
+  payment_url?: string;
+  payment_id?: string;
+  order_id?: string;
+  expires_at?: string;
+  error_code?: string;
+  error_message?: string;
+}
+
+export interface BookingData {
+  booking_reference: string;
+  pnr: string;
+  status: string;
+  journey: {
+    origin: string;
+    destination: string;
+    departure: string;
+    arrival: string;
+    operator: string;
+    train_number: string;
+  };
+  travelers: Array<{
+    name: string;
+    type: string;
+  }>;
+  pricing: {
+    ticket_price: number;
+    service_fee: number;
+    total_paid: number;
+    currency: string;
+  };
+  ticket_url?: string;
+  created_at: string;
+}
+
 // ============================================================
-// API FUNCTIONS
+// SESSION API FUNCTIONS
 // ============================================================
 
 /**
@@ -137,7 +173,7 @@ export async function applyPromoCode(
 }
 
 /**
- * Session'ı extend et (kullanıcı aktif olduğunda)
+ * Session'ı extend et
  */
 export async function extendSession(sessionToken: string): Promise<{ success: boolean }> {
   const response = await fetch(`${API_URL}/mcp/tools/session/${sessionToken}/extend`, {
@@ -152,12 +188,80 @@ export async function extendSession(sessionToken: string): Promise<{ success: bo
 }
 
 // ============================================================
-// HELPER FUNCTIONS
+// PAYMENT API FUNCTIONS
 // ============================================================
 
 /**
- * Comfort class'ı Türkçe'ye çevir
+ * Ödeme başlat
+ * Başarılı olursa payment_url'e yönlendir
  */
+export async function initiatePayment(sessionToken: string): Promise<InitiatePaymentResult> {
+  const response = await fetch(`${API_URL}/mcp/tools/session/${sessionToken}/initiate-payment`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  
+  const data = await response.json();
+  
+  if (!response.ok) {
+    return {
+      success: false,
+      error_code: data.error_code || 'PAYMENT_ERROR',
+      error_message: data.error_message || 'Ödeme başlatılamadı',
+    };
+  }
+  
+  return data;
+}
+
+/**
+ * Rezervasyon bilgilerini getir (ödeme sonrası)
+ */
+export async function getBooking(reference: string): Promise<BookingData | null> {
+  const response = await fetch(`${API_URL}/mcp/tools/booking/${reference}`);
+  
+  if (!response.ok) {
+    return null;
+  }
+  
+  const data = await response.json();
+  return data.booking;
+}
+
+/**
+ * Rezervasyonu referans numarası ile ara
+ */
+export async function searchBookingByReference(reference: string): Promise<BookingData | null> {
+  const response = await fetch(`${API_URL}/bookings/reference/${reference}`);
+  
+  if (!response.ok) {
+    return null;
+  }
+  
+  const data = await response.json();
+  return data.booking;
+}
+
+/**
+ * E-posta ile rezervasyonları listele
+ */
+export async function getBookingsByEmail(email: string): Promise<BookingData[]> {
+  const response = await fetch(`${API_URL}/bookings/email/${email}`);
+  
+  if (!response.ok) {
+    return [];
+  }
+  
+  const data = await response.json();
+  return data.bookings || [];
+}
+
+// ============================================================
+// HELPER FUNCTIONS
+// ============================================================
+
 export function getComfortLabel(code: string): string {
   const labels: Record<string, string> = {
     standard: 'Standart',
@@ -167,9 +271,6 @@ export function getComfortLabel(code: string): string {
   return labels[code] || 'Standart';
 }
 
-/**
- * Comfort class config
- */
 export function getComfortConfig(code: string): {
   label: string;
   labelTr: string;
@@ -209,9 +310,6 @@ export function getComfortConfig(code: string): {
   return configs[code] || configs.standard;
 }
 
-/**
- * Operatör ismini düzelt
- */
 export function getOperatorName(code: string): string {
   const names: Record<string, string> = {
     EUROSTAR: 'Eurostar',
@@ -228,9 +326,6 @@ export function getOperatorName(code: string): string {
   return names[code?.toUpperCase()] || code;
 }
 
-/**
- * Uluslararası rota mı? (Pasaport gerekir)
- */
 export function isInternationalRoute(operator: string): boolean {
   const internationalOperators = ['EUROSTAR', 'THALYS', 'TGV LYRIA'];
   return internationalOperators.some(op => 
@@ -238,9 +333,6 @@ export function isInternationalRoute(operator: string): boolean {
   );
 }
 
-/**
- * Fiyat formatla
- */
 export function formatPrice(amount: number, currency: string = 'EUR'): string {
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
@@ -248,9 +340,6 @@ export function formatPrice(amount: number, currency: string = 'EUR'): string {
   }).format(amount);
 }
 
-/**
- * Saat formatla (ISO -> HH:MM)
- */
 export function formatTime(isoString: string): string {
   try {
     const date = new Date(isoString);
@@ -264,9 +353,6 @@ export function formatTime(isoString: string): string {
   }
 }
 
-/**
- * Tarih formatla (ISO -> Tam tarih)
- */
 export function formatDate(isoString: string): string {
   try {
     const date = new Date(isoString);
@@ -281,9 +367,19 @@ export function formatDate(isoString: string): string {
   }
 }
 
-/**
- * Kalan süreyi formatla
- */
+export function formatShortDate(isoString: string): string {
+  try {
+    const date = new Date(isoString);
+    return date.toLocaleDateString('tr-TR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  } catch {
+    return '';
+  }
+}
+
 export function formatRemainingTime(seconds: number): string {
   if (seconds <= 0) return 'Süre doldu';
   
@@ -294,4 +390,47 @@ export function formatRemainingTime(seconds: number): string {
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
   }
   return `${secs} saniye`;
+}
+
+export function getPaymentStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    pending: 'Bekliyor',
+    processing: 'İşleniyor',
+    completed: 'Tamamlandı',
+    failed: 'Başarısız',
+    refunded: 'İade Edildi',
+    partially_refunded: 'Kısmi İade',
+    cancelled: 'İptal Edildi',
+  };
+  return labels[status] || status;
+}
+
+export function getBookingStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    pending: 'Bekliyor',
+    confirmed: 'Onaylandı',
+    ticketed: 'Bilet Kesildi',
+    cancelled: 'İptal Edildi',
+    refunded: 'İade Edildi',
+    partially_refunded: 'Kısmi İade',
+    exchanged: 'Değiştirildi',
+    expired: 'Süresi Doldu',
+  };
+  return labels[status] || status;
+}
+
+export function getStatusColor(status: string): { bg: string; text: string } {
+  const colors: Record<string, { bg: string; text: string }> = {
+    pending: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
+    processing: { bg: 'bg-blue-100', text: 'text-blue-800' },
+    completed: { bg: 'bg-green-100', text: 'text-green-800' },
+    confirmed: { bg: 'bg-green-100', text: 'text-green-800' },
+    ticketed: { bg: 'bg-green-100', text: 'text-green-800' },
+    failed: { bg: 'bg-red-100', text: 'text-red-800' },
+    cancelled: { bg: 'bg-gray-100', text: 'text-gray-800' },
+    refunded: { bg: 'bg-purple-100', text: 'text-purple-800' },
+    partially_refunded: { bg: 'bg-orange-100', text: 'text-orange-800' },
+    expired: { bg: 'bg-gray-100', text: 'text-gray-800' },
+  };
+  return colors[status] || { bg: 'bg-gray-100', text: 'text-gray-800' };
 }

@@ -4,14 +4,18 @@ import {
   Get,
   Body,
   Param,
+  Query,
   Headers,
+  Req,
+  Res,
   HttpException,
   HttpStatus,
   Logger,
-  UseGuards,
 } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { OfferCacheService, CachedOffer } from './services/offer-cache.service';
 import { SessionCacheService, TravelerData } from './services/session-cache.service';
+import { CheckoutService } from './services/checkout.service';
 import { EraSearchService } from '../era/services/era-search.service';
 import {
   SearchTrainsInput,
@@ -39,8 +43,8 @@ interface RateLimitEntry {
 const rateLimitStore: Map<string, RateLimitEntry> = new Map();
 
 const RATE_LIMIT = {
-  maxRequests: 30,       // 30 requests
-  windowMs: 60 * 1000,   // per minute
+  maxRequests: 30,
+  windowMs: 60 * 1000,
 };
 
 function checkRateLimit(identifier: string): boolean {
@@ -87,6 +91,7 @@ export class McpController {
   constructor(
     private readonly offerCache: OfferCacheService,
     private readonly sessionCache: SessionCacheService,
+    private readonly checkoutService: CheckoutService,
     private readonly eraSearchService: EraSearchService,
   ) {}
 
@@ -105,7 +110,6 @@ export class McpController {
     this.logger.log(`[${traceId}] search-trains: ${input.origin} → ${input.destination}, ${input.date}`);
 
     try {
-      // Rate limit check
       const rateLimitKey = clientIp || 'anonymous';
       if (!checkRateLimit(rateLimitKey)) {
         return this.errorResponse(
@@ -116,7 +120,6 @@ export class McpController {
         );
       }
 
-      // Validate input
       if (!input.origin || !input.destination || !input.date) {
         return this.errorResponse(
           MCP_ERROR_CODES.INVALID_INPUT,
@@ -128,7 +131,6 @@ export class McpController {
       const adults = input.passengers?.adults || 1;
       const children = input.passengers?.children || 0;
 
-      // Call ERA search (mock or real)
       const searchResult = await this.eraSearchService.simpleSearch(
         input.origin,
         input.destination,
@@ -136,10 +138,7 @@ export class McpController {
         { adults, children }
       );
 
-      // Generate search ID
       const searchId = this.offerCache.generateSearchId();
-
-      // Transform and cache offers
       const offersToCache: Omit<CachedOffer, 'offer_ref' | 'created_at' | 'expires_at'>[] = [];
       
       if (searchResult?.offers && Array.isArray(searchResult.offers)) {
@@ -154,7 +153,6 @@ export class McpController {
           const departure = new Date(legSolution.departure);
           const arrival = new Date(legSolution.arrival);
 
-          // Parse duration from ISO 8601 format (e.g., "PT2H30M")
           const durationMinutes = this.parseDuration(legSolution.duration) || 
             Math.round((arrival.getTime() - departure.getTime()) / 60000);
 
@@ -187,10 +185,8 @@ export class McpController {
         }
       }
 
-      // Cache the search result
       const cachedSearch = this.offerCache.cacheSearchResult(searchId, offersToCache);
 
-      // Transform to output format (no PII, minimal data)
       const offers: SearchTrainsOffer[] = cachedSearch.offers.map(offer => ({
         offer_ref: offer.offer_ref,
         departure: this.formatTime(offer.departure),
@@ -205,7 +201,7 @@ export class McpController {
           currency: offer.currency,
         },
         comfort_class: offer.comfort_class,
-        seats_available: true,  // Don't expose actual count
+        seats_available: true,
         is_refundable: offer.is_refundable,
         is_exchangeable: offer.is_exchangeable,
         offer_expires_at: offer.expires_at.toISOString(),
@@ -254,94 +250,93 @@ export class McpController {
     this.logger.log(`[${traceId}] get-offer-details: ${input.offer_ref}`);
 
     try {
-      // Get offer from cache
-      const offer = this.offerCache.getOffer(input.offer_ref);
+      if (!input.offer_ref || !input.search_id) {
+        return this.errorResponse(
+          MCP_ERROR_CODES.INVALID_INPUT,
+          'Teklif referansı ve arama ID zorunludur.',
+          traceId
+        );
+      }
+
+      const offer = this.offerCache.getOffer(input.offer_ref, input.search_id);
       
       if (!offer) {
         return this.errorResponse(
           MCP_ERROR_CODES.OFFER_EXPIRED,
-          'Bu teklif süresi dolmuş veya bulunamadı. Lütfen yeni bir arama yapın.',
-          traceId,
-          'Offer not found or expired',
-          'search-trains ile yeni arama yapın'
+          'Teklif bulunamadı veya süresi dolmuş. Lütfen yeni bir arama yapın.',
+          traceId
         );
       }
 
-      // Calculate pricing
       const passengerCount = offer.adults + offer.children;
-      const ticketPrice = offer.price * passengerCount;
-      const serviceFee = Math.round(ticketPrice * 0.05 * 100) / 100;
-      const total = ticketPrice + serviceFee;
+      const ticketTotal = offer.price * passengerCount;
+      const serviceFee = Math.round(ticketTotal * 0.05 * 100) / 100;
+      const totalPrice = ticketTotal + serviceFee;
 
-      // Build response
-      const response: GetOfferDetailsOutput = {
+      return {
         success: true,
         offer_ref: offer.offer_ref,
         
         journey: {
           origin: offer.origin_name,
+          origin_code: offer.origin_code,
           destination: offer.destination_name,
-          date: offer.departure.split('T')[0],
-          departure: this.formatTime(offer.departure),
-          arrival: this.formatTime(offer.arrival),
+          destination_code: offer.destination_code,
+          departure: offer.departure,
+          arrival: offer.arrival,
           duration_minutes: offer.duration_minutes,
+          departure_formatted: this.formatTime(offer.departure),
+          arrival_formatted: this.formatTime(offer.arrival),
+          date_formatted: this.formatDate(offer.departure),
         },
         
         train: {
           operator: offer.operator,
+          operator_name: this.getOperatorName(offer.operator),
           train_number: offer.train_number,
           train_type: this.getTrainType(offer.operator),
         },
         
-        class_info: {
-          name: this.getClassName(offer.comfort_class),
+        class: {
           code: offer.comfort_class,
+          name: this.getClassName(offer.comfort_class),
           amenities: this.getAmenities(offer.comfort_class),
         },
         
-        refund_policy: {
-          refundable: offer.is_refundable,
-          conditions: offer.is_refundable
-            ? 'Kalkıştan 24 saat öncesine kadar tam iade yapılabilir.'
-            : 'Bu bilet iade edilemez.',
-          fee: offer.is_refundable ? undefined : { amount: 0, currency: offer.currency },
+        pricing: {
+          ticket_price: offer.price,
+          ticket_total: ticketTotal,
+          service_fee: serviceFee,
+          total_price: totalPrice,
+          currency: offer.currency,
+          per_passenger: offer.price,
+          passenger_count: passengerCount,
         },
         
-        exchange_policy: {
-          exchangeable: offer.is_exchangeable,
-          conditions: offer.is_exchangeable
-            ? 'Kalkıştan önce ücretsiz değişiklik yapılabilir.'
-            : 'Bu bilet değiştirilemez.',
-          fee: offer.is_exchangeable && !offer.is_refundable
-            ? { amount: 10, currency: 'EUR' }
-            : undefined,
-        },
-        
-        baggage: {
-          included: this.getBaggageInfo(offer.operator),
-          max_weight_kg: 30,
+        rules: {
+          is_refundable: offer.is_refundable,
+          is_exchangeable: offer.is_exchangeable,
+          refund_conditions: offer.is_refundable 
+            ? 'Kalkıştan 24 saat öncesine kadar ücretsiz iptal' 
+            : 'Bu bilet iade edilemez',
+          exchange_conditions: offer.is_exchangeable
+            ? 'Kalkıştan 2 saat öncesine kadar değiştirilebilir (fark ücreti uygulanabilir)'
+            : 'Bu bilet değiştirilemez',
+          baggage: this.getBaggageInfo(offer.operator),
         },
         
         boarding: {
           check_in_minutes: this.getCheckInTime(offer.operator),
           documents_required: this.getDocumentsRequired(offer.operator),
+          boarding_info: [
+            'E-bilet ile doğrudan trene binebilirsiniz',
+            'Kimlik belgesi yanınızda bulunmalıdır',
+          ],
         },
         
-        price_breakdown: {
-          ticket_price: ticketPrice,
-          service_fee: serviceFee,
-          total,
-          currency: offer.currency,
-          per_passenger: offer.price,
-          passengers: passengerCount,
-        },
-        
-        offer_valid_until: offer.expires_at.toISOString(),
+        offer_expires_at: offer.expires_at.toISOString(),
         trace_id: traceId,
       };
-
-      this.logger.log(`[${traceId}] get-offer-details completed`);
-      return response;
 
     } catch (error) {
       this.logger.error(`[${traceId}] get-offer-details error: ${error.message}`);
@@ -369,30 +364,38 @@ export class McpController {
     this.logger.log(`[${traceId}] create-booking-session: ${input.offer_ref}`);
 
     try {
-      // Get offer from cache
-      const offer = this.offerCache.getOffer(input.offer_ref);
+      if (!input.offer_ref || !input.search_id) {
+        return this.errorResponse(
+          MCP_ERROR_CODES.INVALID_INPUT,
+          'Teklif referansı ve arama ID zorunludur.',
+          traceId
+        );
+      }
+
+      const offer = this.offerCache.getOffer(input.offer_ref, input.search_id);
       
       if (!offer) {
         return this.errorResponse(
           MCP_ERROR_CODES.OFFER_EXPIRED,
-          'Bu teklif süresi dolmuş. Lütfen yeni bir arama yapın.',
-          traceId,
-          'Offer not found or expired',
-          'search-trains ile yeni arama yapın'
+          'Teklif bulunamadı veya süresi dolmuş. Lütfen yeni bir arama yapın.',
+          traceId
         );
       }
 
       const adults = input.passengers?.adults || offer.adults;
       const children = input.passengers?.children || offer.children;
 
-      // Create session with idempotency
-      const idempotencyKey = input.idempotency_key || 
-        this.sessionCache.generateIdempotencyKey(input.offer_ref, adults, children, traceId);
+      const idempotencyKey = this.sessionCache.generateIdempotencyKey(
+        input.offer_ref,
+        adults,
+        children,
+        traceId
+      );
 
       const session = this.sessionCache.createSession({
         offer_ref: offer.offer_ref,
         offer_location: offer.offer_location,
-        search_id: offer.search_id,
+        search_id: input.search_id,
         
         origin_code: offer.origin_code,
         origin_name: offer.origin_name,
@@ -405,7 +408,7 @@ export class McpController {
         comfort_class: offer.comfort_class,
         
         base_price: offer.price,
-        currency: input.currency || offer.currency,
+        currency: offer.currency,
         
         adults,
         children,
@@ -416,39 +419,38 @@ export class McpController {
         ip_address: clientIp,
       }, idempotencyKey);
 
-      // Build checkout URL
-      const baseUrl = process.env.FRONTEND_URL || 'https://eurotrain.net';
-      const checkoutUrl = `${baseUrl}/checkout/${session.session_token}`;
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const checkoutUrl = `${frontendUrl}/checkout/${session.session_token}`;
 
       const response: CreateSessionOutput = {
         success: true,
         session_token: session.session_token,
         checkout_url: checkoutUrl,
         
-        price_summary: {
-          ticket_total: session.base_price * (adults + children),
-          service_fee: session.service_fee,
-          grand_total: session.total_price,
-          currency: session.currency,
-          passengers: adults + children,
-        },
-        
         journey_summary: {
           route: `${session.origin_name} → ${session.destination_name}`,
           date: this.formatDate(session.departure),
           time: `${this.formatTime(session.departure)} - ${this.formatTime(session.arrival)}`,
           operator: session.operator,
-          train_number: session.train_number,
+          train: session.train_number,
           class: this.getClassName(session.comfort_class),
+        },
+        
+        pricing_summary: {
+          ticket_price: session.base_price,
+          service_fee: session.service_fee,
+          total_price: session.total_price,
+          currency: session.currency,
+          passengers: `${adults} yetişkin${children > 0 ? `, ${children} çocuk` : ''}`,
         },
         
         session_expires_at: session.expires_at.toISOString(),
         remaining_seconds: this.sessionCache.getSessionTTL(session.session_token),
         
         next_steps: [
-          'Checkout sayfasında yolcu bilgilerini doldurun',
-          'Koşulları kabul edin',
-          'Güvenli ödeme ile biletinizi alın',
+          'Yolcu bilgilerini doldurun',
+          'Ödeme bilgilerini girin',
+          'Rezervasyonu onaylayın',
           'E-bilet e-posta adresinize gönderilecek',
         ],
         
@@ -482,15 +484,28 @@ export class McpController {
     this.logger.log(`[${traceId}] get-booking-status: ${input.booking_reference}`);
 
     try {
-      // TODO: Implement actual booking lookup from database
-      // For now, return a mock response
+      const booking = await this.checkoutService.getBookingByReference(input.booking_reference);
       
-      return this.errorResponse(
-        MCP_ERROR_CODES.BOOKING_NOT_FOUND,
-        'Rezervasyon bulunamadı. Referans numarasını kontrol edin.',
-        traceId,
-        'Booking lookup not implemented in mock mode'
-      );
+      if (!booking) {
+        return this.errorResponse(
+          MCP_ERROR_CODES.BOOKING_NOT_FOUND,
+          'Rezervasyon bulunamadı. Referans numarasını kontrol edin.',
+          traceId
+        );
+      }
+
+      return {
+        success: true,
+        booking_reference: booking.booking_reference,
+        pnr: booking.pnr,
+        status: booking.status,
+        journey: booking.journey,
+        travelers: booking.travelers,
+        pricing: booking.pricing,
+        ticket_url: booking.ticket_url,
+        created_at: booking.created_at,
+        trace_id: traceId,
+      };
 
     } catch (error) {
       this.logger.error(`[${traceId}] get-booking-status error: ${error.message}`);
@@ -515,7 +530,6 @@ export class McpController {
       throw new HttpException('Session not found or expired', HttpStatus.NOT_FOUND);
     }
 
-    // Return session data (without sensitive fields)
     return {
       valid: true,
       session_token: session.session_token,
@@ -562,7 +576,6 @@ export class McpController {
       throw new HttpException('Session not found or expired', HttpStatus.NOT_FOUND);
     }
 
-    // Log with redacted PII
     const redactedTravelers = body.travelers.map(t => ({
       name: `${redactName(t.first_name)} ${redactName(t.last_name)}`,
       email: redactEmail(t.email || ''),
@@ -577,7 +590,6 @@ export class McpController {
     @Param('token') token: string,
     @Body() body: { promo_code: string },
   ): Promise<any> {
-    // Mock promo code validation
     let discount = 0;
     const code = body.promo_code?.toUpperCase();
     
@@ -610,12 +622,109 @@ export class McpController {
       throw new HttpException('Session not found or expired', HttpStatus.NOT_FOUND);
     }
 
-    this.logger.log(`Session extended: ${token}, new expiry: ${session.expires_at.toISOString()}`);
-
     return { 
       success: true, 
       new_expiry: session.expires_at.toISOString(),
       remaining_seconds: this.sessionCache.getSessionTTL(token),
+    };
+  }
+
+  // ============================================================
+  // PAYMENT ENDPOINTS (NEW)
+  // ============================================================
+
+  /**
+   * Initiate payment for a session
+   * Called when user clicks "Pay" button
+   */
+  @Post('session/:token/initiate-payment')
+  async initiatePayment(
+    @Param('token') token: string,
+    @Req() req: Request,
+  ): Promise<any> {
+    const customerIp = (req as any).ip || req.headers['x-forwarded-for'] || 'unknown';
+    
+    this.logger.log(`Initiating payment for session: ${token}`);
+
+    const result = await this.checkoutService.initiatePayment({
+      session_token: token,
+      customer_ip: customerIp as string,
+    });
+
+    if (!result.success) {
+      throw new HttpException(
+        { success: false, ...result },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    return result;
+  }
+
+  /**
+   * Payment callback handler
+   * Called by Payten after payment completion
+   */
+  @Get('payment/callback')
+  async handlePaymentCallbackGet(
+    @Query() query: any,
+    @Res() res: Response,
+  ): Promise<void> {
+    this.logger.log(`Payment callback GET: ${JSON.stringify(query)}`);
+
+    const result = await this.checkoutService.handlePaymentCallback({
+      order_id: query.merchantPaymentId || query.MERCHANTPAYMENTID || query.orderId,
+      response_code: query.responseCode || query.RESPONSECODE || '00',
+      response_msg: query.responseMsg || query.RESPONSEMSG,
+      pg_tran_id: query.pgTranId || query.PGTRANID,
+      auth_code: query.authCode || query.AUTHCODE,
+      card_last_four: query.panLast4 || query.PANLAST4,
+      card_brand: query.cardBrand || query.CARDBRAND,
+      is_3d_secure: (query.is3D || query.IS3D) === 'YES',
+      raw_data: query,
+    });
+
+    res.redirect(result.redirect_url);
+  }
+
+  @Post('payment/callback')
+  async handlePaymentCallbackPost(
+    @Body() body: any,
+    @Query() query: any,
+    @Res() res: Response,
+  ): Promise<void> {
+    const data = { ...body, ...query };
+    this.logger.log(`Payment callback POST: ${JSON.stringify(data)}`);
+
+    const result = await this.checkoutService.handlePaymentCallback({
+      order_id: data.merchantPaymentId || data.MERCHANTPAYMENTID || data.orderId,
+      response_code: data.responseCode || data.RESPONSECODE || '00',
+      response_msg: data.responseMsg || data.RESPONSEMSG,
+      pg_tran_id: data.pgTranId || data.PGTRANID,
+      auth_code: data.authCode || data.AUTHCODE,
+      card_last_four: data.panLast4 || data.PANLAST4,
+      card_brand: data.cardBrand || data.CARDBRAND,
+      is_3d_secure: (data.is3D || data.IS3D) === 'YES',
+      raw_data: data,
+    });
+
+    res.redirect(result.redirect_url);
+  }
+
+  /**
+   * Get booking details after successful payment
+   */
+  @Get('booking/:reference')
+  async getBooking(@Param('reference') reference: string): Promise<any> {
+    const booking = await this.checkoutService.getBookingByReference(reference);
+    
+    if (!booking) {
+      throw new HttpException('Booking not found', HttpStatus.NOT_FOUND);
+    }
+
+    return {
+      success: true,
+      booking,
     };
   }
 
@@ -638,18 +747,12 @@ export class McpController {
     });
   }
 
-  /**
-   * Parse ISO 8601 duration (e.g., "PT2H30M") to minutes
-   */
   private parseDuration(isoDuration: string): number {
     if (!isoDuration) return 0;
-    
     const match = isoDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
     if (!match) return 0;
-    
     const hours = parseInt(match[1] || '0', 10);
     const minutes = parseInt(match[2] || '0', 10);
-    
     return hours * 60 + minutes;
   }
 
@@ -661,6 +764,20 @@ export class McpController {
       first: 'Birinci Sınıf',
     };
     return names[code] || 'Standart';
+  }
+
+  private getOperatorName(code: string): string {
+    const names: Record<string, string> = {
+      EUROSTAR: 'Eurostar',
+      SNCF: 'SNCF TGV',
+      TGV: 'TGV',
+      THALYS: 'Thalys',
+      ICE: 'Deutsche Bahn ICE',
+      TRENITALIA: 'Trenitalia',
+      FRECCIAROSSA: 'Frecciarossa',
+      RENFE: 'Renfe AVE',
+    };
+    return names[code?.toUpperCase()] || code;
   }
 
   private getAmenities(code: string): string[] {
@@ -692,7 +809,7 @@ export class McpController {
 
   private getCheckInTime(operator: string): number {
     if (operator?.toUpperCase().includes('EUROSTAR')) {
-      return 45;  // Eurostar requires earlier check-in
+      return 45;
     }
     return 30;
   }
