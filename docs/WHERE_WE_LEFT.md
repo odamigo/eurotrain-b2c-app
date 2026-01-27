@@ -1,195 +1,78 @@
 # 🚂 EUROTRAIN - NEREDE KALDIK
 
-**Son Güncelleme:** 26 Ocak 2026, 23:45  
+**Son Güncelleme:** 27 Ocak 2026, 18:00  
 **Git Branch:** main  
-**Son Commit:** Refactoring tamamlandı
+**Son Commit:** My Trips Phase 2 tamamlandı
 
 ---
 
 ## ✅ BU OTURUMDA TAMAMLANAN
 
-### ERA API Gap Analizi
-- [x] ERA API OpenAPI specs tam incelendi (6 dosya)
-- [x] Trainline, Omio, Rail Europe rakip analizi
-- [x] 18 eksik özellik tespit edildi
-- [x] Öncelik sıralaması yapıldı (P0/P1/P2)
-- [x] Tahmini süreler belirlendi
+### My Trips Phase 2 - Bilet Yönetimi Geliştirmeleri
+- [x] **Calendar Modülü** - iCal (.ics) dosyası oluşturma
+  - `backend/src/calendar/calendar.module.ts`
+  - `backend/src/calendar/calendar.service.ts`
+  - `backend/src/calendar/calendar.controller.ts`
+  - Google Calendar, Apple Calendar, Outlook desteği
+  - 1 gün + 2 saat öncesi hatırlatıcılar
 
-### Yeni Dokümanlar
-- [x] `docs/FEATURE_GAP_ANALYSIS.md` - Kapsamlı eksik özellik analizi
-- [x] `docs/STRATEGIC_ROADMAP.md` - Güncellenmiş roadmap
-- [x] `docs/WHERE_WE_LEFT.md` - Bu dosya
+- [x] **Share Modülü** - Bilet paylaşımı
+  - `backend/src/share/share.module.ts`
+  - `backend/src/share/share.service.ts`
+  - `backend/src/share/share.controller.ts`
+  - WhatsApp, SMS, Email deep link'leri
 
-### Önceki (Aynı Oturum)
-- [x] snake_case → camelCase refactoring (8 dosya)
-- [x] 0 TypeScript hatası
-- [x] Backend başarıyla çalışıyor
+- [x] **Email Resend** - Onay emaili tekrar gönderme
+  - `POST /my-trips/:id/resend-email?token=xxx`
+  - 5 dakika rate limiting
+  - Email maskeleme (GDPR)
 
----
-
-## 🔴 KRİTİK EKSİKLER (P0)
-
-| # | Özellik | ERA API | Durum | Süre |
-|---|---------|---------|-------|------|
-| 1 | **Round-trip** | ✅ legs[] | ❌ | 3-4 gün |
-| 2 | **Multi-segment UI** | ✅ segments[] | ⚠️ | 2-3 gün |
-| 3 | **Passenger Cards** | ✅ passengerCards[] | ❌ | 3-4 gün |
-| 4 | **Exchange Flow** | ✅ /exchanges | ❌ | 4-5 gün |
-| 5 | **Refund Frontend** | ✅ /refunds | ⚠️ | 2-3 gün |
-
-**Toplam P0:** ~15-19 gün
+- [x] **Frontend Entegrasyonu**
+  - `frontend/lib/my-trips-api.ts` - API helper'lar
+  - `frontend/app/my-trips/page.tsx` - Yeni butonlar
+  - Takvime Ekle, Email Gönder, WhatsApp, Paylaş
 
 ---
 
-## 🟡 ÖNEMLİ EKSİKLER (P1)
-
-| # | Özellik | Süre |
-|---|---------|------|
-| 6 | Seat Selection | 2-3 gün |
-| 7 | Ticketing Options | 1-2 gün |
-| 8 | Highlights (En Ucuz/Hızlı) | 1 gün |
-| 9 | Direct Only Filter | 0.5 gün |
-| 10 | Timezone Handling | 1-2 gün |
-| 11 | Multi-Provider | 0.5 gün |
-| 12 | Conditions Modal | 1-2 gün |
-| 13 | Price Breakdown | 1 gün |
-| 14 | Alerts System | 1-2 gün |
-
-**Toplam P1:** ~10-14 gün
-
----
-
-## 🎯 SONRAKİ OTURUM PLANI
-
-### Önerilen Başlangıç: Faz 1 - Kritik Özellikler
+## 🔌 YENİ API ENDPOİNTLERİ
 
 ```
-1. Round-trip Desteği
-   - frontend/app/page.tsx (return date picker)
-   - frontend/app/search/page.tsx (outbound/return tabs)
-   - backend/src/era/services/era-search.service.ts
-
-2. Multi-segment UI
-   - Aktarma timeline gösterimi
-   - Bağlantı bilgisi (45 dk aktarma gibi)
-
-3. Direct Only Filter
-   - Checkbox ekleme
-   - API'ye directOnly: true gönderme
-
-4. Highlights Badges
-   - "En Ucuz" 🏆
-   - "En Hızlı" ⚡
-```
-
-### Alternatif: Önce Kolay Kazanımlar
-
-```
-1. Direct Only Filter (0.5 gün)
-2. Highlights Badges (1 gün)
-3. Multi-Provider toggle (0.5 gün)
-4. Price Breakdown (1 gün)
+GET  /calendar/:id/ics?token=xxx      → iCal dosyası indir
+GET  /calendar/:id/google?token=xxx   → Takvim linkleri (Google/Apple/Outlook)
+GET  /share/:id?token=xxx             → Paylaşım verileri
+GET  /share/:id/whatsapp?token=xxx    → WhatsApp deep link
+POST /my-trips/:id/resend-email       → Onay emaili tekrar gönder
 ```
 
 ---
 
-## 📂 YENİ OLUŞTURULACAK DOSYALAR
+## 🎨 FRONTEND DEĞİŞİKLİKLERİ
 
-### Backend
-```
-backend/src/era/services/era-exchange.service.ts  # YENİ
-```
-
-### Frontend
-```
-frontend/app/my-trips/exchange/page.tsx   # YENİ
-frontend/app/my-trips/refund/page.tsx     # YENİ
-frontend/components/SeatSelector.tsx       # YENİ (P1)
-```
+### TripCard Butonları
+| Buton | Fonksiyon | Durum |
+|-------|-----------|-------|
+| PDF İndir | PDF bilet | ✅ Mevcut |
+| Takvime Ekle | Google Calendar | ✅ Yeni |
+| Email Gönder | Resend email | ✅ Yeni |
+| WhatsApp | WhatsApp share | ✅ Yeni |
+| Paylaş | Native share | ✅ Yeni |
+| Wallet | Apple/Google | ⏸️ Beklemede |
 
 ---
 
-## 🔧 ETKİLENECEK MEVCUT DOSYALAR
+## ⏸️ BEKLEYEN GÖREVLER
 
-### Homepage (Round-trip)
-```
-frontend/app/page.tsx
-├─ Return date picker ekle
-├─ "Tek yön / Gidiş-Dönüş" toggle
-└─ Search params güncelle
-```
-
-### Search Page
-```
-frontend/app/search/page.tsx
-├─ Outbound/Return tabs (round-trip)
-├─ Multi-segment timeline
-├─ Highlights badges
-├─ Direct only filter
-└─ Timezone display
-```
-
-### Checkout Page
-```
-frontend/app/checkout/[session]/page.tsx
-├─ Seat selection
-├─ Ticketing options
-├─ Conditions modal
-└─ Price breakdown
-```
-
-### My Trips Page
-```
-frontend/app/my-trips/page.tsx
-├─ "Değiştir" butonu
-├─ "İptal/İade" butonu
-└─ Alert notifications
-```
-
----
-
-## 🐛 BİLİNEN BUGLAR
-
-| Bug | Durum | Öncelik |
-|-----|-------|---------|
-| Payten Invalid merchant | Destek bekleniyor | Yüksek |
-
----
-
-## 🔑 CREDENTIALS
-
-> ⚠️ **GÜVENLİK:** Credentials asla dokümanlara yazılmaz!
-> 
-> Tüm hassas bilgiler `.env` dosyasında saklanır.
-> Örnek yapılandırma için `.env.example` dosyasına bakın.
-
-### Gerekli Environment Variables
-```
-# .env.example dosyasına bak
-DATABASE_URL
-MSU_API_URL
-MSU_MERCHANT
-MSU_MERCHANT_USER
-MSU_MERCHANT_PASSWORD
-MSU_MERCHANT_SECRET_KEY
-JWT_SECRET
-```
-
-### Test Ortamı
-```
-Frontend: http://localhost:3000
-Backend:  http://localhost:3001
-Health:   http://localhost:3001/health
-```
+### Wallet Entegrasyonu
+| Platform | Gereksinim |
+|----------|------------|
+| Apple Wallet | Developer Program ($99/yıl) + Sertifika |
+| Google Wallet | Cloud Console API + Service Account |
 
 ---
 
 ## 🧪 TEST KOMUTLARI
 
 ```powershell
-# Docker başlat
-docker start eurotrain-postgres
-
 # Backend
 cd C:\dev\eurotrain-b2c-app\backend
 npm run start:dev
@@ -198,47 +81,32 @@ npm run start:dev
 cd C:\dev\eurotrain-b2c-app\frontend
 npm run dev
 
-# Health check
-curl http://localhost:3001/health
+# Test Token ile My Trips
+# http://localhost:3000/my-trips?token=84b7682dd152aa4ea61507289a22e0ca4f0a7e3605c8af183248f5c5e134983b
 ```
 
 ---
 
-## 📋 DOKÜMAN KONUMLARI
+## 📋 SONRAKİ OTURUM ÖNERİLERİ
 
-| Doküman | Konum |
-|---------|-------|
-| **Gap Analizi** | `docs/FEATURE_GAP_ANALYSIS.md` |
-| Roadmap | `docs/STRATEGIC_ROADMAP.md` |
-| ERA Strateji | `docs/ERA_INTEGRATION_STRATEGY.md` |
-| MCP Mimari | `docs/MCP_ARCHITECTURE.md` |
-| Proje Haritası | `docs/PROJECT_MAP.md` |
+1. **Git commit** - My Trips Phase 2 değişikliklerini commit et
+2. **Production deployment** - Railway.app veya Vercel
+3. **Round-trip UI** - Gidiş-dönüş bilet desteği
+4. **Passenger Cards** - İndirim kartı entegrasyonu
+5. **Seat Selection** - Koltuk seçimi UI
 
 ---
 
-## 📝 HAFIZA NOTLARI
+## 🔑 ÖNEMLİ DOSYALAR
 
-Claude'un hafızasına eklenmeli:
-1. ✅ Gap analizi tamamlandı (18 eksik özellik)
-2. ✅ P0 kritik: Round-trip, Multi-segment, Passenger cards, Exchange, Refund
-3. ✅ Tahmini toplam süre: P0=15-19 gün, P1=10-14 gün
-4. Sonraki oturum: Faz 1 - Round-trip ile başla
-
----
-
-## 🚀 HIZLI BAŞLANGIÇ (Sonraki Oturum)
-
-```
-Levent: "Round-trip başlayalım"
-
-Claude:
-1. frontend/app/page.tsx dosyasını iste
-2. Return date picker ekle
-3. Toggle component ekle
-4. Search params güncelle
-5. Test et
-```
+| Dosya | Açıklama |
+|-------|----------|
+| `MY_TRIPS_PHASE2_TODO.md` | Phase 2 tamamlanma raporu |
+| `backend/src/calendar/` | iCal modülü |
+| `backend/src/share/` | Paylaşım modülü |
+| `frontend/lib/my-trips-api.ts` | Frontend API helper |
+| `frontend/app/my-trips/page.tsx` | My Trips sayfası |
 
 ---
 
-**Son güncelleme:** 26 Ocak 2026, 23:45
+**Son güncelleme:** 27 Ocak 2026, 18:00

@@ -1,176 +1,112 @@
 # 🚂 EUROTRAIN - NEREDE KALDIK
 
-**Son Güncelleme:** 27 Ocak 2026, 10:00
-**Git Branch:** main
+**Son Güncelleme:** 27 Ocak 2026, 18:00  
+**Git Branch:** main  
+**Son Commit:** My Trips Phase 2 tamamlandı
 
 ---
 
-## ✅ ÖNCEKİ OTURUMDA TAMAMLANAN
+## ✅ BU OTURUMDA TAMAMLANAN
 
-### Phase 1: Round-Trip UI & UX Overhaul 🎉
-**Trainline/Google Flights/Kiwi.com seviyesinde world-class UX**
+### My Trips Phase 2 - Bilet Yönetimi Geliştirmeleri
+- [x] **Calendar Modülü** - iCal (.ics) dosyası oluşturma
+  - `backend/src/calendar/calendar.module.ts`
+  - `backend/src/calendar/calendar.service.ts`
+  - `backend/src/calendar/calendar.controller.ts`
+  - Google Calendar, Apple Calendar, Outlook desteği
+  - 1 gün + 2 saat öncesi hatırlatıcılar
 
-#### Search Page v2 (Tamamen Yeniden Yazıldı)
-- [x] **Progress Steps** - Round-trip'te Gidiş/Dönüş adım göstergesi
-- [x] **Sticky Selected Journey Summary** - Gidiş seçildiğinde yeşil özet bar
-- [x] **Smooth Phase Transition** - Gidiş seçince otomatik dönüşe geç (sayfa değişimi yok!)
-- [x] **Filter Pills** - Trainline tarzı tek tıkla toggle filtreler
-- [x] **Time Slot Filters** - 🌅 Erken, ☀️ Sabah, 🌤️ Öğlen, 🌆 Akşam, 🌙 Gece
-- [x] **Direct Only Toggle** - "Sadece Direkt" filtresi (sefer sayısı gösterir)
-- [x] **Highlight Badges** - "En Ucuz" (yeşil), "En Hızlı" (mavi)
-- [x] **Class Selection Cards** - Trainline tarzı bilet sınıfı seçim kartları
-- [x] **"En Popüler" Badge** - Business class'ta
+- [x] **Share Modülü** - Bilet paylaşımı
+  - `backend/src/share/share.module.ts`
+  - `backend/src/share/share.service.ts`
+  - `backend/src/share/share.controller.ts`
+  - WhatsApp, SMS, Email deep link'leri
 
-#### Booking Page - Round-Trip Desteği
-- [x] `tripType` state eklendi (oneway/roundtrip)
-- [x] `returnJourney` state eklendi
-- [x] SessionStorage okuma: `selectedOutbound` + `selectedReturn`
-- [x] Geriye uyumluluk: tek yön için `selectedJourney` hala çalışır
-- [x] **Sidebar'da 2 ayrı kart** - Gidiş + Dönüş journey kartları
-- [x] **Fiyat detayında ayrı satırlar** - Gidiş Bileti + Dönüş Bileti
-- [x] **Success ekranında özet** - Gidiş + Dönüş bilgileri
+- [x] **Email Resend** - Onay emaili tekrar gönderme
+  - `POST /my-trips/:id/resend-email?token=xxx`
+  - 5 dakika rate limiting
+  - Email maskeleme (GDPR)
 
-#### Backend Güncellemeleri
-- [x] `era-api.types.ts` - SearchHighlights, isDirect, segmentCount eklendi
-- [x] `search-journeys.dto.ts` - TripType enum, returnDate, directOnly eklendi
-- [x] `era-mock.service.ts` - Highlights tracking (cheapestOfferId, fastestOfferId)
-
-#### Homepage Güncellemeleri (Önceki Oturumdan)
-- [x] Trip Type Toggle (Tek Yön / Gidiş-Dönüş)
-- [x] Return Date Picker (koşullu render)
-- [x] Direct Only Checkbox
-- [x] URL params: tripType, returnDate, directOnly
-
-#### Vercel Build Fix
-- [x] `useSearchParams` Suspense boundary ile sarıldı (checkout page)
+- [x] **Frontend Entegrasyonu**
+  - `frontend/lib/my-trips-api.ts` - API helper'lar
+  - `frontend/app/my-trips/page.tsx` - Yeni butonlar
+  - Takvime Ekle, Email Gönder, WhatsApp, Paylaş
 
 ---
 
-## 🐛 DÜZELTILEN BUGLAR
-
-| Bug | Çözüm | Durum |
-|-----|-------|-------|
-| Round-trip seçince homepage'e redirect | Booking page round-trip desteği eklendi | ✅ Düzeltildi |
-| TypeScript hatası: segmentCount, isDirect | era-api.types.ts güncellendi | ✅ Düzeltildi |
-| TypeScript hatası: cheapestOfferId | SearchHighlights interface eklendi | ✅ Düzeltildi |
-| Vercel build hatası: useSearchParams | Suspense boundary eklendi | ✅ Düzeltildi |
-
----
-
-## 🚨 BUGÜN YAPILACAK: REFACTORING
-
-### Problem
-Booking entity **camelCase** kullanıyor ama servisler **snake_case** gönderiyor. Bu 42 TypeScript hatası veriyor.
-
-### Düzeltilecek Dosyalar (6 adet)
-
-| Dosya | Yol |
-|-------|-----|
-| `bookings.service.ts` | `backend/src/bookings/bookings.service.ts` |
-| `mcp-booking.controller.ts` | `backend/src/mcp/mcp-booking.controller.ts` |
-| `checkout.service.ts` | `backend/src/mcp/services/checkout.service.ts` |
-| `pdf.controller.ts` | `backend/src/pdf/pdf.controller.ts` |
-| `my-trips.service.ts` | `backend/src/my-trips/my-trips.service.ts` |
-| `my-trips.controller.ts` | `backend/src/my-trips/my-trips.controller.ts` |
-
-### Field Mapping (snake_case → camelCase)
+## 🔌 YENİ API ENDPOİNTLERİ
 
 ```
-departure_date   → departureDate
-departure_time   → departureTime
-arrival_time     → arrivalTime
-train_number     → trainNumber
-ticket_class     → ticketClass
-ticket_pdf_url   → ticketPdfUrl
-price            → totalPrice (veya ticketPrice)
+GET  /calendar/:id/ics?token=xxx      → iCal dosyası indir
+GET  /calendar/:id/google?token=xxx   → Takvim linkleri (Google/Apple/Outlook)
+GET  /share/:id?token=xxx             → Paylaşım verileri
+GET  /share/:id/whatsapp?token=xxx    → WhatsApp deep link
+POST /my-trips/:id/resend-email       → Onay emaili tekrar gönder
 ```
 
-### Tahmini Süre
-30-45 dakika (6 dosya × 5-7 dk)
+---
+
+## 🎨 FRONTEND DEĞİŞİKLİKLERİ
+
+### TripCard Butonları
+| Buton | Fonksiyon | Durum |
+|-------|-----------|-------|
+| PDF İndir | PDF bilet | ✅ Mevcut |
+| Takvime Ekle | Google Calendar | ✅ Yeni |
+| Email Gönder | Resend email | ✅ Yeni |
+| WhatsApp | WhatsApp share | ✅ Yeni |
+| Paylaş | Native share | ✅ Yeni |
+| Wallet | Apple/Google | ⏸️ Beklemede |
 
 ---
 
-## 🔮 SIRADAKI GÖREVLER
+## ⏸️ BEKLEYEN GÖREVLER
 
-### Öncelik 1: Refactoring (BUGÜN)
-- [ ] 6 dosyada snake_case → camelCase dönüşümü
-- [ ] TypeScript hatalarını düzelt (42 hata)
-- [ ] `booking/` vs `bookings/` duplicate temizliği
-- [ ] Backup dosyaları sil + .gitignore güncelle
-
-### Öncelik 2: Phase 1 Tamamlama
-- [ ] Multi-segment route generation (aktarmalı seferler için mock data)
-- [ ] Backend round-trip search: `legs[]` array oluşturma
-- [ ] End-to-end test: Homepage → Search → Booking → Success
-
-### Öncelik 3: My Trips Phase 2
-| Özellik | Öncelik | Backend Endpoint |
-|---------|---------|------------------|
-| Apple/Google Wallet | YÜKSEK | `GET /my-trips/:id/pkpass` |
-| iCal Export | ORTA | `GET /my-trips/:id/ical` |
-| WhatsApp Paylaşım | DÜŞÜK | Frontend only (wa.me) |
-| Canlı Tren Durumu | DÜŞÜK | ERA Real-time API |
-| Değişiklik/İptal | YÜKSEK | `POST /my-trips/:id/cancel` |
-| Email Yeniden Gönderme | ORTA | `POST /my-trips/:id/resend` |
-
----
-
-## 📁 DEĞİŞEN DOSYALAR (Önceki Oturum)
-
-| Dosya | Değişiklik |
-|-------|------------|
-| `frontend/app/search/page.tsx` | Tamamen yeniden yazıldı (v2) |
-| `frontend/app/booking/page.tsx` | Round-trip desteği eklendi |
-| `frontend/app/booking/checkout/page.tsx` | Suspense boundary eklendi |
-| `backend/src/era/interfaces/era-api.types.ts` | SearchHighlights, isDirect, segmentCount |
-| `backend/src/era/dto/search-journeys.dto.ts` | TripType enum, returnDate |
-| `backend/src/era/mock/era-mock.service.ts` | Highlights tracking |
-| `frontend/app/page.tsx` | Trip type toggle, return date |
+### Wallet Entegrasyonu
+| Platform | Gereksinim |
+|----------|------------|
+| Apple Wallet | Developer Program ($99/yıl) + Sertifika |
+| Google Wallet | Cloud Console API + Service Account |
 
 ---
 
 ## 🧪 TEST KOMUTLARI
 
 ```powershell
-# Backend başlat
+# Backend
 cd C:\dev\eurotrain-b2c-app\backend
 npm run start:dev
 
-# Frontend başlat
+# Frontend
 cd C:\dev\eurotrain-b2c-app\frontend
 npm run dev
 
-# Test URLs
-http://localhost:3000           # Ana sayfa
-http://localhost:3000/my-trips  # Biletlerim
-
-# Round-trip test
-1. http://localhost:3000 aç
-2. "Gidiş-Dönüş" seç
-3. Paris → London, tarihler seç
-4. Ara → Progress steps görünmeli (1-Gidiş, 2-Dönüş)
-5. Gidiş seç → Otomatik dönüş tab'ına geçmeli
-6. Yeşil "Gidiş Seçildi" özet barı görünmeli
-7. Dönüş seç → Booking sayfasına gitmeli
-8. Sidebar'da 2 kart (Gidiş + Dönüş) görünmeli
+# Test Token ile My Trips
+# http://localhost:3000/my-trips?token=84b7682dd152aa4ea61507289a22e0ca4f0a7e3605c8af183248f5c5e134983b
 ```
 
 ---
 
-## 🔑 PAYTEN MSU CREDENTIALS (TEST)
+## 📋 SONRAKİ OTURUM ÖNERİLERİ
 
-> ⚠️ Credentials `.env` dosyasında saklanıyor. Git'e push edilmez.
-> Bakınız: `backend/.env` (gitignore'da)
+1. **Git commit** - My Trips Phase 2 değişikliklerini commit et
+2. **Production deployment** - Railway.app veya Vercel
+3. **Round-trip UI** - Gidiş-dönüş bilet desteği
+4. **Passenger Cards** - İndirim kartı entegrasyonu
+5. **Seat Selection** - Koltuk seçimi UI
 
 ---
 
-## 🔗 SONRAKİ OTURUM BAŞLANGIÇ
+## 🔑 ÖNEMLİ DOSYALAR
 
-```
-1. "WHERE_WE_LEFT.md oku" de
-2. Seçenekler:
-   a) "Refactoring'e başla" - snake_case → camelCase
-   b) "Multi-segment mock data ekle" - Phase 1 tamamlama
-   c) "My Trips Phase 2" - Wallet, iCal
-3. Her dosya sonunda test komutunu çalıştır
-```
+| Dosya | Açıklama |
+|-------|----------|
+| `MY_TRIPS_PHASE2_TODO.md` | Phase 2 tamamlanma raporu |
+| `backend/src/calendar/` | iCal modülü |
+| `backend/src/share/` | Paylaşım modülü |
+| `frontend/lib/my-trips-api.ts` | Frontend API helper |
+| `frontend/app/my-trips/page.tsx` | My Trips sayfası |
+
+---
+
+**Son güncelleme:** 27 Ocak 2026, 18:00

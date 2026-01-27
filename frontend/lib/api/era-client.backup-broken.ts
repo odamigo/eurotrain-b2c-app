@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // ERA API Client for Frontend
 // EuroTrain B2C Platform
 // ============================================================
@@ -6,7 +6,7 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 // ============================================================
-// ERA TYPES (Frontend'de kullanilacak)
+// ERA TYPES (Frontend'de kullanılacak)
 // ============================================================
 
 export interface EraPlace {
@@ -149,7 +149,7 @@ export interface EraBookingTraveler {
 }
 
 // ============================================================
-// SEARCH PARAMS (Basitlestirilmis)
+// SEARCH PARAMS (Basitleştirilmiş)
 // ============================================================
 
 export interface SearchParams {
@@ -160,9 +160,6 @@ export interface SearchParams {
   children?: number;
   youths?: number;
   seniors?: number;
-  passengers?: number;
-  directOnly?: boolean;
-  returnDate?: string;
 }
 
 // ============================================================
@@ -170,7 +167,7 @@ export interface SearchParams {
 // ============================================================
 
 /**
- * Istasyon/sehir autocomplete aramasi
+ * İstasyon/şehir autocomplete araması
  */
 export async function searchPlaces(
   query: string,
@@ -184,13 +181,13 @@ export async function searchPlaces(
     const response = await fetch(`${API_URL}/era/places/autocomplete?${params}`);
     
     if (!response.ok) {
-      throw new Error('Istasyon aramasi basarisiz');
+      throw new Error('İstasyon araması başarısız');
     }
     
     const data = await response.json();
     return data.places || [];
   } catch (error) {
-    console.error('Istasyon arama hatasi:', error);
+    console.error('İstasyon arama hatası:', error);
     return [];
   }
 }
@@ -209,19 +206,15 @@ export async function getPlaceByCode(code: string): Promise<EraPlace | null> {
     const data = await response.json();
     return data.place || null;
   } catch (error) {
-    console.error('Place getirme hatasi:', error);
+    console.error('Place getirme hatası:', error);
     return null;
   }
 }
 
 /**
- * Sefer aramasi
+ * Sefer araması
  */
 export async function searchJourneys(params: SearchParams): Promise<EraSearchResponse> {
-  // Handle passengers - can be number or use adults/children
-  const adults = typeof params.passengers === 'number' ? params.passengers : (params.adults || 1);
-  const children = typeof params.passengers === 'number' ? 0 : (params.children || 0);
-
   const response = await fetch(`${API_URL}/era/search`, {
     method: 'POST',
     headers: {
@@ -231,37 +224,36 @@ export async function searchJourneys(params: SearchParams): Promise<EraSearchRes
       origin: params.origin,
       destination: params.destination,
       departureDate: params.departureDate,
-      adults,
-      children,
+      adults: params.adults || 1,
+      children: params.children || 0,
       youths: params.youths || 0,
       seniors: params.seniors || 0,
-      directOnly: params.directOnly || false,
     }),
   });
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || 'Sefer aramasi basarisiz');
+    throw new Error(error.message || 'Sefer araması başarısız');
   }
 
   return await response.json();
 }
 
 /**
- * Search ID ile sonu�lari getir
+ * Search ID ile sonuçları getir
  */
 export async function getSearchResults(searchId: string): Promise<EraSearchResponse> {
   const response = await fetch(`${API_URL}/era/search/${searchId}`);
 
   if (!response.ok) {
-    throw new Error('Arama sonu�lari bulunamadi');
+    throw new Error('Arama sonuçları bulunamadı');
   }
 
   return await response.json();
 }
 
 /**
- * Sonraki/�nceki sayfa (pagination)
+ * Sonraki/önceki sayfa (pagination)
  */
 export async function getAdditionalOffers(
   searchId: string,
@@ -272,14 +264,14 @@ export async function getAdditionalOffers(
   });
 
   if (!response.ok) {
-    throw new Error('Ek sonu�lar y�klenemedi');
+    throw new Error('Ek sonuçlar yüklenemedi');
   }
 
   return await response.json();
 }
 
 /**
- * Booking olustur
+ * Booking oluştur
  */
 export async function createBooking(offerLocations: string[]): Promise<EraBooking> {
   const response = await fetch(`${API_URL}/era/bookings`, {
@@ -292,7 +284,7 @@ export async function createBooking(offerLocations: string[]): Promise<EraBookin
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || 'Rezervasyon olusturulamadi');
+    throw new Error(error.message || 'Rezervasyon oluşturulamadı');
   }
 
   const data = await response.json();
@@ -306,7 +298,7 @@ export async function getBooking(bookingId: string): Promise<EraBooking> {
   const response = await fetch(`${API_URL}/era/bookings/${bookingId}`);
 
   if (!response.ok) {
-    throw new Error('Rezervasyon bulunamadi');
+    throw new Error('Rezervasyon bulunamadı');
   }
 
   const data = await response.json();
@@ -314,7 +306,7 @@ export async function getBooking(bookingId: string): Promise<EraBooking> {
 }
 
 /**
- * Yolcu bilgilerini g�ncelle
+ * Yolcu bilgilerini güncelle
  */
 export async function updateTravelers(
   bookingId: string,
@@ -341,7 +333,7 @@ export async function updateTravelers(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || 'Yolcu bilgileri g�ncellenemedi');
+    throw new Error(error.message || 'Yolcu bilgileri güncellenemedi');
   }
 
   const data = await response.json();
@@ -349,7 +341,7 @@ export async function updateTravelers(
 }
 
 /**
- * �n rezervasyon (prebook)
+ * Ön rezervasyon (prebook)
  */
 export async function prebookBooking(bookingId: string): Promise<EraBooking> {
   const response = await fetch(`${API_URL}/era/bookings/${bookingId}/prebook`, {
@@ -358,7 +350,7 @@ export async function prebookBooking(bookingId: string): Promise<EraBooking> {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || '�n rezervasyon basarisiz');
+    throw new Error(error.message || 'Ön rezervasyon başarısız');
   }
 
   const data = await response.json();
@@ -375,7 +367,7 @@ export async function confirmBooking(bookingId: string): Promise<EraBooking> {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || 'Rezervasyon onaylanamadi');
+    throw new Error(error.message || 'Rezervasyon onaylanamadı');
   }
 
   const data = await response.json();
@@ -383,7 +375,7 @@ export async function confirmBooking(bookingId: string): Promise<EraBooking> {
 }
 
 /**
- * Bilet yazdir
+ * Bilet yazdır
  */
 export async function printTickets(
   bookingId: string,
@@ -398,7 +390,7 @@ export async function printTickets(
   });
 
   if (!response.ok) {
-    throw new Error('Bilet yazdirilamadi');
+    throw new Error('Bilet yazdırılamadı');
   }
 
   return await response.json();
@@ -409,7 +401,7 @@ export async function printTickets(
 // ============================================================
 
 /**
- * ISO 8601 duration'i dakikaya �evir (PT2H30M ? 150)
+ * ISO 8601 duration'ı dakikaya çevir (PT2H30M → 150)
  */
 export function parseDuration(isoDuration: string): number {
   const match = isoDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
@@ -422,7 +414,7 @@ export function parseDuration(isoDuration: string): number {
 }
 
 /**
- * Dakikayi okunabilir formata �evir (150 ? "2s 30dk")
+ * Dakikayı okunabilir formata çevir (150 → "2s 30dk")
  */
 export function formatDuration(minutes: number): string {
   const hours = Math.floor(minutes / 60);
@@ -434,7 +426,7 @@ export function formatDuration(minutes: number): string {
 }
 
 /**
- * ISO 8601 duration'i okunabilir formata �evir
+ * ISO 8601 duration'ı okunabilir formata çevir
  */
 export function formatIsoDuration(isoDuration: string): string {
   return formatDuration(parseDuration(isoDuration));
@@ -474,14 +466,14 @@ export function formatDate(isoString: string): string {
 }
 
 /**
- * Fiyati formatla
+ * Fiyatı formatla
  */
 export function formatPrice(amount: number, currency: string = 'EUR'): string {
   const symbols: Record<string, string> = {
-    EUR: '�',
+    EUR: '€',
     USD: '$',
-    GBP: '�',
-    TRY: '?',
+    GBP: '£',
+    TRY: '₺',
   };
   
   const symbol = symbols[currency] || currency;
@@ -489,7 +481,7 @@ export function formatPrice(amount: number, currency: string = 'EUR'): string {
 }
 
 /**
- * Offer'dan journey bilgilerini �ikar (UI i�in)
+ * Offer'dan journey bilgilerini çıkar (UI için)
  */
 export function getJourneyFromOffer(
   offer: EraOffer,
@@ -514,14 +506,14 @@ export function getJourneyFromOffer(
   isRefundable: boolean;
   isExchangeable: boolean;
 } | null {
-  // LegSolution'i bul
+  // LegSolution'ı bul
   const legSolution = searchResponse.legs[0]?.solutions.find(
     s => s.id === offer.legSolution
   );
   
   if (!legSolution) return null;
 
-  // Product'i bul
+  // Product'ı bul
   const productId = offer.products?.[0];
   const product = searchResponse.products.find(p => p.id === productId);
 
@@ -551,7 +543,7 @@ export function getJourneyFromOffer(
 }
 
 /**
- * Search response'dan t�m journey'leri �ikar
+ * Search response'dan tüm journey'leri çıkar
  */
 export function getJourneysFromSearch(searchResponse: EraSearchResponse) {
   return searchResponse.offers
@@ -569,7 +561,6 @@ export interface Station {
   name: string;
   city: string;
   country: string;
-  timezone?: string;
 }
 
 export interface Journey {
@@ -588,30 +579,18 @@ export interface Journey {
     currency: string;
   };
   operator: string;
-  operatorName: string;
+  operatorName: string; // Added for UI display
   trainNumber: string;
   trainType: string;
-  comfortCategory: string;
+  comfortCategory: 'standard' | 'comfort' | 'premier';
   flexibility?: EraFlexibility;
   segments: EraSegment[];
   isRefundable: boolean;
   isExchangeable: boolean;
-  // Multi-segment support
-  isDirect?: boolean;
-  segmentCount?: number;
-  transferStations?: Station[];
-  totalTransferTime?: number;
-  // Class selection support
-  availableClasses?: Array<{
-    comfortCategory: string;
-    price: { amount: number; currency: string };
-    isRefundable: boolean;
-    isExchangeable: boolean;
-  }>;
 }
 
 /**
- * EraPlace'i Station'a �evir (backward compat)
+ * EraPlace'i Station'a çevir (backward compat)
  */
 export function placeToStation(place: EraPlace): Station {
   return {
@@ -619,7 +598,6 @@ export function placeToStation(place: EraPlace): Station {
     name: place.label,
     city: place.localLabel || place.label,
     country: place.country?.label || '',
-    timezone: place.timezone,
   };
 }
 
@@ -639,7 +617,7 @@ function getOperatorName(carrierCode: string): string {
     'RENFE': 'Renfe',
     'AVE': 'AVE',
     'SBB': 'SBB',
-    'OBB': '�BB',
+    'OBB': 'ÖBB',
     'NS': 'NS International',
   };
   
@@ -647,41 +625,34 @@ function getOperatorName(carrierCode: string): string {
 }
 
 /**
- * Search response'u eski format Journey[]'e �evir
+ * Search response'u eski format Journey[]'e çevir
  */
 export function toJourneyArray(searchResponse: EraSearchResponse): Journey[] {
   const journeys = getJourneysFromSearch(searchResponse);
   
-  return journeys.map(j => {
-    const segmentCount = j.segments?.length || 1;
-    const isDirect = segmentCount === 1;
-    
-    return {
-      id: j.id,
-      offerLocation: j.offerLocation,
-      origin: placeToStation(j.origin),
-      destination: placeToStation(j.destination),
-      departure: j.departure,
-      arrival: j.arrival,
-      departureTime: j.departure,
-      arrivalTime: j.arrival,
-      duration: j.duration,
-      durationMinutes: j.durationMinutes,
-      price: {
-        amount: j.price,
-        currency: j.currency,
-      },
-      operator: j.carrier,
-      operatorName: getOperatorName(j.carrier),
-      trainNumber: j.trainNumber,
-      trainType: j.trainType,
-      comfortCategory: j.comfortCategory || 'standard',
-      flexibility: j.flexibility,
-      segments: j.segments,
-      isRefundable: j.isRefundable,
-      isExchangeable: j.isExchangeable,
-      isDirect,
-      segmentCount,
-    };
-  });
+  return journeys.map(j => ({
+    id: j.id,
+    offerLocation: j.offerLocation,
+    origin: placeToStation(j.origin),
+    destination: placeToStation(j.destination),
+    departure: j.departure,
+    arrival: j.arrival,
+    departureTime: j.departure,
+    arrivalTime: j.arrival,
+    duration: j.duration,
+    durationMinutes: j.durationMinutes,
+    price: {
+      amount: j.price,
+      currency: j.currency,
+    },
+    operator: j.carrier,
+    operatorName: getOperatorName(j.carrier),
+    trainNumber: j.trainNumber,
+    trainType: j.trainType,
+    comfortCategory: j.comfortCategory as 'standard' | 'comfort' | 'premier',
+    flexibility: j.flexibility,
+    segments: j.segments,
+    isRefundable: j.isRefundable,
+    isExchangeable: j.isExchangeable,
+  }));
 }

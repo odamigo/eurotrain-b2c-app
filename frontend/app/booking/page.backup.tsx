@@ -87,16 +87,10 @@ export default function BookingPage() {
       setJourney(JSON.parse(storedJourney));
     }
 
-   if (storedPassengers) {
+    if (storedPassengers) {
       const parsed = JSON.parse(storedPassengers);
       setPassengers(parsed);
-      initializeTravelers(parsed.adults || 1, parsed.children || 0);
-    } else {
-      // URL'den passengers al veya varsayılan 1 yetişkin
-      const urlParams = new URLSearchParams(window.location.search);
-      const passengersFromUrl = parseInt(urlParams.get('passengers') || '1');
-      setPassengers({ adults: passengersFromUrl, children: 0 });
-      initializeTravelers(passengersFromUrl, 0);
+      initializeTravelers(parsed.adults, parsed.children);
     }
 
     // Initial alert

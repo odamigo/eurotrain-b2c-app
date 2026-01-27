@@ -174,9 +174,11 @@ export interface EraLegSolution extends EraResource {
   segmentConnections?: EraSegmentConnection[];
   travelerInformationRequired?: EraTravelerInformationRequired;
   offersSellableReason?: 'full_fare' | 'free' | 'supplement_at_station' | 'available_supplement_api' | 'unknown';
-  // FAZ 1: Multi-segment support
-  segmentCount?: number;
-  isDirect?: boolean;
+  // === MULTI-SEGMENT SUPPORT ===
+  segmentCount: number;           // Number of segments (1 = direct, 2+ = connection)
+  isDirect: boolean;              // Is this a direct journey without transfers?
+  transferTime?: number;          // Transfer time in minutes (only for multi-segment)
+  transferStation?: string;       // Transfer station name (only for multi-segment)
 }
 
 export interface EraSegment extends EraResource {
@@ -251,9 +253,9 @@ export interface EraOffer extends EraResource {
   ticketingOptions?: EraTicketingOption[];
   conditions?: EraCondition[];
   globalRoundTripPrice?: boolean;
-  // FAZ 1: Direct journey indicator
-  isDirect?: boolean;
-  segmentCount?: number;
+  // === MULTI-SEGMENT SUPPORT ===
+  isDirect?: boolean;             // Is this a direct journey?
+  segmentCount?: number;          // Number of segments
 }
 
 export type EraComfortCategory = 'standard' | 'comfort' | 'premier';

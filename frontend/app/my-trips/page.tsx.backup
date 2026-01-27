@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -340,32 +340,18 @@ function TripCard({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleAddToCalendar = async () => {
-    if (!token) { alert('Takvime eklemek için giriş yapmalısınız'); return; }
-    try {
-      const links = await getCalendarLinks(trip.id, token);
-      window.open(links.googleCalendarUrl, '_blank');
-    } catch (err) {
-      const startDate = new Date(`${trip.departureDate}T${trip.departureTime || '00:00'}`);
-      const endDate = new Date(`${trip.departureDate}T${trip.arrivalTime || '00:00'}`);
-      const googleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('🚂 ' + trip.fromStation + ' → ' + trip.toStation)}&dates=${startDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z/${endDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z`;
-      window.open(googleUrl, '_blank');
-    }
-  };
+  const handleAddToCalendar = () => {
+    const startDate = new Date(`${trip.departureDate}T${trip.departureTime || '00:00'}`);
+    const endDate = new Date(`${trip.departureDate}T${trip.arrivalTime || '00:00'}`);
+    
+    const event = {
+      title: `🚂 ${trip.fromStation} → ${trip.toStation}`,
+      description: `Tren: ${trip.trainNumber || ''}\nOperatör: ${trip.operator}\nVagon: ${trip.coach || '-'}, Koltuk: ${trip.seat || '-'}\nPNR: ${trip.pnr || trip.orderId}`,
+    };
 
-  const handleDownloadIcal = async () => {
-    if (!token) { alert('iCal indirmek için giriş yapmalısınız'); return; }
-    try { await downloadIcal(trip.id, token); } catch (err) { alert('iCal dosyası indirilemedi'); }
-  };
-
-  const handleWhatsAppShare = async () => {
-    if (!token) { alert('Paylaşmak için giriş yapmalısınız'); return; }
-    try { await shareViaWhatsApp(trip.id, token); } catch (err) { alert('WhatsApp paylaşımı başarısız'); }
-  };
-
-  const handleResendEmail = async () => {
-    if (!token) { alert('Email göndermek için giriş yapmalısınız'); return; }
-    try { const result = await resendEmail(trip.id, token); alert(result.message); } catch (err) { alert('Email gönderilemedi'); }
+    const googleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${startDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z/${endDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z&details=${encodeURIComponent(event.description)}`;
+    
+    window.open(googleUrl, '_blank');
   };
 
   const handleShare = async () => {
@@ -565,40 +551,23 @@ function TripCard({
               PDF İndir
             </button>
 
-            {/* iCal Download */}
+            {/* Apple Wallet - Phase 2 */}
             <button 
-              onClick={(e) => { e.stopPropagation(); handleDownloadIcal(); }}
-              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors"
+              title="Yakında aktif olacak"
+              disabled
             >
-              <Calendar className="w-4 h-4" />
-              iCal İndir
+              <Wallet className="w-4 h-4" />
+              Wallet'a Ekle
             </button>
 
-            {/* Google Calendar */}
+            {/* Calendar */}
             <button 
               onClick={(e) => { e.stopPropagation(); handleAddToCalendar(); }}
               className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
             >
               <CalendarPlus className="w-4 h-4" />
               Takvime Ekle
-            </button>
-
-            {/* Email Resend */}
-            <button 
-              onClick={(e) => { e.stopPropagation(); handleResendEmail(); }}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-            >
-              <Mail className="w-4 h-4" />
-              Email Gönder
-            </button>
-
-            {/* WhatsApp Share */}
-            <button 
-              onClick={(e) => { e.stopPropagation(); handleWhatsAppShare(); }}
-              className="flex items-center gap-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-colors"
-            >
-              <MessageCircle className="w-4 h-4" />
-              WhatsApp
             </button>
 
             {/* Share */}
