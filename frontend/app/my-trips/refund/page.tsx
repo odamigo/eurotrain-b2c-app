@@ -223,7 +223,7 @@ function RefundPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Ödenen Tutar</span>
-                  <span className="font-medium">€{Number(booking.totalPrice || booking.price).toFixed(2)}</span>
+                  <span className="font-medium">€{Number(booking.totalPrice).toFixed(2)}</span>
                 </div>
               </div>
             </div>
