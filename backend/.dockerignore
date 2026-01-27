@@ -1,0 +1,43 @@
+# Dependencies
+node_modules
+npm-debug.log
+
+# Build output (builder stage'de oluşacak)
+dist
+
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Environment (ASLA dahil etme!)
+.env
+.env.*
+!.env.example
+
+# Test
+coverage
+.nyc_output
+test
+*.spec.ts
+
+# Docs
+*.md
+docs
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Temp
+tmp
+temp
