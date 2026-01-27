@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -6,6 +6,52 @@ import { UpdateBookingDto } from './dto/update-booking.dto';
 import { Booking, BookingStatus } from './entities/booking.entity';
 import { PricingService } from '../pricing/pricing.service';
 import { CampaignsService } from '../campaigns/campaigns.service';
+import { v4 as uuidv4 } from 'uuid';
+
+// ============================================================
+// INTERFACES - EXPORTED
+// ============================================================
+
+export interface RefundQuotation {
+  id: string;
+  bookingId: number;
+  refundableAmount: number;
+  refundFee: number;
+  netRefundAmount: number;
+  currency: string;
+  reason?: string;
+  expiresAt: Date;
+  conditions: string[];
+}
+
+export interface ExchangeQuotation {
+  id: string;
+  bookingId: number;
+  newOfferId: string;
+  originalPrice: number;
+  newPrice: number;
+  priceDifference: number;
+  exchangeFee: number;
+  totalDue: number;
+  currency: string;
+  expiresAt: Date;
+  conditions: string[];
+}
+
+export interface ExchangeOption {
+  offerId: string;
+  departureDate: string;
+  departureTime: string;
+  arrivalTime: string;
+  trainNumber: string;
+  operator: string;
+  price: number;
+  priceDifference: number;
+  available: boolean;
+}
+
+// In-memory quotation cache (production'da Redis kullanılmalı)
+const quotationCache = new Map<string, RefundQuotation | ExchangeQuotation>();
 
 @Injectable()
 export class BookingsService {
@@ -55,7 +101,6 @@ export class BookingsService {
       }
     }
 
-    // REFACTORED: snake_case → camelCase
     const booking = this.bookingsRepository.create({
       ...createBookingDto,
       totalPrice: finalPrice,
@@ -114,41 +159,24 @@ export class BookingsService {
     return { deleted: true };
   }
 
-  // ============================================================
-  // YENI METODLAR - Payment & MCP Entegrasyonu
-  // ============================================================
-
-  /**
-   * Booking reference ile bul
-   */
   async findByReference(reference: string): Promise<Booking | null> {
     return this.bookingsRepository.findOne({ 
       where: { bookingReference: reference } 
     });
   }
 
-  /**
-   * Payment ID ile bul
-   */
   async findByPaymentId(paymentId: string): Promise<Booking | null> {
     return this.bookingsRepository.findOne({ 
       where: { paymentId } 
     });
   }
 
-  /**
-   * Session token ile bul
-   */
   async findBySessionToken(sessionToken: string): Promise<Booking | null> {
     return this.bookingsRepository.findOne({ 
       where: { sessionToken } 
     });
   }
 
-  /**
-   * MCP/Payment akışı için booking oluştur
-   * REFACTORED: snake_case → camelCase
-   */
   async createFromSession(data: {
     bookingReference: string;
     pnr: string;
@@ -196,10 +224,6 @@ export class BookingsService {
     return saved;
   }
 
-  /**
-   * Durumu güncelle
-   * REFACTORED: status type → BookingStatus
-   */
   async updateStatus(
     id: number, 
     status: BookingStatus, 
@@ -224,10 +248,6 @@ export class BookingsService {
     return this.bookingsRepository.save(booking);
   }
 
-  /**
-   * Bilet bilgilerini güncelle
-   * REFACTORED: snake_case → camelCase
-   */
   async updateTicketInfo(
     id: number,
     ticketData: {
@@ -249,42 +269,6 @@ export class BookingsService {
     return this.bookingsRepository.save(booking);
   }
 
-  /**
-   * İade işle
-   */
-  async processRefund(
-    id: number,
-    amount: number,
-    reason: string,
-    refundedBy: string
-  ): Promise<Booking> {
-    const booking = await this.findOne(id);
-    if (!booking) {
-      throw new NotFoundException('Booking not found');
-    }
-
-    const newRefundedAmount = Number(booking.refundedAmount || 0) + amount;
-    booking.refundedAmount = newRefundedAmount;
-    booking.refundReason = reason;
-    booking.refundedBy = refundedBy;
-    booking.refundedAt = new Date();
-
-    // REFACTORED: booking.price → booking.totalPrice
-    const totalPrice = Number(booking.totalPrice);
-    if (newRefundedAmount >= totalPrice) {
-      booking.status = BookingStatus.REFUNDED;
-    } else {
-      booking.status = BookingStatus.PARTIALLY_REFUNDED;
-    }
-
-    this.logger.log(`Booking ${id} refunded: ${amount} by ${refundedBy}`);
-    return this.bookingsRepository.save(booking);
-  }
-
-  /**
-   * Arama (admin için)
-   * REFACTORED: departure_date → departureDate
-   */
   async search(params: {
     query?: string;
     status?: string;
@@ -309,7 +293,6 @@ export class BookingsService {
     }
 
     if (fromDate && toDate) {
-      // REFACTORED: departure_date → departureDate
       qb.andWhere('booking.departureDate BETWEEN :fromDate AND :toDate', {
         fromDate,
         toDate,
@@ -325,9 +308,6 @@ export class BookingsService {
     return { bookings, total, page, limit };
   }
 
-  /**
-   * İstatistikler
-   */
   async getStats(): Promise<{
     total: number;
     confirmed: number;
@@ -345,7 +325,6 @@ export class BookingsService {
       where: { status: BookingStatus.CANCELLED },
     });
 
-    // Bugünkü rezervasyonlar
     const today = new Date();
     const startOfDay = new Date(today.setHours(0, 0, 0, 0));
     const endOfDay = new Date(today.setHours(23, 59, 59, 999));
@@ -356,7 +335,6 @@ export class BookingsService {
       },
     });
 
-    // Toplam gelir - REFACTORED: booking.price → booking.totalPrice
     const revenueResult = await this.bookingsRepository
       .createQueryBuilder('booking')
       .select('COALESCE(SUM(booking.totalPrice), 0)', 'total')
@@ -374,9 +352,6 @@ export class BookingsService {
     };
   }
 
-  /**
-   * Bugünün rezervasyonları
-   */
   async getTodayBookings(): Promise<Booking[]> {
     const today = new Date();
     const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
@@ -390,10 +365,6 @@ export class BookingsService {
     });
   }
 
-  /**
-   * Yaklaşan yolculuklar (müşteri için)
-   * REFACTORED: departure_date → departureDate
-   */
   async getUpcomingByEmail(email: string): Promise<Booking[]> {
     const today = new Date();
     
@@ -408,10 +379,6 @@ export class BookingsService {
       .getMany();
   }
 
-  /**
-   * Geçmiş yolculuklar (müşteri için)
-   * REFACTORED: departure_date → departureDate
-   */
   async getPastByEmail(email: string): Promise<Booking[]> {
     const today = new Date();
     
@@ -421,5 +388,433 @@ export class BookingsService {
       .andWhere('booking.departureDate < :today', { today })
       .orderBy('booking.departureDate', 'DESC')
       .getMany();
+  }
+
+  // ============================================================
+  // REFUND (İADE) METODLARI
+  // ============================================================
+
+  /**
+   * İade teklifi hesapla
+   */
+  async calculateRefundQuotation(bookingId: number, reason?: string): Promise<RefundQuotation> {
+    const booking = await this.findOne(bookingId);
+    if (!booking) {
+      throw new NotFoundException('Rezervasyon bulunamadı');
+    }
+
+    // İade kurallarını belirle
+    const conditions = this.getRefundConditions(booking);
+    const { refundableAmount, refundFee } = this.calculateRefundAmount(booking);
+
+    const quotation: RefundQuotation = {
+      id: uuidv4(),
+      bookingId,
+      refundableAmount: Number(booking.totalPrice),
+      refundFee,
+      netRefundAmount: refundableAmount,
+      currency: booking.currency || 'EUR',
+      reason,
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 dakika geçerli
+      conditions,
+    };
+
+    // Cache'e kaydet
+    quotationCache.set(quotation.id, quotation);
+
+    this.logger.log(`Refund quotation created: ${quotation.id} for booking ${bookingId}`);
+
+    return quotation;
+  }
+
+  /**
+   * İade tutarını hesapla
+   */
+  private calculateRefundAmount(booking: Booking): { refundableAmount: number; refundFee: number } {
+    const totalPrice = Number(booking.totalPrice);
+    const departureDate = new Date(booking.departureDate);
+    const now = new Date();
+    const hoursUntilDeparture = (departureDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+    let refundPercentage = 100;
+    let refundFee = 0;
+
+    // Kalkışa göre iade oranı
+    if (hoursUntilDeparture < 0) {
+      // Kalkış geçmiş - iade yok
+      refundPercentage = 0;
+    } else if (hoursUntilDeparture < 2) {
+      // 2 saatten az - %0 iade
+      refundPercentage = 0;
+    } else if (hoursUntilDeparture < 24) {
+      // 24 saatten az - %50 iade
+      refundPercentage = 50;
+      refundFee = 10; // €10 işlem ücreti
+    } else if (hoursUntilDeparture < 72) {
+      // 3 günden az - %75 iade
+      refundPercentage = 75;
+      refundFee = 5; // €5 işlem ücreti
+    } else {
+      // 3 günden fazla - %100 iade
+      refundPercentage = 100;
+      refundFee = 0;
+    }
+
+    const refundableAmount = Math.max(0, (totalPrice * refundPercentage / 100) - refundFee);
+
+    return { refundableAmount, refundFee };
+  }
+
+  /**
+   * İade koşullarını getir
+   */
+  private getRefundConditions(booking: Booking): string[] {
+    const departureDate = new Date(booking.departureDate);
+    const now = new Date();
+    const hoursUntilDeparture = (departureDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+    const conditions: string[] = [];
+
+    if (hoursUntilDeparture < 0) {
+      conditions.push('Kalkış saati geçtiği için iade yapılamamaktadır.');
+    } else if (hoursUntilDeparture < 2) {
+      conditions.push('Kalkışa 2 saatten az kaldığı için iade yapılamamaktadır.');
+    } else if (hoursUntilDeparture < 24) {
+      conditions.push('Kalkışa 24 saatten az kaldığı için %50 iade yapılabilir.');
+      conditions.push('€10 işlem ücreti kesilecektir.');
+    } else if (hoursUntilDeparture < 72) {
+      conditions.push('Kalkışa 3 günden az kaldığı için %75 iade yapılabilir.');
+      conditions.push('€5 işlem ücreti kesilecektir.');
+    } else {
+      conditions.push('Tam iade yapılabilir.');
+    }
+
+    conditions.push('İade, ödeme yapılan yönteme 5-10 iş günü içinde aktarılacaktır.');
+
+    return conditions;
+  }
+
+  /**
+   * İadeyi işle (quotation ile)
+   */
+  async processRefundWithQuotation(
+    bookingId: number,
+    quotationId: string,
+    reason: string,
+    refundedBy: string,
+  ): Promise<{ booking: Booking; refundAmount: number; transactionId: string }> {
+    // Quotation'ı kontrol et
+    const quotation = quotationCache.get(quotationId) as RefundQuotation;
+    if (!quotation) {
+      throw new BadRequestException('İade teklifi bulunamadı veya süresi dolmuş');
+    }
+
+    if (quotation.bookingId !== bookingId) {
+      throw new BadRequestException('İade teklifi bu rezervasyona ait değil');
+    }
+
+    if (new Date() > quotation.expiresAt) {
+      quotationCache.delete(quotationId);
+      throw new BadRequestException('İade teklifinin süresi dolmuş');
+    }
+
+    // İadeyi işle
+    const booking = await this.processRefund(
+      bookingId,
+      quotation.netRefundAmount,
+      reason,
+      refundedBy,
+    );
+
+    // Quotation'ı temizle
+    quotationCache.delete(quotationId);
+
+    const transactionId = `REF-${Date.now()}-${bookingId}`;
+
+    this.logger.log(`Refund processed: ${transactionId} for booking ${bookingId}`);
+
+    return {
+      booking,
+      refundAmount: quotation.netRefundAmount,
+      transactionId,
+    };
+  }
+
+  /**
+   * İade işle (eski metod - uyumluluk için)
+   */
+  async processRefund(
+    id: number,
+    amount: number,
+    reason: string,
+    refundedBy: string
+  ): Promise<Booking> {
+    const booking = await this.findOne(id);
+    if (!booking) {
+      throw new NotFoundException('Booking not found');
+    }
+
+    const newRefundedAmount = Number(booking.refundedAmount || 0) + amount;
+    booking.refundedAmount = newRefundedAmount;
+    booking.refundReason = reason;
+    booking.refundedBy = refundedBy;
+    booking.refundedAt = new Date();
+
+    const totalPrice = Number(booking.totalPrice);
+    if (newRefundedAmount >= totalPrice) {
+      booking.status = BookingStatus.REFUNDED;
+    } else {
+      booking.status = BookingStatus.PARTIALLY_REFUNDED;
+    }
+
+    this.logger.log(`Booking ${id} refunded: ${amount} by ${refundedBy}`);
+    return this.bookingsRepository.save(booking);
+  }
+
+  // ============================================================
+  // EXCHANGE (DEĞİŞİKLİK) METODLARI
+  // ============================================================
+
+  /**
+   * Değişiklik için uygun seferleri ara
+   */
+  async searchExchangeOptions(
+    bookingId: number,
+    newDepartureDate: string,
+    newDepartureTime?: string,
+  ): Promise<ExchangeOption[]> {
+    const booking = await this.findOne(bookingId);
+    if (!booking) {
+      throw new NotFoundException('Rezervasyon bulunamadı');
+    }
+
+    // Mock sefer seçenekleri (gerçek implementasyonda ERA API çağrılacak)
+    const originalPrice = Number(booking.totalPrice);
+    
+    const options: ExchangeOption[] = [
+      {
+        offerId: `exchange-${uuidv4().slice(0, 8)}`,
+        departureDate: newDepartureDate,
+        departureTime: '08:00',
+        arrivalTime: '10:30',
+        trainNumber: 'ES9010',
+        operator: booking.operator,
+        price: originalPrice - 10,
+        priceDifference: -10,
+        available: true,
+      },
+      {
+        offerId: `exchange-${uuidv4().slice(0, 8)}`,
+        departureDate: newDepartureDate,
+        departureTime: '10:00',
+        arrivalTime: '12:30',
+        trainNumber: 'ES9012',
+        operator: booking.operator,
+        price: originalPrice,
+        priceDifference: 0,
+        available: true,
+      },
+      {
+        offerId: `exchange-${uuidv4().slice(0, 8)}`,
+        departureDate: newDepartureDate,
+        departureTime: '14:00',
+        arrivalTime: '16:30',
+        trainNumber: 'ES9014',
+        operator: booking.operator,
+        price: originalPrice + 15,
+        priceDifference: 15,
+        available: true,
+      },
+      {
+        offerId: `exchange-${uuidv4().slice(0, 8)}`,
+        departureDate: newDepartureDate,
+        departureTime: '18:00',
+        arrivalTime: '20:30',
+        trainNumber: 'ES9018',
+        operator: booking.operator,
+        price: originalPrice + 25,
+        priceDifference: 25,
+        available: true,
+      },
+    ];
+
+    return options;
+  }
+
+  /**
+   * Değişiklik teklifi hesapla
+   */
+  async calculateExchangeQuotation(
+    bookingId: number,
+    newOfferId: string,
+  ): Promise<ExchangeQuotation> {
+    const booking = await this.findOne(bookingId);
+    if (!booking) {
+      throw new NotFoundException('Rezervasyon bulunamadı');
+    }
+
+    const originalPrice = Number(booking.totalPrice);
+    
+    // Mock yeni fiyat (gerçek implementasyonda offer'dan alınacak)
+    const newPrice = originalPrice + Math.floor(Math.random() * 30) - 10;
+    const priceDifference = newPrice - originalPrice;
+    const exchangeFee = 10; // €10 değişiklik ücreti
+
+    const quotation: ExchangeQuotation = {
+      id: uuidv4(),
+      bookingId,
+      newOfferId,
+      originalPrice,
+      newPrice,
+      priceDifference,
+      exchangeFee,
+      totalDue: Math.max(0, priceDifference) + exchangeFee,
+      currency: booking.currency || 'EUR',
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 dakika geçerli
+      conditions: this.getExchangeConditions(booking),
+    };
+
+    // Cache'e kaydet
+    quotationCache.set(quotation.id, quotation);
+
+    this.logger.log(`Exchange quotation created: ${quotation.id} for booking ${bookingId}`);
+
+    return quotation;
+  }
+
+  /**
+   * Değişiklik koşullarını getir
+   */
+  private getExchangeConditions(booking: Booking): string[] {
+    const departureDate = new Date(booking.departureDate);
+    const now = new Date();
+    const hoursUntilDeparture = (departureDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+    const conditions: string[] = [];
+
+    if (hoursUntilDeparture < 2) {
+      conditions.push('Kalkışa 2 saatten az kaldığı için değişiklik yapılamamaktadır.');
+    } else {
+      conditions.push('€10 değişiklik ücreti uygulanacaktır.');
+      
+      if (hoursUntilDeparture < 24) {
+        conditions.push('Kalkışa 24 saatten az kaldığı için sadece daha geç seferlere değişiklik yapılabilir.');
+      }
+    }
+
+    conditions.push('Fiyat farkı varsa ek ödeme gerekebilir.');
+    conditions.push('Değişiklik işlemi geri alınamaz.');
+
+    return conditions;
+  }
+
+  /**
+   * Değişikliği işle
+   */
+  async processExchange(
+    bookingId: number,
+    quotationId: string,
+    newOfferId: string,
+  ): Promise<{
+    oldBooking: Booking;
+    newBooking: Booking;
+    priceDifference: number;
+    exchangeFee: number;
+  }> {
+    // Quotation'ı kontrol et
+    const quotation = quotationCache.get(quotationId) as ExchangeQuotation;
+    if (!quotation) {
+      throw new BadRequestException('Değişiklik teklifi bulunamadı veya süresi dolmuş');
+    }
+
+    if (quotation.bookingId !== bookingId) {
+      throw new BadRequestException('Değişiklik teklifi bu rezervasyona ait değil');
+    }
+
+    if (new Date() > quotation.expiresAt) {
+      quotationCache.delete(quotationId);
+      throw new BadRequestException('Değişiklik teklifinin süresi dolmuş');
+    }
+
+    const oldBooking = await this.findOne(bookingId);
+    if (!oldBooking) {
+      throw new NotFoundException('Rezervasyon bulunamadı');
+    }
+
+    // Eski rezervasyonu güncelle
+    oldBooking.status = BookingStatus.EXCHANGED;
+    oldBooking.statusReason = `Yeni rezervasyona değiştirildi`;
+    await this.bookingsRepository.save(oldBooking);
+
+    // Yeni rezervasyon oluştur (mock - gerçek implementasyonda yeni offer ile)
+    const newBookingData: Partial<Booking> = {
+      ...oldBooking,
+      id: undefined,
+      bookingReference: `ET-${Date.now().toString(36).toUpperCase()}`,
+      totalPrice: quotation.newPrice,
+      status: BookingStatus.CONFIRMED,
+      confirmedAt: new Date(),
+      createdAt: undefined,
+      updatedAt: undefined,
+      metadata: {
+        ...oldBooking.metadata,
+        exchangedFrom: oldBooking.bookingReference,
+        exchangeFee: quotation.exchangeFee,
+      },
+    };
+
+    const newBooking = this.bookingsRepository.create(newBookingData);
+    const savedNewBooking = await this.bookingsRepository.save(newBooking);
+
+    // Quotation'ı temizle
+    quotationCache.delete(quotationId);
+
+    this.logger.log(`Exchange processed: ${oldBooking.bookingReference} -> ${savedNewBooking.bookingReference}`);
+
+    return {
+      oldBooking,
+      newBooking: savedNewBooking,
+      priceDifference: quotation.priceDifference,
+      exchangeFee: quotation.exchangeFee,
+    };
+  }
+
+  // ============================================================
+  // KOŞULLAR
+  // ============================================================
+
+  /**
+   * Rezervasyonun tüm koşullarını getir
+   */
+  async getBookingConditions(bookingId: number): Promise<{
+    refund: { allowed: boolean; conditions: string[] };
+    exchange: { allowed: boolean; conditions: string[] };
+  }> {
+    const booking = await this.findOne(bookingId);
+    if (!booking) {
+      throw new NotFoundException('Rezervasyon bulunamadı');
+    }
+
+    const departureDate = new Date(booking.departureDate);
+    const now = new Date();
+    const hoursUntilDeparture = (departureDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+    const isRefundable = hoursUntilDeparture >= 2 && 
+      booking.status !== BookingStatus.CANCELLED &&
+      booking.status !== BookingStatus.REFUNDED;
+
+    const isExchangeable = hoursUntilDeparture >= 2 &&
+      (booking.status === BookingStatus.CONFIRMED || booking.status === BookingStatus.TICKETED);
+
+    return {
+      refund: {
+        allowed: isRefundable,
+        conditions: this.getRefundConditions(booking),
+      },
+      exchange: {
+        allowed: isExchangeable,
+        conditions: this.getExchangeConditions(booking),
+      },
+    };
   }
 }

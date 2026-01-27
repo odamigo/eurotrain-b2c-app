@@ -1,7 +1,7 @@
 # 🗺️ EUROTRAIN PROJECT MAP
 
-**Son Güncelleme:** 26 Ocak 2026
-**Durum:** Phase 1 Round-Trip UI Tamamlandı ✅
+**Son Güncelleme:** 27 Ocak 2026, 21:30  
+**Durum:** Refund/Exchange + Discount Cards Tamamlandı ✅
 
 ---
 
@@ -9,198 +9,161 @@
 
 ```
 backend/src/
-├── app.module.ts          # Ana modül
-├── main.ts                # Entry point
-├── era/                   # ✅ ERA API Entegrasyonu
+├── app.module.ts              # Ana modül
+├── main.ts                    # Entry point
+├── era/                       # ✅ ERA API Entegrasyonu
 │   ├── interfaces/
-│   │   └── era-api.types.ts    # 750+ satır TypeScript interface
-│   │                           # SearchHighlights, isDirect, segmentCount (YENİ)
+│   │   └── era-api.types.ts   # 750+ satır TypeScript interface
 │   ├── services/
-│   │   ├── era-auth.service.ts     # Token yönetimi (60dk cache)
-│   │   ├── era-places.service.ts   # İstasyon arama (7gün cache)
-│   │   ├── era-search.service.ts   # Sefer arama (15dk cache)
-│   │   ├── era-booking.service.ts  # Rezervasyon işlemleri
-│   │   └── era-refund.service.ts   # İade/değişiklik
+│   │   ├── era-auth.service.ts
+│   │   ├── era-places.service.ts
+│   │   ├── era-search.service.ts
+│   │   ├── era-booking.service.ts
+│   │   └── era-refund.service.ts
 │   ├── mock/
-│   │   └── era-mock.service.ts     # 3 class, 35+ rota, 32 şehir
-│   │                               # Highlights tracking (cheapest/fastest)
-│   ├── dto/
-│   │   ├── search-journeys.dto.ts  # TripType enum, returnDate (YENİ)
-│   │   ├── create-booking.dto.ts
-│   │   └── update-travelers.dto.ts
-│   ├── era.controller.ts
+│   │   ├── era-mock.service.ts
+│   │   ├── era-class-configs.ts
+│   │   ├── era-places-data.ts
+│   │   └── era-route-configs.ts
 │   └── era.module.ts
-├── bookings/              # Rezervasyon CRUD
-├── campaigns/             # Kampanya yönetimi
-├── email/                 # Resend entegrasyonu
-├── mcp/                   # MCP Server (4 tool)
-├── my-trips/              # Biletlerim (magic link)
-├── payment/               # MSU Hosted Page
-├── pdf/                   # QR kodlu e-bilet
-├── pricing/               # Fiyatlandırma
-├── security/              # JWT, Rate Limiting
-└── settings/              # TCMB kur, markup, terms
+├── bookings/                  # ✅ Rezervasyon CRUD + Refund/Exchange
+│   ├── dto/
+│   │   ├── create-booking.dto.ts    # ✅ PassengerCardDto eklendi
+│   │   └── update-booking.dto.ts
+│   ├── entities/
+│   │   └── booking.entity.ts        # ✅ cardDiscount alanı eklendi
+│   ├── bookings.controller.ts       # ✅ Refund/Exchange endpoints
+│   └── bookings.service.ts          # ✅ Refund/Exchange metodları
+├── calendar/                  # ✅ iCal Export (YENİ)
+│   ├── calendar.module.ts
+│   ├── calendar.service.ts
+│   └── calendar.controller.ts
+├── share/                     # ✅ Paylaşım (YENİ)
+│   ├── share.module.ts
+│   ├── share.service.ts
+│   └── share.controller.ts
+├── campaigns/                 # Kampanya yönetimi
+├── email/                     # Resend entegrasyonu
+├── mcp/                       # MCP Server (4 tool)
+├── my-trips/                  # ✅ Biletlerim + Email Resend
+├── payment/                   # MSU Hosted Page
+├── pdf/                       # QR kodlu e-bilet
+├── pricing/                   # Fiyatlandırma
+├── security/                  # JWT, Rate Limiting
+└── settings/                  # TCMB kur, markup
 
 frontend/
 ├── app/
-│   ├── page.tsx           # ✅ Homepage (Round-trip toggle, Direct filter)
+│   ├── page.tsx               # Homepage
 │   ├── search/
-│   │   └── page.tsx       # ✅ v2 World-Class UI (YENİ)
-│   │                      # Progress steps, Filter pills, Highlights
+│   │   └── page.tsx           # ✅ Round-trip, Filters, Highlights
 │   ├── booking/
-│   │   └── page.tsx       # ✅ Round-trip destekli (YENİ)
+│   │   └── page.tsx           # ✅ Discount Cards entegreli
 │   ├── payment/
 │   │   ├── page.tsx
 │   │   ├── success/
 │   │   └── error/
 │   ├── my-trips/
-│   │   └── page.tsx       # ✅ Trainline tarzı UI
-│   ├── terms/             # 🔜 Kullanım koşulları
-│   ├── privacy/           # 🔜 Gizlilik politikası
+│   │   ├── page.tsx           # ✅ Değiştir/İptal butonları aktif
+│   │   ├── refund/
+│   │   │   └── page.tsx       # ✅ İade sayfası (YENİ)
+│   │   └── exchange/
+│   │       └── page.tsx       # ✅ Değişiklik sayfası (YENİ)
 │   └── admin/
 │       ├── login/
 │       ├── bookings/
 │       ├── campaigns/
 │       └── settings/
 ├── components/
-│   └── search/
-│       └── StationAutocomplete.tsx  # ✅ ERA entegre
+│   ├── booking/
+│   │   ├── DiscountCardSelector.tsx  # ✅ YENİ
+│   │   ├── TravelerCard.tsx          # ✅ Discount Cards entegreli
+│   │   ├── JourneySummaryCard.tsx
+│   │   ├── PriceBreakdown.tsx
+│   │   ├── SeatPreferenceSelector.tsx
+│   │   ├── TermsCheckbox.tsx
+│   │   ├── TicketConditions.tsx
+│   │   ├── TicketingOptionsSelector.tsx
+│   │   └── index.ts
+│   ├── search/
+│   │   ├── ConditionsModal.tsx
+│   │   ├── FilterBar.tsx
+│   │   ├── JourneyCard.tsx
+│   │   ├── MultiSegmentTimeline.tsx
+│   │   ├── SearchHeader.tsx
+│   │   ├── SelectedOutboundBanner.tsx
+│   │   └── index.ts
+│   └── common/
+│       ├── AlertBanner.tsx
+│       ├── PriceDisplay.tsx
+│       ├── TimeDisplay.tsx
+│       └── index.ts
 └── lib/
-    └── api/
-        ├── era-client.ts  # ✅ ERA API client (Journey type)
-        └── client.ts      # Eski (kaldırılacak)
-
-docs/
-├── AGENTIC_COMMERCE_STRATEGY.md  # ✅ MCP-First stratejisi
-├── MCP_ARCHITECTURE.md           # MCP v2.0 tasarımı
-└── raileurope-api/               # ERA API dokümanları
+    ├── api/
+    │   └── era-client.ts
+    ├── constants/
+    │   ├── booking.constants.ts
+    │   ├── search.constants.ts
+    │   └── discount-cards.constants.ts  # ✅ YENİ - 25+ kart
+    ├── types/
+    │   ├── booking.types.ts             # ✅ discountCard type
+    │   └── common.types.ts
+    └── my-trips-api.ts
 ```
 
 ---
 
-## 🎨 SEARCH PAGE v2 ÖZELLİKLERİ (YENİ)
+## 🔌 API ENDPOİNTLERİ
 
-### Trainline/Google Flights/Kiwi.com İlhamlı UI
-
-| Bileşen | Açıklama | İlham |
-|---------|----------|-------|
-| Progress Steps | Round-trip'te 1-Gidiş, 2-Dönüş göstergesi | Google Flights |
-| Sticky Summary | Gidiş seçildiğinde yeşil özet bar | Trainline |
-| Filter Pills | Tek tıkla toggle filtreler | Kiwi.com |
-| Time Slots | 🌅🌤️🌆🌙 saat dilimleri | Trainline |
-| Direct Only | "Sadece Direkt" toggle + sefer sayısı | Omio |
-| Highlight Badges | "En Ucuz" yeşil, "En Hızlı" mavi | Trainline |
-| Class Cards | Bilet sınıfı seçim kartları | Trainline |
-| "En Popüler" | Business class badge | Omio |
-
-### Round-Trip Flow
-```
-1. Homepage: Gidiş-Dönüş seç → returnDate picker açılır
-2. Search: Progress Steps görünür (1-Gidiş aktif)
-3. Gidiş seç → Phase otomatik "return"a geçer
-4. Sticky bar: "Gidiş Seçildi" + özet + "Değiştir" butonu
-5. Dönüş seç → Booking sayfasına redirect
-6. Booking: Sidebar'da 2 kart (Gidiş + Dönüş)
-```
-
-### SessionStorage Keys
-| Key | Kullanım |
-|-----|----------|
-| `tripType` | "oneway" veya "roundtrip" |
-| `selectedJourney` | Tek yön için seçili sefer |
-| `selectedOutbound` | Round-trip gidiş |
-| `selectedReturn` | Round-trip dönüş |
-| `passengers` | { adults, children } |
-
----
-
-## 🔌 ERA API ENDPOİNTLERİ
-
-### Places
+### Bookings - Refund & Exchange (YENİ)
 | Method | Endpoint | Açıklama |
 |--------|----------|----------|
-| GET | /era/places/autocomplete?query=paris | İstasyon arama |
-| GET | /era/places | Tüm istasyonlar |
-| GET | /era/places/:code | Kod ile istasyon |
+| POST | /bookings/:id/refund/quotation | İade teklifi al |
+| POST | /bookings/:id/refund/confirm | İadeyi onayla |
+| POST | /bookings/:id/cancel | Hızlı iptal |
+| POST | /bookings/:id/exchange/search | Yeni seferler ara |
+| POST | /bookings/:id/exchange/quotation | Değişiklik teklifi al |
+| POST | /bookings/:id/exchange/confirm | Değişikliği onayla |
+| GET | /bookings/:id/conditions | İade/değişiklik koşulları |
 
-### Search
+### Calendar & Share
 | Method | Endpoint | Açıklama |
 |--------|----------|----------|
+| GET | /calendar/:id/ics?token=xxx | iCal dosyası |
+| GET | /calendar/:id/google?token=xxx | Takvim linkleri |
+| GET | /share/:id?token=xxx | Paylaşım verileri |
+| GET | /share/:id/whatsapp?token=xxx | WhatsApp link |
+| POST | /my-trips/:id/resend-email | Email tekrar gönder |
+
+### ERA API
+| Method | Endpoint | Açıklama |
+|--------|----------|----------|
+| GET | /era/places/autocomplete | İstasyon arama |
 | POST | /era/search | Sefer arama |
-| GET | /era/search/:searchId | Arama sonuçları |
-| POST | /era/search/:searchId?page=next | Pagination |
-| GET | /era/search/:searchId/offers/:offerId | Offer detay |
-
-### Booking
-| Method | Endpoint | Açıklama |
-|--------|----------|----------|
 | POST | /era/bookings | Booking oluştur |
-| GET | /era/bookings/:bookingId | Booking detay |
-| PUT | /era/bookings/:bookingId/items/:itemId/travelers | Yolcu güncelle |
-| POST | /era/bookings/:bookingId/prebook | Ön rezervasyon |
-| POST | /era/bookings/:bookingId/confirm | Onay |
-| POST | /era/bookings/:bookingId/print | Bilet yazdır |
-| DELETE | /era/bookings/:bookingId/items/:itemId | Item sil |
-
-### Refund
-| Method | Endpoint | Açıklama |
-|--------|----------|----------|
-| POST | /era/bookings/:bookingId/refund/quotation | İade teklifi |
-| POST | /era/bookings/:bookingId/refund/confirm | İade onayla |
-
-### Status
-| Method | Endpoint | Açıklama |
-|--------|----------|----------|
-| GET | /era/status | Mock/Live mode durumu |
-| POST | /era/cache/clear | Cache temizle |
+| POST | /era/bookings/:id/confirm | Onay |
 
 ---
 
-## 🚂 MOCK DATA ÖZELLİKLERİ
+## 🎫 PASSENGER DISCOUNT CARDS
 
-### Desteklenen Carrier'lar
-| Carrier | Tren Tipi | Prefix | Rotalar |
-|---------|-----------|--------|---------|
-| EUROSTAR | High-Speed | ES | Paris↔London, London↔Brussels |
-| THALYS | High-Speed | THA | Paris↔Amsterdam, Paris↔Brussels |
-| SNCF/TGV | High-Speed | TGV | Paris↔Lyon, Paris↔Marseille |
-| TRENITALIA | High-Speed | FR | Roma↔Milano, Roma↔Firenze |
-| DBAHN/ICE | High-Speed | ICE | Berlin↔Munich, Frankfurt↔Köln |
-| RENFE/AVE | High-Speed | AVE | Madrid↔Barcelona |
-| SBB | Inter-City | IC | Zurich↔Geneva |
-| ÖBB/Railjet | High-Speed | RJ | Vienna↔Salzburg |
-| TGV Lyria | High-Speed | TGV | Paris↔Geneva, Paris↔Zurich |
+### Desteklenen Kartlar (25+)
+| Ülke | Kartlar |
+|------|---------|
+| 🇩🇪 DE | BahnCard 25, BahnCard 50, BahnCard 100 |
+| 🇫🇷 FR | Carte Avantage, Carte Jeune, Carte Senior, Carte Weekend |
+| 🇮🇹 IT | CartaFRECCIA, CartaFRECCIA Young, CartaFRECCIA Senior |
+| 🇨🇭 CH | Halbtax, GA Travelcard |
+| 🇦🇹 AT | Vorteilscard, Vorteilscard Jugend, Vorteilscard Senior |
+| 🇪🇸 ES | Tarjeta Dorada, Tarjeta Joven |
+| 🇬🇧 GB | 16-25 Railcard, 26-30 Railcard, Senior Railcard, Family Railcard |
+| 🇪🇺 EU | Interrail Pass, Eurail Pass, Eurostar Frequent Traveller |
 
-### Class Seçenekleri
-| Class | Comfort | Fiyat Çarpanı | İade | Değişiklik | Flexibility |
-|-------|---------|---------------|------|------------|-------------|
-| Standard | standard | 1.0x | ❌ | ✅ | Semi-Flexible |
-| Business | comfort | 1.6x | ✅ | ✅ | Flexible |
-| First | premier | 2.2x | ✅ | ✅ | Fully Flexible |
-
-### Şehirler (32 adet)
-Fransa, İngiltere, Almanya, İtalya, İspanya, Hollanda, Belçika, İsviçre, Avusturya, Çekya
-
-### Highlights Tracking (YENİ)
-- `cheapestOfferId` - Standard class en ucuz offer
-- `fastestOfferId` - En kısa süre offer
-- Response'da `highlights` objesi olarak döner
-
----
-
-## 🗄️ DATABASE TABLOLARI
-
-### Mevcut
-- booking
-- campaign  
-- admin_users
-- settings
-- payment (implicit)
-
-### Gelecek (ERA tam entegrasyon için)
-- era_booking_item
-- era_traveler
-- era_ticket
+### Özellikler
+- Yaş bazlı filtreleme (dateOfBirth'e göre)
+- Ülkelere göre gruplama
+- Kart numarası validasyonu
+- ERA API'ye passengerCards olarak gönderim
 
 ---
 
@@ -209,18 +172,18 @@ Fransa, İngiltere, Almanya, İtalya, İspanya, Hollanda, Belçika, İsviçre, A
 | Modül | Backend | Frontend | Durum |
 |-------|---------|----------|-------|
 | ERA Places | ✅ | ✅ | Mock çalışıyor |
-| ERA Search | ✅ | ✅ | v2 UI + Round-trip ✅ |
-| ERA Booking | ✅ | ✅ | Round-trip destekli ✅ |
-| ERA Refund | ✅ | - | Backend hazır |
+| ERA Search | ✅ | ✅ | Round-trip + Filters ✅ |
+| ERA Booking | ✅ | ✅ | Discount Cards ✅ |
+| Refund | ✅ | ✅ | **YENİ** ✅ |
+| Exchange | ✅ | ✅ | **YENİ** ✅ |
+| Calendar/iCal | ✅ | ✅ | Çalışıyor |
+| Share | ✅ | ✅ | WhatsApp/SMS/Email |
 | Auth | ✅ | ✅ | JWT çalışıyor |
-| Bookings | ✅ | ✅ | Tamamlandı |
 | Payment | ✅ | ✅ | MSU credentials bekliyor |
 | Settings | ✅ | ✅ | TCMB entegre |
 | Email | ✅ | - | Resend entegre |
 | PDF | ✅ | - | QR kod çalışıyor |
 | MCP Server | ✅ | - | 4 tool hazır |
-| My Trips | ✅ | ✅ | Phase 1 tamamlandı |
-| Terms/Privacy | ✅ | 🔜 | Frontend bekliyor |
 
 ---
 
@@ -240,39 +203,21 @@ Fransa, İngiltere, Almanya, İtalya, İspanya, Hollanda, Belçika, İsviçre, A
 
 ---
 
-## 🚀 AGENTIC COMMERCE STRATEJİSİ
+## 🎨 UI/UX REFERANSLARI
 
-### Yaklaşım: MCP-First, UCP-Ready
-
-| Faz | Süre | Hedef | Durum |
-|-----|------|-------|-------|
-| Faz 1 | 2-3 hafta | Temel MCP Server (search-trains) | ✅ Tamamlandı |
-| Faz 2 | 3-4 hafta | Booking desteği | ✅ Tamamlandı |
-| Faz 3 | 4-6 hafta | Ödeme + UCP uyumu | ⏳ Bekliyor |
-
-Detaylar: `docs/AGENTIC_COMMERCE_STRATEGY.md`
+| Platform | Özellik | Kullanıldığı Yer |
+|----------|---------|------------------|
+| Trainline | Butter-smooth UX, Class cards | Search, Booking |
+| Google Flights | Progress steps, Clean design | Round-trip flow |
+| Kiwi.com | Filter pills | Search filters |
+| Omio | Direct filter, Badges | Search page |
+| Emirates | My Trips UI | My Trips |
 
 ---
 
-## 📱 UI/UX REFERANSLARİ
+## 📋 SONRAKİ ADIMLAR
 
-### İlham Alınan Platformlar
-| Platform | Özellik | Kullanıldığı Yer |
-|----------|---------|------------------|
-| Trainline | Butter-smooth UX, Class cards | Search page v2 |
-| Google Flights | Progress steps, Clean design | Round-trip flow |
-| Kiwi.com | Filter pills, Anywhere search | Filter UI |
-| Omio | Direct filter, Highlight badges | Search filters |
-| Emirates | My Trips UI | My Trips page |
-
-### Tasarım Sistemi
-| Element | Değer |
-|---------|-------|
-| Primary | #1a365d (Derin Lacivert) |
-| Secondary | #f59e0b (Altın/Amber) |
-| Accent | #0891b2 (Turkuaz) |
-| Success | #059669 (Yeşil) |
-| Error | #dc2626 (Kırmızı) |
-| Border Radius | rounded-xl, rounded-2xl |
-| Shadow | shadow-sm, shadow-md |
-| Font | Inter |
+1. **Seat Selection** - Koltuk seçimi UI
+2. **Exchange Ödeme** - Fiyat farkı için Payten
+3. **Refund Hizmet Bedeli** - serviceFee ayrımı
+4. **Production Deployment** - Railway + Vercel

@@ -15,7 +15,11 @@ export interface TravelerForm {
   passportNumber?: string;
   passportExpiry?: string;
   nationality?: string;
-  discountCard?: string;
+  // Discount card - YENİ
+  discountCard?: {
+    code: string;
+    number?: string;
+  } | null;
 }
 
 export interface SeatPreference {

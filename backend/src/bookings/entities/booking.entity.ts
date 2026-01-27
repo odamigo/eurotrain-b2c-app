@@ -117,6 +117,11 @@ export class Booking {
     passport_number?: string;
     passport_expiry?: string;
     passport_country?: string;
+    // YENİ: Discount card bilgileri
+    discount_card?: {
+      code: string;
+      number?: string;
+    };
   }>;
 
   // ============================================================
@@ -140,6 +145,10 @@ export class Booking {
 
   @Column('decimal', { precision: 10, scale: 2, nullable: true })
   promoDiscount: number;
+
+  // YENİ: İndirim kartı ile alınan toplam indirim
+  @Column('decimal', { precision: 10, scale: 2, default: 0 })
+  cardDiscount: number;
 
   // ============================================================
   // PAYMENT

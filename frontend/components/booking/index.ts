@@ -6,3 +6,5 @@ export { PriceBreakdown } from './PriceBreakdown';
 export { TicketConditions } from './TicketConditions';
 export { TermsCheckbox } from './TermsCheckbox';
 export { JourneySummaryCard } from './JourneySummaryCard';
+
+export { DiscountCardSelector } from './DiscountCardSelector';

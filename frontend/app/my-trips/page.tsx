@@ -613,11 +613,13 @@ function TripCard({
             {/* More Actions */}
             {tripIsUpcoming && trip.status !== 'cancelled' && (
               <div className="ml-auto flex gap-2">
-                {/* Change - Phase 2 */}
+                {/* Change */}
                 <button 
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    window.location.href = `/my-trips/exchange?bookingId=${trip.id}&token=${token}`;
+                  }}
                   className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-                  disabled
-                  title="Yakında aktif olacak"
                 >
                   <RefreshCw className="w-4 h-4" />
                   Değiştir
@@ -625,6 +627,10 @@ function TripCard({
 
                 {/* Cancel */}
                 <button 
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    window.location.href = `/my-trips/refund?bookingId=${trip.id}&token=${token}`;
+                  }}
                   className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 rounded-lg text-sm font-medium text-red-600 hover:bg-red-100 transition-colors"
                 >
                   <XCircle className="w-4 h-4" />
