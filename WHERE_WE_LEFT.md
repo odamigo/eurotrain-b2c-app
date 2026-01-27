@@ -1,11 +1,11 @@
 # 🚂 EUROTRAIN - NEREDE KALDIK
 
-**Son Güncelleme:** 26 Ocak 2026, 23:50
+**Son Güncelleme:** 27 Ocak 2026, 10:00
 **Git Branch:** main
 
 ---
 
-## ✅ BU OTURUMDA TAMAMLANAN
+## ✅ ÖNCEKİ OTURUMDA TAMAMLANAN
 
 ### Phase 1: Round-Trip UI & UX Overhaul 🎉
 **Trainline/Google Flights/Kiwi.com seviyesinde world-class UX**
@@ -41,6 +41,9 @@
 - [x] Direct Only Checkbox
 - [x] URL params: tripType, returnDate, directOnly
 
+#### Vercel Build Fix
+- [x] `useSearchParams` Suspense boundary ile sarıldı (checkout page)
+
 ---
 
 ## 🐛 DÜZELTILEN BUGLAR
@@ -50,10 +53,11 @@
 | Round-trip seçince homepage'e redirect | Booking page round-trip desteği eklendi | ✅ Düzeltildi |
 | TypeScript hatası: segmentCount, isDirect | era-api.types.ts güncellendi | ✅ Düzeltildi |
 | TypeScript hatası: cheapestOfferId | SearchHighlights interface eklendi | ✅ Düzeltildi |
+| Vercel build hatası: useSearchParams | Suspense boundary eklendi | ✅ Düzeltildi |
 
 ---
 
-## 🚨 BEKLEYEN: REFACTORING (SONRAKİ OTURUM)
+## 🚨 BUGÜN YAPILACAK: REFACTORING
 
 ### Problem
 Booking entity **camelCase** kullanıyor ama servisler **snake_case** gönderiyor. Bu 42 TypeScript hatası veriyor.
@@ -88,14 +92,16 @@ price            → totalPrice (veya ticketPrice)
 
 ## 🔮 SIRADAKI GÖREVLER
 
-### Öncelik 1: Phase 1 Tamamlama
+### Öncelik 1: Refactoring (BUGÜN)
+- [ ] 6 dosyada snake_case → camelCase dönüşümü
+- [ ] TypeScript hatalarını düzelt (42 hata)
+- [ ] `booking/` vs `bookings/` duplicate temizliği
+- [ ] Backup dosyaları sil + .gitignore güncelle
+
+### Öncelik 2: Phase 1 Tamamlama
 - [ ] Multi-segment route generation (aktarmalı seferler için mock data)
 - [ ] Backend round-trip search: `legs[]` array oluşturma
 - [ ] End-to-end test: Homepage → Search → Booking → Success
-
-### Öncelik 2: Refactoring
-- [ ] 6 dosyada snake_case → camelCase dönüşümü
-- [ ] TypeScript hatalarını düzelt (42 hata)
 
 ### Öncelik 3: My Trips Phase 2
 | Özellik | Öncelik | Backend Endpoint |
@@ -109,16 +115,17 @@ price            → totalPrice (veya ticketPrice)
 
 ---
 
-## 📁 DEĞİŞEN DOSYALAR (Bu Oturum)
+## 📁 DEĞİŞEN DOSYALAR (Önceki Oturum)
 
 | Dosya | Değişiklik |
 |-------|------------|
 | `frontend/app/search/page.tsx` | Tamamen yeniden yazıldı (v2) |
 | `frontend/app/booking/page.tsx` | Round-trip desteği eklendi |
+| `frontend/app/booking/checkout/page.tsx` | Suspense boundary eklendi |
 | `backend/src/era/interfaces/era-api.types.ts` | SearchHighlights, isDirect, segmentCount |
 | `backend/src/era/dto/search-journeys.dto.ts` | TripType enum, returnDate |
 | `backend/src/era/mock/era-mock.service.ts` | Highlights tracking |
-| `frontend/app/page.tsx` | Trip type toggle, return date (önceki oturum) |
+| `frontend/app/page.tsx` | Trip type toggle, return date |
 
 ---
 
@@ -126,11 +133,11 @@ price            → totalPrice (veya ticketPrice)
 
 ```powershell
 # Backend başlat
-cd C:\Users\Levent\cursor-projects\eurotrain\backend
+cd C:\dev\eurotrain-b2c-app\backend
 npm run start:dev
 
 # Frontend başlat
-cd C:\Users\Levent\cursor-projects\eurotrain\frontend
+cd C:\dev\eurotrain-b2c-app\frontend
 npm run dev
 
 # Test URLs
@@ -162,8 +169,8 @@ http://localhost:3000/my-trips  # Biletlerim
 ```
 1. "WHERE_WE_LEFT.md oku" de
 2. Seçenekler:
-   a) "Multi-segment mock data ekle" - Phase 1 tamamlama
-   b) "Refactoring'e başla" - 42 TypeScript hatası
+   a) "Refactoring'e başla" - snake_case → camelCase
+   b) "Multi-segment mock data ekle" - Phase 1 tamamlama
    c) "My Trips Phase 2" - Wallet, iCal
 3. Her dosya sonunda test komutunu çalıştır
 ```
