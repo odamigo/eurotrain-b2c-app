@@ -303,7 +303,7 @@ function ExchangePage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-bold text-slate-800">€{Number(booking.totalPrice || booking.price).toFixed(2)}</div>
+                  <div className="font-bold text-slate-800">€{Number(booking.totalPrice || 0).toFixed(2)}</div>
                 </div>
               </div>
             </div>
