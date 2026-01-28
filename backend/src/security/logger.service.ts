@@ -1,6 +1,4 @@
 import { Injectable, LoggerService as NestLoggerService } from '@nestjs/common';
-import * as fs from 'fs';
-import * as path from 'path';
 
 export interface LogEntry {
   timestamp: string;
@@ -13,33 +11,17 @@ export interface LogEntry {
 
 @Injectable()
 export class LoggerService implements NestLoggerService {
-  private logDir: string;
-  private errorLogFile: string;
-  private combinedLogFile: string;
+  private isProduction: boolean;
+  private recentErrors: LogEntry[] = [];
+  private errorCount = { today: 0, date: new Date().toDateString() };
+  private readonly MAX_RECENT_ERRORS = 100;
 
   constructor() {
-    this.logDir = path.join(process.cwd(), 'logs');
-    this.errorLogFile = path.join(this.logDir, 'error.log');
-    this.combinedLogFile = path.join(this.logDir, 'combined.log');
-    
-    // Log klasörü oluştur
-    if (!fs.existsSync(this.logDir)) {
-      fs.mkdirSync(this.logDir, { recursive: true });
-    }
+    this.isProduction = process.env.NODE_ENV === 'production';
   }
 
   private writeLog(entry: LogEntry) {
-    const logLine = JSON.stringify(entry) + '\n';
-    
-    // Combined log'a yaz
-    fs.appendFileSync(this.combinedLogFile, logLine);
-    
-    // Error ve warn'ları ayrı dosyaya da yaz
-    if (entry.level === 'error' || entry.level === 'warn') {
-      fs.appendFileSync(this.errorLogFile, logLine);
-    }
-
-    // Console'a da yaz
+    // Console'a yaz - Railway/Vercel otomatik toplar
     const color = {
       error: '\x1b[31m', // kırmızı
       warn: '\x1b[33m',  // sarı
@@ -48,9 +30,41 @@ export class LoggerService implements NestLoggerService {
     };
     const reset = '\x1b[0m';
     
-    console.log(
-      `${color[entry.level]}[${entry.level.toUpperCase()}]${reset} ${entry.timestamp} - ${entry.context || 'App'}: ${entry.message}`
-    );
+    const logMessage = `${color[entry.level]}[${entry.level.toUpperCase()}]${reset} ${entry.timestamp} - ${entry.context || 'App'}: ${entry.message}`;
+    
+    if (entry.level === 'error') {
+      console.error(logMessage);
+      if (entry.stack) {
+        console.error(entry.stack);
+      }
+    } else if (entry.level === 'warn') {
+      console.warn(logMessage);
+    } else {
+      console.log(logMessage);
+    }
+
+    // Production'da JSON formatında da logla (log aggregation için)
+    if (this.isProduction) {
+      const jsonLog = JSON.stringify({
+        ...entry,
+        env: 'production',
+        service: 'eurotrain-backend'
+      });
+      
+      if (entry.level === 'error') {
+        console.error(jsonLog);
+      } else {
+        console.log(jsonLog);
+      }
+    }
+
+    // Error'ları memory'de tut (admin panel için)
+    if (entry.level === 'error' || entry.level === 'warn') {
+      this.recentErrors.unshift(entry);
+      if (this.recentErrors.length > this.MAX_RECENT_ERRORS) {
+        this.recentErrors.pop();
+      }
+    }
   }
 
   log(message: string, context?: string) {
@@ -71,7 +85,7 @@ export class LoggerService implements NestLoggerService {
       context,
     });
 
-    // Kritik hata bildirimi (ileride email/telegram eklenebilir)
+    // Kritik hata bildirimi
     this.notifyAdmin('error', message, stack);
   }
 
@@ -85,7 +99,7 @@ export class LoggerService implements NestLoggerService {
   }
 
   debug(message: string, context?: string) {
-    if (process.env.NODE_ENV !== 'production') {
+    if (!this.isProduction) {
       this.writeLog({
         timestamp: new Date().toISOString(),
         level: 'debug',
@@ -100,91 +114,39 @@ export class LoggerService implements NestLoggerService {
   }
 
   // Kritik hata bildirimi
-  private async notifyAdmin(level: string, message: string, stack?: string) {
-    // Bu kısım email servisi kurulduktan sonra aktif edilecek
-    // Şimdilik sadece console'a özel mesaj
+  private notifyAdmin(level: string, message: string, stack?: string) {
     if (level === 'error') {
       console.log('\x1b[41m\x1b[37m ⚠️  CRITICAL ERROR - ADMIN NOTIFICATION NEEDED \x1b[0m');
       
       // Hata sayısını takip et
-      const errorCountFile = path.join(this.logDir, 'error-count.json');
-      let errorCount = { today: 0, date: new Date().toDateString() };
-      
-      if (fs.existsSync(errorCountFile)) {
-        try {
-          errorCount = JSON.parse(fs.readFileSync(errorCountFile, 'utf8'));
-          if (errorCount.date !== new Date().toDateString()) {
-            errorCount = { today: 0, date: new Date().toDateString() };
-          }
-        } catch {}
+      const today = new Date().toDateString();
+      if (this.errorCount.date !== today) {
+        this.errorCount = { today: 0, date: today };
       }
       
-      errorCount.today++;
-      fs.writeFileSync(errorCountFile, JSON.stringify(errorCount));
+      this.errorCount.today++;
       
       // 10'dan fazla hata varsa uyar
-      if (errorCount.today > 10) {
-        console.log('\x1b[41m\x1b[37m ⚠️  TOO MANY ERRORS TODAY: ' + errorCount.today + ' \x1b[0m');
+      if (this.errorCount.today > 10) {
+        console.log('\x1b[41m\x1b[37m ⚠️  TOO MANY ERRORS TODAY: ' + this.errorCount.today + ' \x1b[0m');
       }
     }
   }
 
   // Son hataları getir (admin panel için)
   getRecentErrors(limit: number = 50): LogEntry[] {
-    try {
-      if (!fs.existsSync(this.errorLogFile)) {
-        return [];
-      }
-      
-      const content = fs.readFileSync(this.errorLogFile, 'utf8');
-      const lines = content.trim().split('\n').filter(Boolean);
-      
-      return lines
-        .slice(-limit)
-        .reverse()
-        .map(line => {
-          try {
-            return JSON.parse(line);
-          } catch {
-            return null;
-          }
-        })
-        .filter(Boolean) as LogEntry[];
-    } catch {
-      return [];
-    }
+    return this.recentErrors.slice(0, limit);
   }
 
   // Hata istatistikleri
   getErrorStats(): { today: number; total: number; lastError?: string } {
-    const errorCountFile = path.join(this.logDir, 'error-count.json');
-    let today = 0;
+    const today = new Date().toDateString();
+    const todayCount = this.errorCount.date === today ? this.errorCount.today : 0;
     
-    if (fs.existsSync(errorCountFile)) {
-      try {
-        const data = JSON.parse(fs.readFileSync(errorCountFile, 'utf8'));
-        if (data.date === new Date().toDateString()) {
-          today = data.today;
-        }
-      } catch {}
-    }
-
-    let total = 0;
-    let lastError: string | undefined;
-    
-    if (fs.existsSync(this.errorLogFile)) {
-      const content = fs.readFileSync(this.errorLogFile, 'utf8');
-      const lines = content.trim().split('\n').filter(Boolean);
-      total = lines.length;
-      
-      if (lines.length > 0) {
-        try {
-          const last = JSON.parse(lines[lines.length - 1]);
-          lastError = last.timestamp;
-        } catch {}
-      }
-    }
-
-    return { today, total, lastError };
+    return {
+      today: todayCount,
+      total: this.recentErrors.filter(e => e.level === 'error').length,
+      lastError: this.recentErrors[0]?.timestamp
+    };
   }
 }

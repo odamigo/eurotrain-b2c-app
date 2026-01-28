@@ -1,112 +1,125 @@
 # 🚂 EUROTRAIN - NEREDE KALDIK
 
-**Son Güncelleme:** 27 Ocak 2026, 18:00  
+**Son Güncelleme:** 27 Ocak 2026, 21:30  
 **Git Branch:** main  
-**Son Commit:** My Trips Phase 2 tamamlandı
+**Son Commit:** fix: use totalPrice instead of undefined price property
 
 ---
 
 ## ✅ BU OTURUMDA TAMAMLANAN
 
-### My Trips Phase 2 - Bilet Yönetimi Geliştirmeleri
-- [x] **Calendar Modülü** - iCal (.ics) dosyası oluşturma
-  - `backend/src/calendar/calendar.module.ts`
-  - `backend/src/calendar/calendar.service.ts`
-  - `backend/src/calendar/calendar.controller.ts`
-  - Google Calendar, Apple Calendar, Outlook desteği
-  - 1 gün + 2 saat öncesi hatırlatıcılar
+### Production Deployment Başlatıldı
+- [x] Neon PostgreSQL hesabı açıldı
+- [x] Database oluşturuldu: `eurotrain-production` (Frankfurt region)
+- [x] Connection string alındı ✅
+- [x] Railway.app hesabı açıldı (email ile)
+- [x] Vercel environment variables güncellendi
+- [x] TypeScript hataları düzeltildi (booking.price → totalPrice)
+- [x] Vercel build başarılı ✅
 
-- [x] **Share Modülü** - Bilet paylaşımı
-  - `backend/src/share/share.module.ts`
-  - `backend/src/share/share.service.ts`
-  - `backend/src/share/share.controller.ts`
-  - WhatsApp, SMS, Email deep link'leri
+### Oluşturulan Dosyalar
+- [x] `backend/Dockerfile` - Production Docker image
+- [x] `backend/railway.json` - Railway config
+- [x] `backend/.dockerignore` - Docker ignore
+- [x] `backend/.env.example` - Örnek environment variables
+- [x] `backend/src/main.ts` - Production güvenlik ayarları (CORS, Helmet)
+- [x] `backend/src/app.module.ts` - DATABASE_URL desteği, SSL, connection pool
+- [x] `frontend/next.config.ts` - Security headers, rewrites
+- [x] `frontend/.env.example` - Örnek environment variables
 
-- [x] **Email Resend** - Onay emaili tekrar gönderme
-  - `POST /my-trips/:id/resend-email?token=xxx`
-  - 5 dakika rate limiting
-  - Email maskeleme (GDPR)
-
-- [x] **Frontend Entegrasyonu**
-  - `frontend/lib/my-trips-api.ts` - API helper'lar
-  - `frontend/app/my-trips/page.tsx` - Yeni butonlar
-  - Takvime Ekle, Email Gönder, WhatsApp, Paylaş
+### Vercel Environment Variables
+- [x] `NEXT_PUBLIC_API_URL` = (mevcut)
+- [x] `NEXT_PUBLIC_SITE_URL` = https://eurotrain-b2c-app.vercel.app
 
 ---
 
-## 🔌 YENİ API ENDPOİNTLERİ
+## ⏸️ DEVAM EDİLECEK (Yarın)
 
+### Railway Backend Deployment
+Railway'de GitHub OAuth sorunu yaşandı. Yarın tekrar denenecek:
+
+1. https://railway.app → Login
+2. GitHub OAuth tekrar dene (geçici sorun olabilir)
+3. Olmazsa email ile giriş yap
+4. Yeni proje oluştur → GitHub repo bağla
+5. Root directory: `backend`
+6. Environment variables ekle (aşağıdaki liste)
+
+### Railway Environment Variables (Eklenecek)
 ```
-GET  /calendar/:id/ics?token=xxx      → iCal dosyası indir
-GET  /calendar/:id/google?token=xxx   → Takvim linkleri (Google/Apple/Outlook)
-GET  /share/:id?token=xxx             → Paylaşım verileri
-GET  /share/:id/whatsapp?token=xxx    → WhatsApp deep link
-POST /my-trips/:id/resend-email       → Onay emaili tekrar gönder
-```
-
----
-
-## 🎨 FRONTEND DEĞİŞİKLİKLERİ
-
-### TripCard Butonları
-| Buton | Fonksiyon | Durum |
-|-------|-----------|-------|
-| PDF İndir | PDF bilet | ✅ Mevcut |
-| Takvime Ekle | Google Calendar | ✅ Yeni |
-| Email Gönder | Resend email | ✅ Yeni |
-| WhatsApp | WhatsApp share | ✅ Yeni |
-| Paylaş | Native share | ✅ Yeni |
-| Wallet | Apple/Google | ⏸️ Beklemede |
-
----
-
-## ⏸️ BEKLEYEN GÖREVLER
-
-### Wallet Entegrasyonu
-| Platform | Gereksinim |
-|----------|------------|
-| Apple Wallet | Developer Program ($99/yıl) + Sertifika |
-| Google Wallet | Cloud Console API + Service Account |
-
----
-
-## 🧪 TEST KOMUTLARI
-
-```powershell
-# Backend
-cd C:\dev\eurotrain-b2c-app\backend
-npm run start:dev
-
-# Frontend
-cd C:\dev\eurotrain-b2c-app\frontend
-npm run dev
-
-# Test Token ile My Trips
-# http://localhost:3000/my-trips?token=84b7682dd152aa4ea61507289a22e0ca4f0a7e3605c8af183248f5c5e134983b
+DATABASE_URL = <Neon connection string>
+JWT_SECRET = <güçlü rastgele string>
+RESEND_API_KEY = re_VQ69gEzG_6biLizjQaX62TGBMSxCr31rZ
+FRONTEND_URL = https://eurotrain-b2c-app.vercel.app
+ERA_AUTH_URL = https://authent-sandbox.era.raileurope.com
+ERA_API_URL = https://api-sandbox.era.raileurope.com
+ERA_POINT_OF_SALE = EUROTRAIN
+ERA_MOCK_MODE = true
+MSU_API_URL = https://test.merchantsafeunipay.com/msu/api/v2
+MSU_HOSTED_PAGE_URL = https://test.merchantsafeunipay.com
+MSU_MERCHANT = eurotrain
+MSU_MERCHANT_USER = <değer>
+MSU_MERCHANT_PASSWORD = <değer>
+MSU_MERCHANT_SECRET_KEY = <değer>
+NODE_ENV = production
+PORT = 3001
 ```
 
----
-
-## 📋 SONRAKİ OTURUM ÖNERİLERİ
-
-1. **Git commit** - My Trips Phase 2 değişikliklerini commit et
-2. **Production deployment** - Railway.app veya Vercel
-3. **Round-trip UI** - Gidiş-dönüş bilet desteği
-4. **Passenger Cards** - İndirim kartı entegrasyonu
-5. **Seat Selection** - Koltuk seçimi UI
+### Railway Sonrası Yapılacaklar
+1. Railway domain al (örn: eurotrain-backend-xxx.up.railway.app)
+2. Vercel'de `NEXT_PUBLIC_API_URL` güncelle
+3. Test: /health endpoint
+4. Test: Arama ve booking akışı
 
 ---
 
-## 🔑 ÖNEMLİ DOSYALAR
+## 📊 DEPLOYMENT DURUMU
 
-| Dosya | Açıklama |
-|-------|----------|
-| `MY_TRIPS_PHASE2_TODO.md` | Phase 2 tamamlanma raporu |
-| `backend/src/calendar/` | iCal modülü |
-| `backend/src/share/` | Paylaşım modülü |
-| `frontend/lib/my-trips-api.ts` | Frontend API helper |
-| `frontend/app/my-trips/page.tsx` | My Trips sayfası |
+| Bileşen | Platform | Durum |
+|---------|----------|-------|
+| Frontend | Vercel | ✅ Çalışıyor |
+| Backend | Railway | ⏸️ Yarın |
+| Database | Neon PostgreSQL | ✅ Hazır |
+| Monitoring | Sentry.io | 🔜 Sonra |
+| Uptime | BetterUptime | 🔜 Sonra |
 
 ---
 
-**Son güncelleme:** 27 Ocak 2026, 18:00
+## 🔗 BAĞLANTILAR
+
+### Production URLs (Mevcut)
+- Frontend: https://eurotrain-b2c-app.vercel.app
+- Backend: ⏸️ Railway deploy bekliyor
+
+### Paneller
+- Vercel: https://vercel.com/odamigos-projects/eurotrain-b2c-app
+- Neon: https://console.neon.tech (eurotrain-production)
+- Railway: https://railway.app/dashboard
+
+---
+
+## 📝 YARIN İÇİN HIZLI BAŞLANGIÇ
+
+```
+Levent: "Railway deployment devam edelim"
+
+Claude:
+1. Railway'e git, GitHub OAuth dene
+2. Olmadıysa projeyi manuel oluştur
+3. Environment variables ekle
+4. Deploy et
+5. /health test et
+6. Vercel API_URL güncelle
+```
+
+---
+
+## ⚠️ ÖNEMLİ NOTLAR
+
+1. **Neon Connection String** - Güvenli yerde sakla, buraya yazma!
+2. **Railway GitHub OAuth** - 27 Ocak'ta geçici sorun vardı
+3. **TypeScript Hataları** - `booking.price` → `booking.totalPrice` düzeltildi
+
+---
+
+**Sonraki Oturum:** Railway backend deployment tamamla
