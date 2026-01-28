@@ -1,160 +1,189 @@
 # 🚂 EUROTRAIN - NEREDE KALDIK
 
-**Son Güncelleme:** 27 Ocak 2026, 21:30  
+**Son Güncelleme:** 28 Ocak 2026, 19:15  
 **Git Branch:** main  
-**Son Commit:** Pending - Passenger Discount Cards + Refund/Exchange
+**Durum:** 🎉 **PRODUCTION LIVE + PAYTEN ÇALIŞIYOR!**
 
 ---
 
-## ✅ BU OTURUMDA TAMAMLANAN (27 Ocak 2026 - Akşam)
+## 💳 PAYTEN ENTEGRASYONU TAMAMLANDI!
 
-### 1. Passenger Discount Cards 🎫
-- [x] **Backend**
-  - `backend/src/bookings/dto/create-booking.dto.ts` - PassengerCardDto eklendi
-  - `backend/src/bookings/entities/booking.entity.ts` - cardDiscount alanı eklendi
-- [x] **Frontend**
-  - `frontend/lib/constants/discount-cards.constants.ts` - 25+ Avrupa indirim kartı
-  - `frontend/components/booking/DiscountCardSelector.tsx` - Kart seçim UI
-  - `frontend/lib/types/booking.types.ts` - discountCard type eklendi
-  - `frontend/components/booking/TravelerCard.tsx` - DiscountCardSelector entegrasyonu
-  - `frontend/components/booking/index.ts` - Export eklendi
+### Bugün Yapılanlar (28 Ocak 2026, Akşam)
+- [x] `.env` duplicate MSU satırları temizlendi
+- [x] `BACKEND_URL` environment variable eklendi
+- [x] `msu.config.ts` - Return URL düzeltildi (`/payment/callback`)
+- [x] `main.ts` - Sentry hatası düzeltildi (SentryGlobalFilter kaldırıldı)
+- [x] `payment.service.ts` - Frontend redirect URL'leri düzeltildi
+- [x] `booking/page.tsx` - Gerçek Payten entegrasyonu eklendi (simülasyon kaldırıldı)
+- [x] **End-to-end ödeme testi BAŞARILI!** ✅
 
-**Desteklenen Kartlar:**
-| Ülke | Kartlar |
-|------|---------|
-| 🇩🇪 Almanya | BahnCard 25/50/100 |
-| 🇫🇷 Fransa | Carte Avantage, Jeune, Senior, Weekend |
-| 🇮🇹 İtalya | CartaFRECCIA, Young, Senior |
-| 🇨🇭 İsviçre | Halbtax, GA Travelcard |
-| 🇦🇹 Avusturya | Vorteilscard |
-| 🇪🇸 İspanya | Tarjeta Dorada, Joven |
-| 🇬🇧 İngiltere | 16-25, 26-30, Senior, Family Railcard |
-| 🇪🇺 Avrupa | Interrail Pass, Eurail Pass |
-
----
-
-### 2. Refund (İade) Sistemi 💰
-- [x] **Backend Endpoints**
-  - `POST /bookings/:id/refund/quotation` - İade teklifi al
-  - `POST /bookings/:id/refund/confirm` - İadeyi onayla
-  - `POST /bookings/:id/cancel` - Hızlı iptal
-  - `GET /bookings/:id/conditions` - Koşulları getir
-- [x] **Frontend**
-  - `frontend/app/my-trips/refund/page.tsx` - İade sayfası
-  - İade tutarı hesaplama (kalkışa göre %0-100)
-  - İade koşulları gösterimi
-
-**İade Kuralları:**
-| Kalkışa Kalan | İade Oranı | Ücret |
-|---------------|------------|-------|
-| 3+ gün | %100 | €0 |
-| 24-72 saat | %75 | €5 |
-| 2-24 saat | %50 | €10 |
-| <2 saat | %0 | - |
-
----
-
-### 3. Exchange (Değişiklik) Sistemi 🔄
-- [x] **Backend Endpoints**
-  - `POST /bookings/:id/exchange/search` - Yeni seferler ara
-  - `POST /bookings/:id/exchange/quotation` - Değişiklik teklifi al
-  - `POST /bookings/:id/exchange/confirm` - Değişikliği onayla
-- [x] **Frontend**
-  - `frontend/app/my-trips/exchange/page.tsx` - Değişiklik sayfası
-  - Tarih seçimi, sefer listesi, fiyat farkı gösterimi
-
----
-
-### 4. My Trips Buton Entegrasyonu 🔗
-- [x] `frontend/app/my-trips/page.tsx` güncellendi
-  - "Değiştir" butonu → `/my-trips/exchange` sayfasına yönlendirme
-  - "İptal Et" butonu → `/my-trips/refund` sayfasına yönlendirme
-
----
-
-## 📋 DAHA ÖNCE TAMAMLANAN (Fark Edilmemiş)
-
-Bu oturum başında eksik sanılan ama aslında tamamlanmış özellikler:
-
-| Özellik | Durum | Dosya |
-|---------|-------|-------|
-| Round-trip UI | ✅ | `frontend/app/search/page.tsx` |
-| Direct Only Filter | ✅ | `frontend/app/search/page.tsx` |
-| Highlights (En Ucuz/Hızlı) | ✅ | `frontend/app/search/page.tsx` |
-| Time Filters | ✅ | `frontend/app/search/page.tsx` |
-| Conditions Modal | ✅ | `frontend/components/search/ConditionsModal.tsx` |
-| Multi-segment Timeline | ✅ | `frontend/components/search/MultiSegmentTimeline.tsx` |
-| My Trips iCal | ✅ | `backend/src/calendar/` |
-| My Trips WhatsApp | ✅ | `backend/src/share/` |
-| My Trips Email Resend | ✅ | `backend/src/my-trips/` |
-
----
-
-## 🔌 YENİ API ENDPOİNTLERİ (Bu Oturum)
-
+### Test Sonucu
 ```
-# Refund
-POST /bookings/:id/refund/quotation   → İade teklifi al
-POST /bookings/:id/refund/confirm     → İadeyi onayla
-POST /bookings/:id/cancel             → Hızlı iptal
-
-# Exchange
-POST /bookings/:id/exchange/search    → Yeni seferler ara
-POST /bookings/:id/exchange/quotation → Değişiklik teklifi al
-POST /bookings/:id/exchange/confirm   → Değişikliği onayla
-
-# Conditions
-GET  /bookings/:id/conditions         → İade/değişiklik koşulları
+✅ Sipariş No: ET-1769616642842-EDMY7
+✅ Tutar: €224.70
+✅ Kart: VISA •••• 4242 (Mock)
+✅ Frontend success sayfası açıldı
 ```
 
 ---
 
-## 📝 NOTLAR - Sonraki Oturum İçin
+## 🎉 PRODUCTION DURUMU
 
-### 1. Exchange Ödeme Katmanı
-- Fiyat farkı varsa Payten ödeme sayfasına yönlendir
-- Ödeme başarılı → değişikliği tamamla
+### Canlı URL'ler
+| Bileşen | URL | Durum |
+|---------|-----|-------|
+| **Frontend** | https://eurotrain-b2c-app.vercel.app | ✅ LIVE |
+| **Backend** | https://eurotrain-b2c-app-production.up.railway.app | ✅ LIVE |
+| **Health Check** | https://eurotrain-b2c-app-production.up.railway.app/health | ✅ OK |
 
-### 2. Refund Hizmet Bedeli
-- Hizmet bedeli (serviceFee) iade edilmez
-- Sadece ticketPrice iade edilir
-- UI'da net göster
-
-### 3. Discount Cards UI/UX
-- Tüm kartları birden göstermek yerine arama/filtreleme
-- Daha kompakt tasarım
+### Altyapı
+| Bileşen | Platform | Region | Durum |
+|---------|----------|--------|-------|
+| Frontend | Vercel | Auto | ✅ |
+| Backend | Railway | US-West | ✅ |
+| Database | Neon PostgreSQL | Frankfurt (EU) | ✅ |
+| Monitoring | Sentry.io | EU | ✅ |
+| **Payment** | **Payten MSU** | **TR** | **✅ TEST OK** |
 
 ---
 
-## 🧪 TEST
+## 🚨 ACİL: PRODUCTION DEPLOY GEREKLİ
 
-```powershell
-# Backend
-cd C:\dev\eurotrain-b2c-app\backend
-npm run start:dev
+### Railway'e Eklenmesi Gereken Environment Variables
+```
+MSU_API_URL=https://test.merchantsafeunipay.com/msu/api/v2
+MSU_HOSTED_PAGE_URL=https://test.merchantsafeunipay.com
+MSU_MERCHANT=eurotrain
+MSU_MERCHANT_USER=***
+MSU_MERCHANT_PASSWORD=***
+MSU_MERCHANT_SECRET_KEY=***
+BACKEND_URL=https://eurotrain-b2c-app-production.up.railway.app
+```
 
-# Frontend  
-cd C:\dev\eurotrain-b2c-app\frontend
-npm run dev
-
-# Test URLs
-http://localhost:3000/my-trips?token=84b7682dd152aa4ea61507289a22e0ca4f0a7e3605c8af183248f5c5e134983b
-http://localhost:3000/my-trips/refund?bookingId=2&token=84b7682dd152aa4ea61507289a22e0ca4f0a7e3605c8af183248f5c5e134983b
-http://localhost:3000/my-trips/exchange?bookingId=2&token=84b7682dd152aa4ea61507289a22e0ca4f0a7e3605c8af183248f5c5e134983b
+### Güncellenmiş Dosyalar (GitHub'a Push Edilmeli)
+```
+backend/src/payment/msu.config.ts      ✅ Return URL düzeltildi
+backend/src/payment/payment.service.ts ✅ Frontend redirect eklendi
+backend/src/main.ts                    ✅ Sentry hatası düzeltildi
+backend/.env                           ⚠️ Local only (push etme!)
+frontend/app/booking/page.tsx          ✅ Payten entegrasyonu
 ```
 
 ---
 
-## 📊 GÜNCEL DURUM ÖZETİ
+## 📊 YAPILANDIRMA
 
-| Kategori | Tamamlanan | Bekleyen |
-|----------|------------|----------|
-| Search UI | 7/7 | 0 |
-| Booking | 5/7 | 2 (Seat Selection, Ticketing Options) |
-| My Trips | 8/10 | 2 (Apple/Google Wallet) |
-| Refund/Exchange | 6/6 | 0 |
-| Discount Cards | 5/5 | 0 |
+### Railway Environment Variables (GÜNCELLENMELİ)
+```
+DATABASE_URL = postgresql://...
+JWT_SECRET = eurotrain-super-secret-key-2026-production
+RESEND_API_KEY = re_***
+FRONTEND_URL = https://eurotrain-b2c-app.vercel.app
+BACKEND_URL = https://eurotrain-b2c-app-production.up.railway.app  # YENİ
+ERA_MOCK_MODE = true
+ERA_POINT_OF_SALE = EUROTRAIN
+NODE_ENV = production
+PORT = 3001
+DB_SYNCHRONIZE = false
+SENTRY_DSN = https://...@sentry.io/...
+# PAYTEN MSU - YENİ
+MSU_API_URL = https://test.merchantsafeunipay.com/msu/api/v2
+MSU_HOSTED_PAGE_URL = https://test.merchantsafeunipay.com
+MSU_MERCHANT = eurotrain
+MSU_MERCHANT_USER = ***
+MSU_MERCHANT_PASSWORD = ***
+MSU_MERCHANT_SECRET_KEY = ***
+```
+
+### Vercel Environment Variables
+```
+NEXT_PUBLIC_API_URL = https://eurotrain-b2c-app-production.up.railway.app
+NEXT_PUBLIC_SITE_URL = https://eurotrain-b2c-app.vercel.app
+SENTRY_AUTH_TOKEN = sntrys_***
+```
+
+### Neon Database Tabloları
+```
+✅ admin_users
+✅ bookings
+✅ campaigns
+✅ settings
+✅ payments
+```
 
 ---
 
-**Son güncelleme:** 27 Ocak 2026, 21:30
+## 🎯 SONRAKİ ADIMLAR
+
+### 🔴 Acil (Bugün/Yarın)
+- [ ] GitHub'a değişiklikleri push et
+- [ ] Railway environment variables güncelle (MSU credentials)
+- [ ] Production'da Payten testi
+- [ ] 3D Secure testi (gerçek test kartları)
+
+### Kısa Vadeli (Bu Hafta)
+- [ ] BetterUptime monitoring
+- [ ] Custom domain (eurotrain.net)
+- [ ] Farklı para birimleri testi (EUR, TRY, USD)
+
+### Orta Vadeli
+- [ ] Round-trip desteği (3-4 gün)
+- [ ] Passenger discount cards (3-4 gün)
+- [ ] My Trips Phase 2 (Wallet)
+- [ ] Mobile responsive (2-3 gün)
+- [ ] i18n (TR/EN)
+
+### Uzun Vadeli
+- [ ] Rail Europe sandbox credentials
+- [ ] Real API entegrasyonu
+- [ ] MCP Server (Agentic Commerce)
+
+---
+
+## 🔗 PANEL BAĞLANTILARI
+
+| Panel | URL |
+|-------|-----|
+| Vercel | https://vercel.com/odamigos-projects/eurotrain-b2c-app |
+| Railway | https://railway.app/project/6c5b6994-9f2f-4c85-a8c2-adfd9d9b0dae |
+| Neon | https://console.neon.tech |
+| Sentry | https://odamigo.sentry.io |
+| Resend | https://resend.com/api-keys |
+| **Payten** | https://merchant.payten.com.tr |
+
+---
+
+## 🚀 HIZLI TEST
+
+```bash
+# Health Check
+curl https://eurotrain-b2c-app-production.up.railway.app/health
+
+# Frontend
+open https://eurotrain-b2c-app.vercel.app
+
+# Local Test
+cd C:\dev\eurotrain-b2c-app\backend && npm run start:dev
+cd C:\dev\eurotrain-b2c-app\frontend && npm run dev
+```
+
+---
+
+## ⚠️ ÖNEMLİ NOTLAR
+
+1. **ERA API** - Mock modda, gerçek bilet kesmiyor
+2. **Payten** - TEST ortamında çalışıyor, production credentials aynı
+3. **Sentry** - Hem frontend hem backend hataları izleniyor
+4. **Güvenlik** - MSU credentials .env'de, asla GitHub'a push etme!
+
+---
+
+## 🏆 BAŞARI!
+
+**EuroTrain Payten ödeme entegrasyonu LOCAL'de çalışıyor!** 🎉💳
+
+- Frontend: Vercel ✅
+- Backend: Railway ✅  
+- Database: Neon ✅
+- Monitoring: Sentry ✅
+- **Payment: Payten MSU ✅** (Local test başarılı, production deploy bekliyor)

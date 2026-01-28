@@ -1,4 +1,4 @@
-﻿export const MSU_CONFIG = {
+export const MSU_CONFIG = {
   // API URLs
   apiUrl: process.env.MSU_API_URL || 'https://test.merchantsafeunipay.com/msu/api/v2',
   hostedPageUrl: process.env.MSU_HOSTED_PAGE_URL || 'https://test.merchantsafeunipay.com',
@@ -9,10 +9,10 @@
   merchantPassword: process.env.MSU_MERCHANT_PASSWORD || '',
   merchantSecretKey: process.env.MSU_MERCHANT_SECRET_KEY || '',
 
-  // Callback URLs
+  // Callback URLs - DÜZELTILDI: /payment/callback kullanılıyor
   returnUrl: process.env.BACKEND_URL 
-    ? process.env.BACKEND_URL + '/mcp/tools/payment/callback' 
-    : 'http://localhost:3001/mcp/tools/payment/callback',
+    ? process.env.BACKEND_URL + '/payment/callback' 
+    : 'http://localhost:3001/payment/callback',
   
   webhookUrl: process.env.BACKEND_URL 
     ? process.env.BACKEND_URL + '/payment/webhook' 

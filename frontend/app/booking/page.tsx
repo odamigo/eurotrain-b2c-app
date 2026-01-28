@@ -30,6 +30,8 @@ import type { Alert } from '@/lib/types/common.types';
 import type { TravelerForm } from '@/lib/types/booking.types';
 import { COMFORT_CONFIG, PROMO_CODES } from '@/lib/constants/booking.constants';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
 // ============================================================
 // MAIN BOOKING PAGE
 // ============================================================
@@ -53,6 +55,7 @@ export default function BookingPage() {
   const [error, setError] = useState<string | null>(null);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [bookingRef, setBookingRef] = useState<string | null>(null);
+  const [internalBookingId, setInternalBookingId] = useState<number | null>(null);
 
   // Options state
   const [ticketingOption, setTicketingOption] = useState('eticket');
@@ -183,6 +186,17 @@ export default function BookingPage() {
     setAlerts(prev => prev.filter(a => a.id !== id));
   };
 
+  // Calculate total price
+  const calculateTotal = () => {
+    if (!journey) return 0;
+    const journeyPrice = journey.price?.amount || 0;
+    const returnPrice = returnJourney?.price?.amount || 0;
+    const passengerCount = passengers.adults + passengers.children;
+    const subtotal = (journeyPrice + returnPrice) * passengerCount;
+    const serviceFee = Math.round(subtotal * 0.05 * 100) / 100; // %5 hizmet bedeli
+    return subtotal + serviceFee - promoDiscount;
+  };
+
   const handleContinue = async () => {
     if (!journey || !allTravelersValid) return;
     setLoading(true);
@@ -209,6 +223,39 @@ export default function BookingPage() {
       }
 
       await prebookBooking(booking.id);
+      
+      // Internal booking oluştur (Payten için)
+      const leadTraveler = travelers[0];
+      const internalBookingRes = await fetch(`${API_URL}/bookings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eraBookingId: booking.id,
+          eraReference: booking.reference,
+          customerName: `${leadTraveler.firstName} ${leadTraveler.lastName}`,
+          customerEmail: leadTraveler.email,
+          customerPhone: leadTraveler.phone,
+          fromStation: journey.origin?.label || journey.origin?.code || '',
+          toStation: journey.destination?.label || journey.destination?.code || '',
+          departureDate: journey.departure?.split('T')[0] || '',
+          departureTime: journey.departure?.split('T')[1]?.substring(0, 5) || '',
+          arrivalTime: journey.arrival?.split('T')[1]?.substring(0, 5) || '',
+          trainNumber: journey.trainNumber || 'TGV',
+          operator: journey.operator || 'SNCF',
+          ticketClass: journey.comfortCategory || 'standard',
+          price: calculateTotal(),
+          currency: journey.price?.currency || 'EUR',
+          adults: passengers.adults,
+          children: passengers.children,
+          status: 'pending',
+        }),
+      });
+
+      if (internalBookingRes.ok) {
+        const internalBooking = await internalBookingRes.json();
+        setInternalBookingId(internalBooking.id);
+      }
+
       setCurrentStep(2);
     } catch (err: any) {
       setError(err.message || 'Rezervasyon oluşturulurken bir hata oluştu');
@@ -218,17 +265,56 @@ export default function BookingPage() {
     }
   };
 
+  // ============================================================
+  // PAYMENT HANDLER - PAYTEN ENTEGRASYONU
+  // ============================================================
   const handlePayment = async () => {
     if (!termsAccepted) {
       addAlert('warning', 'Lütfen koşulları kabul edin');
       return;
     }
+
+    if (!journey) {
+      addAlert('error', 'Sefer bilgisi bulunamadı');
+      return;
+    }
+
     setLoading(true);
-    // Simulate payment - in production, redirect to payment gateway
-    setTimeout(() => {
-      setCurrentStep(3);
+    setError(null);
+
+    try {
+      const leadTraveler = travelers[0];
+      const totalAmount = calculateTotal();
+      const currency = journey.price?.currency || 'EUR';
+      const orderId = `ET-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+
+      // Payten ödeme başlat
+      const paymentRes = await fetch(`${API_URL}/payment/initiate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId,
+          bookingId: internalBookingId || 0,
+          amount: totalAmount,
+          currency,
+          customerEmail: leadTraveler.email,
+          customerName: `${leadTraveler.firstName} ${leadTraveler.lastName}`,
+        }),
+      });
+
+      const paymentData = await paymentRes.json();
+
+      if (paymentData.success && paymentData.redirectUrl) {
+        // Payten ödeme sayfasına yönlendir
+        window.location.href = paymentData.redirectUrl;
+      } else {
+        throw new Error(paymentData.message || 'Ödeme başlatılamadı');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Ödeme işlemi başlatılırken bir hata oluştu');
+      addAlert('error', err.message || 'Ödeme başlatılamadı');
       setLoading(false);
-    }, 2000);
+    }
   };
 
   // Loading state
@@ -393,6 +479,13 @@ export default function BookingPage() {
 
                 <TermsCheckbox checked={termsAccepted} onChange={setTermsAccepted} journey={journey} />
 
+                {error && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                    <div className="text-red-700">{error}</div>
+                  </div>
+                )}
+
                 <button
                   onClick={handlePayment}
                   disabled={loading || !termsAccepted}
@@ -403,9 +496,9 @@ export default function BookingPage() {
                   }`}
                 >
                   {loading ? (
-                    <><Loader2 className="w-5 h-5 animate-spin" /><span>Ödeme İşleniyor...</span></>
+                    <><Loader2 className="w-5 h-5 animate-spin" /><span>Ödeme Sayfasına Yönlendiriliyor...</span></>
                   ) : (
-                    <><CreditCard className="w-5 h-5" /><span>Ödemeye Geç</span></>
+                    <><CreditCard className="w-5 h-5" /><span>Ödemeye Geç - €{calculateTotal().toFixed(2)}</span></>
                   )}
                 </button>
               </div>

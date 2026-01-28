@@ -1,8 +1,8 @@
 # 🚂 EUROTRAIN - NEREDE KALDIK
 
-**Son Güncelleme:** 28 Ocak 2026, 17:20  
+**Son Güncelleme:** 28 Ocak 2026, 18:15  
 **Git Branch:** main  
-**Durum:** 🎉 **PRODUCTION LIVE!**
+**Durum:** 🎉 **PRODUCTION LIVE + MONITORING ACTIVE!**
 
 ---
 
@@ -21,6 +21,7 @@
 | Frontend | Vercel | Auto | ✅ |
 | Backend | Railway | US-West | ✅ |
 | Database | Neon PostgreSQL | Frankfurt (EU) | ✅ |
+| Monitoring | Sentry.io | EU | ✅ |
 
 ---
 
@@ -30,21 +31,34 @@
 - [x] Neon PostgreSQL hesabı ve database oluşturuldu
 - [x] Railway.app hesabı ve GitHub bağlantısı
 - [x] Docker build başarılı
-- [x] Environment variables yapılandırıldı (9 adet)
+- [x] Environment variables yapılandırıldı
 - [x] Database tabloları manuel oluşturuldu (SQL)
 - [x] Backend healthcheck geçti
 - [x] Public domain oluşturuldu
 - [x] Frontend-Backend bağlantısı yapıldı
 - [x] End-to-end test başarılı ✅
 
+### Sentry.io Error Monitoring
+- [x] Sentry hesabı oluşturuldu (odamigo org)
+- [x] Frontend projesi: `javascript-nextjs`
+- [x] Backend projesi: `eurotrain-backend`
+- [x] Frontend SDK kuruldu (@sentry/nextjs)
+- [x] Backend SDK kuruldu (@sentry/nestjs)
+- [x] Tracing aktif (performance monitoring)
+- [x] Session Replay aktif (video replay)
+- [x] Test hatası gönderildi ve doğrulandı ✅
+- [x] Sentry example page silindi
+
 ### Kod Düzeltmeleri
 - [x] `logger.service.ts` - Console logging (production-ready)
 - [x] `app.module.ts` - DB_SYNCHRONIZE env var desteği
-- [x] TypeScript hataları düzeltildi (`booking.price` → `booking.totalPrice`)
+- [x] TypeScript hataları düzeltildi
+- [x] `main.ts` - Sentry entegrasyonu
+- [x] `instrument.ts` - Sentry initialization
 
 ### Güvenlik
 - [x] GitGuardian uyarısı - Resend API key yenilendi
-- [x] Eski API key iptal edildi
+- [x] DB_SYNCHRONIZE=false yapıldı
 
 ---
 
@@ -52,21 +66,23 @@
 
 ### Railway Environment Variables
 ```
-DATABASE_URL = postgresql://neondb_owner:***@ep-noisy-recipe-agu4w276-pooler...
+DATABASE_URL = postgresql://...
 JWT_SECRET = eurotrain-super-secret-key-2026-production
-RESEND_API_KEY = re_*** (yeni key)
+RESEND_API_KEY = re_***
 FRONTEND_URL = https://eurotrain-b2c-app.vercel.app
 ERA_MOCK_MODE = true
 ERA_POINT_OF_SALE = EUROTRAIN
 NODE_ENV = production
 PORT = 3001
-DB_SYNCHRONIZE = true  ← Production'da false yapılmalı!
+DB_SYNCHRONIZE = false
+SENTRY_DSN = https://...@sentry.io/...
 ```
 
 ### Vercel Environment Variables
 ```
 NEXT_PUBLIC_API_URL = https://eurotrain-b2c-app-production.up.railway.app
 NEXT_PUBLIC_SITE_URL = https://eurotrain-b2c-app.vercel.app
+SENTRY_AUTH_TOKEN = sntrys_***
 ```
 
 ### Neon Database Tabloları
@@ -78,33 +94,25 @@ NEXT_PUBLIC_SITE_URL = https://eurotrain-b2c-app.vercel.app
 ✅ payments
 ```
 
----
-
-## 🐛 ÇÖZÜLEN HATALAR
-
-| Hata | Çözüm |
-|------|-------|
-| Logger permission denied | Console logging kullan |
-| DATABASE_URL format | `psql '...'` kaldırıldı |
-| Tables not exist | Manuel SQL ile oluşturuldu |
-| booking.price TypeScript | booking.totalPrice kullan |
-| API key leak | Yeni key oluşturuldu |
+### Sentry Projeleri
+```
+✅ javascript-nextjs (Frontend)
+✅ eurotrain-backend (Backend)
+```
 
 ---
 
 ## 🎯 SONRAKİ ADIMLAR
 
 ### Kısa Vadeli (Bu Hafta)
-- [ ] `DB_SYNCHRONIZE=false` yap (güvenlik)
-- [ ] Sentry.io error monitoring
 - [ ] BetterUptime monitoring
 - [ ] Custom domain (eurotrain.net)
 
 ### Orta Vadeli
-- [ ] Round-trip desteği
-- [ ] Passenger discount cards
+- [ ] Round-trip desteği (3-4 gün)
+- [ ] Passenger discount cards (3-4 gün)
 - [ ] My Trips Phase 2 (Wallet)
-- [ ] Mobile responsive
+- [ ] Mobile responsive (2-3 gün)
 - [ ] i18n (TR/EN)
 
 ### Uzun Vadeli
@@ -121,6 +129,7 @@ NEXT_PUBLIC_SITE_URL = https://eurotrain-b2c-app.vercel.app
 | Vercel | https://vercel.com/odamigos-projects/eurotrain-b2c-app |
 | Railway | https://railway.app/project/6c5b6994-9f2f-4c85-a8c2-adfd9d9b0dae |
 | Neon | https://console.neon.tech |
+| Sentry | https://odamigo.sentry.io |
 | Resend | https://resend.com/api-keys |
 
 ---
@@ -139,16 +148,17 @@ open https://eurotrain-b2c-app.vercel.app
 
 ## ⚠️ ÖNEMLİ NOTLAR
 
-1. **DB_SYNCHRONIZE** - Production'da `false` yapılmalı
-2. **Mock Mode** - ERA API mock modda, gerçek bilet kesmiyor
-3. **Payment** - MSU credentials eksik, mock modda
+1. **Mock Mode** - ERA API mock modda, gerçek bilet kesmiyor
+2. **Payment** - MSU credentials eksik, mock modda
+3. **Sentry** - Hem frontend hem backend hataları izleniyor
 
 ---
 
 ## 🏆 BAŞARI!
 
-**EuroTrain artık production'da çalışıyor!** 🎉🚂
+**EuroTrain production'da çalışıyor + Error monitoring aktif!** 🎉🚂
 
 - Frontend: Vercel ✅
 - Backend: Railway ✅  
 - Database: Neon ✅
+- Monitoring: Sentry ✅

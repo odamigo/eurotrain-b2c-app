@@ -1,14 +1,10 @@
 import './instrument'; // Sentry - must be first import!
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import * as Sentry from '@sentry/nestjs';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
-  // Sentry error handler
-  app.useGlobalFilters(new Sentry.SentryGlobalFilter());
-  
+
   // CORS'u etkinleştir
   app.enableCors({
     origin: [
@@ -18,7 +14,8 @@ async function bootstrap() {
     ].filter(Boolean),
     credentials: true,
   });
-  
+
   await app.listen(process.env.PORT ?? 3001);
+  console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();

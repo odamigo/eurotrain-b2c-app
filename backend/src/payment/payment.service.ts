@@ -1,4 +1,4 @@
-﻿import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Payment, PaymentStatus } from './entities/payment.entity';
@@ -8,12 +8,17 @@ import { InitiatePaymentDto, PaymentResponseDto, RefundPaymentDto, RefundRespons
 @Injectable()
 export class PaymentService {
   private readonly logger = new Logger(PaymentService.name);
+  private readonly frontendUrl: string;
 
   constructor(
     @InjectRepository(Payment)
     private paymentRepository: Repository<Payment>,
     private msuService: MsuService,
-  ) {}
+  ) {
+    // Frontend URL - callback sonrası yönlendirme için
+    this.frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    this.logger.log('Frontend URL for redirects: ' + this.frontendUrl);
+  }
 
   async initiatePayment(dto: InitiatePaymentDto, customerIp?: string): Promise<PaymentResponseDto> {
     this.logger.log('Initiating payment for order: ' + dto.orderId);
@@ -89,7 +94,7 @@ export class PaymentService {
 
     if (!orderId) {
       this.logger.error('Callback missing orderId');
-      return { success: false, redirectUrl: '/payment/error?message=Gecersiz+islem' };
+      return { success: false, redirectUrl: this.frontendUrl + '/payment/error?message=Gecersiz+islem' };
     }
 
     const payment = await this.paymentRepository.findOne({
@@ -98,7 +103,7 @@ export class PaymentService {
 
     if (!payment) {
       this.logger.error('Payment not found for order: ' + orderId);
-      return { success: false, redirectUrl: '/payment/error?message=Odeme+bulunamadi' };
+      return { success: false, redirectUrl: this.frontendUrl + '/payment/error?message=Odeme+bulunamadi' };
     }
 
     payment.callbackData = callbackData;
@@ -123,7 +128,7 @@ export class PaymentService {
 
       return {
         success: true,
-        redirectUrl: '/payment/success?orderId=' + payment.orderId + '&paymentId=' + payment.id,
+        redirectUrl: this.frontendUrl + '/payment/success?orderId=' + payment.orderId + '&paymentId=' + payment.id,
         payment,
       };
     } else {
@@ -137,7 +142,7 @@ export class PaymentService {
 
       return {
         success: false,
-        redirectUrl: '/payment/error?orderId=' + payment.orderId + '&message=' + encodeURIComponent(payment.errorMessage || 'Odeme basarisiz'),
+        redirectUrl: this.frontendUrl + '/payment/error?orderId=' + payment.orderId + '&message=' + encodeURIComponent(payment.errorMessage || 'Odeme basarisiz'),
         payment,
       };
     }
@@ -151,7 +156,7 @@ export class PaymentService {
     });
 
     if (!payment) {
-      return { success: false, redirectUrl: '/payment/error?message=Odeme+bulunamadi' };
+      return { success: false, redirectUrl: this.frontendUrl + '/payment/error?message=Odeme+bulunamadi' };
     }
 
     payment.status = PaymentStatus.COMPLETED;
@@ -168,7 +173,7 @@ export class PaymentService {
 
     return {
       success: true,
-      redirectUrl: '/payment/success?orderId=' + payment.orderId + '&paymentId=' + payment.id,
+      redirectUrl: this.frontendUrl + '/payment/success?orderId=' + payment.orderId + '&paymentId=' + payment.id,
       payment,
     };
   }
