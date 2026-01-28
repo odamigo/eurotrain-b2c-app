@@ -6,10 +6,11 @@ import Link from 'next/link';
 import {
   Train, MapPin, Calendar, Users, Search, ArrowRightLeft,
   ChevronDown, X, Loader2, Clock, Star, Shield, CreditCard,
-  ArrowRight, RotateCcw, Check
+  ArrowRight, RotateCcw, Check, Zap
 } from 'lucide-react';
 import { searchPlaces, EraPlace } from '@/lib/api/era-client';
 import GoogleSignInButton from '@/components/GoogleSignInButton';
+
 // Station type for backward compatibility
 interface Station {
   code: string;
@@ -66,6 +67,66 @@ function TripTypeToggle({
         <RotateCcw className="w-4 h-4" />
         <span>Gidiş-Dönüş</span>
       </button>
+    </div>
+  );
+}
+
+// ============================================================
+// DATE PILLS COMPONENT - UX İYİLEŞTİRME
+// ============================================================
+function DatePills({ 
+  onSelect, 
+  selectedDate 
+}: { 
+  onSelect: (date: string) => void;
+  selectedDate: string;
+}) {
+  const today = new Date();
+  
+  // Yarın
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  
+  // Bu Hafta Sonu (Cumartesi)
+  const daysUntilSaturday = (6 - today.getDay() + 7) % 7 || 7;
+  const thisWeekend = new Date(today);
+  thisWeekend.setDate(today.getDate() + daysUntilSaturday);
+  
+  // Gelecek Hafta Sonu
+  const nextWeekend = new Date(thisWeekend);
+  nextWeekend.setDate(thisWeekend.getDate() + 7);
+
+  const pills = [
+    { label: 'Bugün', date: today },
+    { label: 'Yarın', date: tomorrow },
+    { label: 'Bu Hafta Sonu', date: thisWeekend },
+    { label: 'Gelecek Hafta Sonu', date: nextWeekend },
+  ];
+
+  const formatToISO = (d: Date) => d.toISOString().split('T')[0];
+
+  return (
+    <div className="flex flex-wrap gap-2 mb-3">
+      {pills.map((pill) => {
+        const dateStr = formatToISO(pill.date);
+        const isSelected = selectedDate === dateStr;
+        return (
+          <button
+            key={pill.label}
+            type="button"
+            onClick={() => onSelect(dateStr)}
+            className={`
+              px-3 py-1.5 rounded-full text-xs font-medium transition-all
+              ${isSelected 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }
+            `}
+          >
+            {pill.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -326,11 +387,11 @@ export default function HomePage() {
             </Link>
             
             <nav className="flex items-center gap-4">
-  <Link href="/my-trips" className="text-white/80 hover:text-white transition-colors">
-    Biletlerim
-  </Link>
-  <GoogleSignInButton />
-</nav>
+              <Link href="/my-trips" className="text-white/80 hover:text-white transition-colors">
+                Biletlerim
+              </Link>
+              <GoogleSignInButton />
+            </nav>
           </div>
         </div>
       </header>
@@ -341,15 +402,34 @@ export default function HomePage() {
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
             Avrupa&apos;yı Trenle Keşfedin
           </h1>
-          <p className="text-xl text-white/80 mb-12">
+          <p className="text-xl text-white/80 mb-4">
             30+ ülke, binlerce destinasyon. En uygun fiyatlarla tren bileti alın.
           </p>
+          
+          {/* ============================================================ */}
+          {/* TRUST BADGE - UX İYİLEŞTİRME */}
+          {/* ============================================================ */}
+          <div className="flex items-center justify-center gap-2 mb-8">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full">
+              <Zap className="w-4 h-4 text-amber-400" />
+              <span className="text-white/90 text-sm font-medium">230+ Taşıyıcı</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full">
+              <Shield className="w-4 h-4 text-green-400" />
+              <span className="text-white/90 text-sm font-medium">Güvenli Ödeme</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full">
+              <Clock className="w-4 h-4 text-blue-300" />
+              <span className="text-white/90 text-sm font-medium">Anında E-Bilet</span>
+            </div>
+          </div>
 
           {/* Search Form */}
           <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-2xl p-6 md:p-8">
             {/* Trip Type Toggle */}
             <TripTypeToggle isRoundTrip={isRoundTrip} onChange={setIsRoundTrip} />
 
+            {/* Origin & Destination Row */}
             <div className="grid md:grid-cols-2 gap-4 mb-4">
               {/* Origin */}
               <div ref={originRef} className="relative">
@@ -362,26 +442,38 @@ export default function HomePage() {
                     type="text"
                     value={origin}
                     onChange={(e) => handleOriginSearch(e.target.value)}
-                    onFocus={() => originSuggestions.length > 0 && setShowOriginSuggestions(true)}
                     placeholder="Şehir veya istasyon"
-                    className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-12 pr-10 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   {isSearchingOrigin && (
-                    <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 animate-spin" />
+                    <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500 animate-spin" />
+                  )}
+                  {origin && !isSearchingOrigin && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOrigin('');
+                        setSelectedOrigin(null);
+                        setOriginSuggestions([]);
+                      }}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
                   )}
                 </div>
                 
-                {/* Origin Suggestions */}
+                {/* Suggestions Dropdown */}
                 {showOriginSuggestions && originSuggestions.length > 0 && (
-                  <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-lg border border-slate-200 max-h-60 overflow-y-auto">
+                  <div className="absolute z-50 w-full mt-1 bg-white rounded-xl shadow-lg border border-slate-200 max-h-60 overflow-y-auto">
                     {originSuggestions.map((station, index) => (
                       <button
-                        key={station.code + index}
+                        key={`${station.code}-${index}`}
                         type="button"
                         onClick={() => selectOrigin(station)}
-                        className="w-full px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors text-left"
+                        className="w-full px-4 py-3 text-left hover:bg-slate-50 flex items-center gap-3 border-b border-slate-100 last:border-0"
                       >
-                        <MapPin className="w-5 h-5 text-slate-400" />
+                        <Train className="w-5 h-5 text-slate-400" />
                         <div>
                           <div className="font-medium text-slate-900">{station.name}</div>
                           <div className="text-sm text-slate-500">{station.city}, {station.country}</div>
@@ -392,7 +484,16 @@ export default function HomePage() {
                 )}
               </div>
 
-              {/* Destination with Swap Button */}
+              {/* Swap Button - Desktop */}
+              <button
+                type="button"
+                onClick={swapStations}
+                className="hidden md:flex absolute left-1/2 top-[168px] -translate-x-1/2 w-10 h-10 bg-white border-2 border-slate-200 rounded-full items-center justify-center hover:bg-slate-50 hover:border-blue-500 transition-colors z-10"
+              >
+                <ArrowRightLeft className="w-4 h-4 text-slate-600" />
+              </button>
+
+              {/* Destination */}
               <div ref={destinationRef} className="relative">
                 <label className="block text-sm font-medium text-slate-700 mb-2 text-left">
                   Nereye
@@ -403,37 +504,38 @@ export default function HomePage() {
                     type="text"
                     value={destination}
                     onChange={(e) => handleDestinationSearch(e.target.value)}
-                    onFocus={() => destinationSuggestions.length > 0 && setShowDestinationSuggestions(true)}
                     placeholder="Şehir veya istasyon"
-                    className="w-full pl-12 pr-12 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-12 pr-10 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
-                  
-                  {/* Swap Button - Between inputs on md+ */}
-                  <button
-                    type="button"
-                    onClick={swapStations}
-                    className="absolute -left-8 top-1/2 -translate-y-1/2 hidden md:flex w-10 h-10 bg-white border-2 border-slate-200 rounded-full items-center justify-center hover:bg-slate-50 hover:border-blue-400 transition-colors z-10"
-                    title="İstasyonları değiştir"
-                  >
-                    <ArrowRightLeft className="w-4 h-4 text-slate-500" />
-                  </button>
-                  
                   {isSearchingDestination && (
-                    <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 animate-spin" />
+                    <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500 animate-spin" />
+                  )}
+                  {destination && !isSearchingDestination && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDestination('');
+                        setSelectedDestination(null);
+                        setDestinationSuggestions([]);
+                      }}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
                   )}
                 </div>
                 
-                {/* Destination Suggestions */}
+                {/* Suggestions Dropdown */}
                 {showDestinationSuggestions && destinationSuggestions.length > 0 && (
-                  <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-lg border border-slate-200 max-h-60 overflow-y-auto">
+                  <div className="absolute z-50 w-full mt-1 bg-white rounded-xl shadow-lg border border-slate-200 max-h-60 overflow-y-auto">
                     {destinationSuggestions.map((station, index) => (
                       <button
-                        key={station.code + index}
+                        key={`${station.code}-${index}`}
                         type="button"
                         onClick={() => selectDestination(station)}
-                        className="w-full px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors text-left"
+                        className="w-full px-4 py-3 text-left hover:bg-slate-50 flex items-center gap-3 border-b border-slate-100 last:border-0"
                       >
-                        <MapPin className="w-5 h-5 text-slate-400" />
+                        <Train className="w-5 h-5 text-slate-400" />
                         <div>
                           <div className="font-medium text-slate-900">{station.name}</div>
                           <div className="text-sm text-slate-500">{station.city}, {station.country}</div>
@@ -454,6 +556,11 @@ export default function HomePage() {
               <ArrowRightLeft className="w-4 h-4" />
               <span>İstasyonları Değiştir</span>
             </button>
+
+            {/* ============================================================ */}
+            {/* DATE PILLS - UX İYİLEŞTİRME */}
+            {/* ============================================================ */}
+            <DatePills selectedDate={departureDate} onSelect={setDepartureDate} />
 
             {/* Dates Row */}
             <div className={`grid ${isRoundTrip ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-4 mb-4`}>
@@ -672,8 +779,8 @@ export default function HomePage() {
               <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <Train className="w-7 h-7 text-blue-600" />
               </div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">30+ Ülke</h3>
-              <p className="text-slate-600">Avrupa genelinde binlerce destinasyon</p>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">230+ Taşıyıcı</h3>
+              <p className="text-slate-600">Avrupa genelinde tüm tren operatörleri</p>
             </div>
             
             <div className="text-center">

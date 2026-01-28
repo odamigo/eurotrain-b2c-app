@@ -23,6 +23,123 @@ import {
 import type { Alert } from '@/lib/types/common.types';
 
 // ============================================================
+// TRAIN LOADING ANIMATION - UX İYİLEŞTİRME
+// ============================================================
+function TrainLoadingAnimation() {
+  return (
+    <div className="flex flex-col items-center justify-center py-20">
+      {/* Animated Train */}
+      <div className="relative w-64 h-24 mb-6">
+        {/* Track */}
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-200 rounded-full overflow-hidden">
+          <div className="h-full bg-blue-500 animate-pulse" style={{ width: '100%' }} />
+        </div>
+        
+        {/* Train */}
+        <div className="absolute bottom-2 animate-train-move">
+          <div className="flex items-end">
+            {/* Locomotive */}
+            <div className="relative">
+              <div className="w-16 h-12 bg-gradient-to-r from-blue-600 to-blue-500 rounded-t-lg rounded-br-lg">
+                {/* Window */}
+                <div className="absolute top-2 left-2 w-4 h-3 bg-blue-300 rounded-sm" />
+                {/* Light */}
+                <div className="absolute top-3 right-1 w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
+              </div>
+              {/* Wheels */}
+              <div className="flex gap-4 -mt-1 ml-2">
+                <div className="w-4 h-4 bg-slate-700 rounded-full border-2 border-slate-400 animate-spin-slow" />
+                <div className="w-4 h-4 bg-slate-700 rounded-full border-2 border-slate-400 animate-spin-slow" />
+              </div>
+            </div>
+            
+            {/* Wagon 1 */}
+            <div className="relative -ml-1">
+              <div className="w-14 h-10 bg-gradient-to-r from-slate-100 to-slate-50 rounded-t-lg border-2 border-slate-200">
+                <div className="flex gap-1 p-1">
+                  <div className="w-2 h-4 bg-blue-200 rounded-sm" />
+                  <div className="w-2 h-4 bg-blue-200 rounded-sm" />
+                  <div className="w-2 h-4 bg-blue-200 rounded-sm" />
+                </div>
+              </div>
+              <div className="flex gap-3 -mt-1 ml-2">
+                <div className="w-3 h-3 bg-slate-600 rounded-full animate-spin-slow" />
+                <div className="w-3 h-3 bg-slate-600 rounded-full animate-spin-slow" />
+              </div>
+            </div>
+            
+            {/* Wagon 2 */}
+            <div className="relative -ml-1">
+              <div className="w-14 h-10 bg-gradient-to-r from-slate-50 to-slate-100 rounded-t-lg border-2 border-slate-200">
+                <div className="flex gap-1 p-1">
+                  <div className="w-2 h-4 bg-blue-200 rounded-sm" />
+                  <div className="w-2 h-4 bg-blue-200 rounded-sm" />
+                  <div className="w-2 h-4 bg-blue-200 rounded-sm" />
+                </div>
+              </div>
+              <div className="flex gap-3 -mt-1 ml-2">
+                <div className="w-3 h-3 bg-slate-600 rounded-full animate-spin-slow" />
+                <div className="w-3 h-3 bg-slate-600 rounded-full animate-spin-slow" />
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Smoke */}
+        <div className="absolute top-0 left-8 flex gap-1">
+          <div className="w-3 h-3 bg-slate-300 rounded-full animate-smoke-1 opacity-60" />
+          <div className="w-2 h-2 bg-slate-300 rounded-full animate-smoke-2 opacity-40" />
+          <div className="w-2 h-2 bg-slate-300 rounded-full animate-smoke-3 opacity-20" />
+        </div>
+      </div>
+      
+      {/* Text */}
+      <p className="text-slate-600 font-medium">Seferler aranıyor...</p>
+      <p className="text-slate-400 text-sm mt-1">En uygun seçenekleri buluyoruz</p>
+      
+      {/* CSS Animations */}
+      <style jsx>{`
+        @keyframes train-move {
+          0%, 100% { transform: translateX(-20px); }
+          50% { transform: translateX(20px); }
+        }
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes smoke-1 {
+          0%, 100% { transform: translateY(0) scale(1); opacity: 0.6; }
+          50% { transform: translateY(-10px) scale(1.2); opacity: 0.3; }
+        }
+        @keyframes smoke-2 {
+          0%, 100% { transform: translateY(0) scale(1); opacity: 0.4; }
+          50% { transform: translateY(-15px) scale(1.3); opacity: 0.2; }
+        }
+        @keyframes smoke-3 {
+          0%, 100% { transform: translateY(0) scale(1); opacity: 0.2; }
+          50% { transform: translateY(-20px) scale(1.4); opacity: 0.1; }
+        }
+        .animate-train-move {
+          animation: train-move 2s ease-in-out infinite;
+        }
+        .animate-spin-slow {
+          animation: spin-slow 1s linear infinite;
+        }
+        .animate-smoke-1 {
+          animation: smoke-1 1.5s ease-in-out infinite;
+        }
+        .animate-smoke-2 {
+          animation: smoke-2 1.5s ease-in-out infinite 0.2s;
+        }
+        .animate-smoke-3 {
+          animation: smoke-3 1.5s ease-in-out infinite 0.4s;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// ============================================================
 // MAIN SEARCH CONTENT
 // ============================================================
 
@@ -278,10 +395,10 @@ function SearchContent() {
 
         {/* Results */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-            <p className="text-slate-600">Seferler aranıyor...</p>
-          </div>
+          // ============================================================
+          // TRAIN LOADING ANIMATION - UX İYİLEŞTİRME
+          // ============================================================
+          <TrainLoadingAnimation />
         ) : error ? (
           <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />

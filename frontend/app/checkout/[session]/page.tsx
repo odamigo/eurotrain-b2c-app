@@ -961,7 +961,7 @@ END:VCALENDAR`;
               ) : (
                 <>
                   <CreditCard className="w-5 h-5" />
-                  <span>Ödemeye Geç - {formatPrice(finalTotal, session.pricing.currency)}</span>
+                  <span>Koltuğumu Garantile - {formatPrice(finalTotal, session.pricing.currency)}</span>
                 </>
               )}
             </button>

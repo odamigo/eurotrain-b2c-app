@@ -17,6 +17,14 @@
 - [x] Homepage header'a Google Sign-In butonu eklendi
 - [x] Admin butonu header'dan kaldırıldı (güvenlik)
 - [x] next.config.ts güncellendi (NextAuth için proxy hariç tutuldu)
+- [x] Vercel env variables eklendi
+- [x] Production'da test edildi ✅
+
+### UX İyileştirmeleri (Hızlı Kazanımlar)
+- [x] **Trust Badges** - "230+ Taşıyıcı", "Güvenli Ödeme", "Anında E-Bilet" (homepage)
+- [x] **Date Pills** - "Bugün", "Yarın", "Bu Hafta Sonu", "Gelecek Hafta Sonu" (homepage)
+- [x] **Tren Loading Animasyonu** - Hareket eden tren, dönen tekerlekler, duman (search)
+- [ ] **CTA Text** - "Ödemeye Geç" → "Koltuğumu Garantile" (checkout - bekliyor)
 
 ### UX & Conversion Analizi
 - [x] Stratejik dönüşüm optimizasyonu dokümanı incelendi
@@ -91,15 +99,14 @@
 ## 🎯 SONRAKİ ADIMLAR
 
 ### 🔴 Acil
-- [ ] Git commit & push (Google Sign-In değişiklikleri)
-- [ ] Vercel'e Google OAuth env variables ekle
-- [ ] Production'da Google Sign-In test et
+- [ ] Git commit & push (UX iyileştirmeleri)
+- [ ] Checkout CTA text değişikliği: "Koltuğumu Garantile"
 
 ### 🟡 Beklemede (Harici)
 - [ ] Payten destek - "99 Declined" hatası
 
 ### 🟢 Hazır (Onay Sonrası)
-- [ ] UX önerileri (A1-A6, B1-B5)
+- [ ] Kalan UX önerileri (Exchangeable Badge, Highlights Tabs)
 - [ ] Round-trip desteği (3-4 gün)
 - [ ] Apple Sign-In ($99 Apple Developer gerekli)
 
@@ -134,8 +141,8 @@ docs/
 ## 🔧 VERCEL'E EKLENECEKler (Production Deploy)
 
 ```
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=182880856905-9koue8p410qicfhtis9hamjg9sutvu33.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=<Google Cloud Consel'dan al>
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=<Google Cloud Console'dan al>
+GOOGLE_CLIENT_SECRET=<Google Cloud Console'dan al>
 NEXTAUTH_SECRET=eurotrain-nextauth-secret-2026-production
 NEXTAUTH_URL=https://eurotrain-b2c-app.vercel.app
 ```
@@ -179,4 +186,4 @@ open https://eurotrain-b2c-app.vercel.app
 
 ---
 
-**Son Durum:** Google Sign-In ✅ | Production Deploy Bekliyor 🟡 | Payten Beklemede 🟡
+**Son Durum:** Google Sign-In ✅ | UX İyileştirmeleri ✅ | Git Push Bekliyor 🟡
