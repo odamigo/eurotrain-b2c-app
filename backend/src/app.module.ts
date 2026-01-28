@@ -15,6 +15,13 @@ import { ShareModule } from './share/share.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 
+// Synchronize ayarını belirle
+// DB_SYNCHRONIZE=true ise tablo oluştur (ilk deployment için)
+// Aksi halde production'da false, development'ta true
+const shouldSynchronize = 
+  process.env.DB_SYNCHRONIZE === 'true' || 
+  (process.env.NODE_ENV !== 'production' && process.env.DB_SYNCHRONIZE !== 'false');
+
 @Module({
   imports: [
     // ============================================
@@ -61,7 +68,10 @@ import { APP_GUARD } from '@nestjs/core';
       
       // Entity ayarları
       autoLoadEntities: true,
-      synchronize: process.env.NODE_ENV !== 'production', // Production'da false!
+      
+      // Synchronize: DB_SYNCHRONIZE=true ile override edilebilir
+      // İlk deployment sonrası DB_SYNCHRONIZE=false yapılmalı!
+      synchronize: shouldSynchronize,
       
       // Connection pool
       extra: {
