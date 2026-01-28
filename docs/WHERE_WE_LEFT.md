@@ -1,124 +1,144 @@
 # 🚂 EUROTRAIN - NEREDE KALDIK
 
-**Son Güncelleme:** 28 Ocak 2026, 18:15  
+**Son Güncelleme:** 28 Ocak 2026, 22:50  
 **Git Branch:** main  
-**Durum:** 🎉 **PRODUCTION LIVE + MONITORING ACTIVE!**
+**Durum:** 🟢 **GOOGLE SIGN-IN EKLENDİ**
 
 ---
 
-## 🎉 PRODUCTION DEPLOYMENT TAMAMLANDI!
+## ✅ BU OTURUMDA TAMAMLANAN (28 Ocak)
 
-### Canlı URL'ler
-| Bileşen | URL | Durum |
-|---------|-----|-------|
-| **Frontend** | https://eurotrain-b2c-app.vercel.app | ✅ LIVE |
-| **Backend** | https://eurotrain-b2c-app-production.up.railway.app | ✅ LIVE |
-| **Health Check** | https://eurotrain-b2c-app-production.up.railway.app/health | ✅ OK |
+### Google Sign-In Entegrasyonu
+- [x] Google Cloud Console'da `eurotrain-b2c` projesi oluşturuldu
+- [x] OAuth Consent Screen yapılandırıldı (External)
+- [x] OAuth 2.0 Client ID oluşturuldu
+- [x] NextAuth.js kuruldu ve yapılandırıldı
+- [x] GoogleSignInButton component'i oluşturuldu
+- [x] Homepage header'a Google Sign-In butonu eklendi
+- [x] Admin butonu header'dan kaldırıldı (güvenlik)
+- [x] next.config.ts güncellendi (NextAuth için proxy hariç tutuldu)
 
-### Altyapı
-| Bileşen | Platform | Region | Durum |
-|---------|----------|--------|-------|
-| Frontend | Vercel | Auto | ✅ |
-| Backend | Railway | US-West | ✅ |
-| Database | Neon PostgreSQL | Frankfurt (EU) | ✅ |
-| Monitoring | Sentry.io | EU | ✅ |
-
----
-
-## ✅ BU OTURUMDA TAMAMLANAN
-
-### Production Deployment
-- [x] Neon PostgreSQL hesabı ve database oluşturuldu
-- [x] Railway.app hesabı ve GitHub bağlantısı
-- [x] Docker build başarılı
-- [x] Environment variables yapılandırıldı
-- [x] Database tabloları manuel oluşturuldu (SQL)
-- [x] Backend healthcheck geçti
-- [x] Public domain oluşturuldu
-- [x] Frontend-Backend bağlantısı yapıldı
-- [x] End-to-end test başarılı ✅
-
-### Sentry.io Error Monitoring
-- [x] Sentry hesabı oluşturuldu (odamigo org)
-- [x] Frontend projesi: `javascript-nextjs`
-- [x] Backend projesi: `eurotrain-backend`
-- [x] Frontend SDK kuruldu (@sentry/nextjs)
-- [x] Backend SDK kuruldu (@sentry/nestjs)
-- [x] Tracing aktif (performance monitoring)
-- [x] Session Replay aktif (video replay)
-- [x] Test hatası gönderildi ve doğrulandı ✅
-- [x] Sentry example page silindi
-
-### Kod Düzeltmeleri
-- [x] `logger.service.ts` - Console logging (production-ready)
-- [x] `app.module.ts` - DB_SYNCHRONIZE env var desteği
-- [x] TypeScript hataları düzeltildi
-- [x] `main.ts` - Sentry entegrasyonu
-- [x] `instrument.ts` - Sentry initialization
-
-### Güvenlik
-- [x] GitGuardian uyarısı - Resend API key yenilendi
-- [x] DB_SYNCHRONIZE=false yapıldı
+### UX & Conversion Analizi
+- [x] Stratejik dönüşüm optimizasyonu dokümanı incelendi
+- [x] Uygulanabilir öneriler filtrelendi
+- [x] `docs/UX_CONVERSION_ROADMAP.md` oluşturuldu
 
 ---
 
-## 📊 YAPILANDIRMA
+## ⚠️ MEVCUT DURUM
 
-### Railway Environment Variables
-```
-DATABASE_URL = postgresql://...
-JWT_SECRET = eurotrain-super-secret-key-2026-production
-RESEND_API_KEY = re_***
-FRONTEND_URL = https://eurotrain-b2c-app.vercel.app
-ERA_MOCK_MODE = true
-ERA_POINT_OF_SALE = EUROTRAIN
-NODE_ENV = production
-PORT = 3001
-DB_SYNCHRONIZE = false
-SENTRY_DSN = https://...@sentry.io/...
-```
+### Production
+| Bileşen | Platform | Durum |
+|---------|----------|-------|
+| Frontend | Vercel | ✅ LIVE |
+| Backend | Railway | ✅ LIVE |
+| Database | Neon | ✅ LIVE |
+| Monitoring | Sentry | ✅ LIVE |
+| Google Sign-In | Local | ✅ ÇALIŞIYOR |
+| Payment (Payten) | - | 🟡 LOCAL OK, PROD BEKLEMEDE |
 
-### Vercel Environment Variables
-```
-NEXT_PUBLIC_API_URL = https://eurotrain-b2c-app-production.up.railway.app
-NEXT_PUBLIC_SITE_URL = https://eurotrain-b2c-app.vercel.app
-SENTRY_AUTH_TOKEN = sntrys_***
-```
+### Payten Sorunu (BEKLEMEDE)
+**Hata:** `99 - Declined` - Production URL reddediliyor  
+**Yapılacak:** Payten destek ile iletişim
 
-### Neon Database Tabloları
-```
-✅ admin_users
-✅ bookings
-✅ campaigns
-✅ settings
-✅ payments
-```
+---
 
-### Sentry Projeleri
-```
-✅ javascript-nextjs (Frontend)
-✅ eurotrain-backend (Backend)
-```
+## 📋 UX ÖNERİLERİ (HENÜz NETLEŞTİRİLMEDİ)
+
+> ⚠️ Aşağıdaki öneriler analiz edildi ancak henüz onaylanmadı.
+> Detaylar: `docs/UX_CONVERSION_ROADMAP.md`
+
+### Hızlı Kazanımlar (Kategori A)
+| # | Öneri | Efor |
+|---|-------|------|
+| A1 | Mobile Sticky CTA | 2 saat |
+| A2 | Trust Badge ("230+ Carriers") | 30 dk |
+| A3 | Carrier Logoları (Footer) | 1 saat |
+| A4 | CTA: "Buy Now" → "Secure My Seat" | 15 dk |
+| A5 | Input type düzeltmeleri | 1 saat |
+| A6 | Tren loading animasyonu | 2-3 saat |
+
+### Orta Efor (Kategori B)
+| # | Öneri | Efor |
+|---|-------|------|
+| B1 | Date Pills ("Yarın", "Bu Hafta Sonu") | 3-4 saat |
+| B2 | Exchangeable Badge (Yeşil) | 2 saat |
+| B3 | Highlights Tabs (En Ucuz/Hızlı) | 4-5 saat |
+| B4 | Payment Security Badge | 30 dk |
+| B5 | Accordion Checkout | 1 gün |
+
+### Araştırma Gerektiren (Kategori C)
+| # | Öneri | Bağımlılık |
+|---|-------|------------|
+| C1 | Apple Pay / Google Pay | Payten desteği? |
+| C2 | Route Popularity | Gerçek veri var mı? |
+| C3 | Abandoned Cart Email | Email capture noktası |
+
+---
+
+## 🔴 KRİTİK EKSİKLER (P0) - Mevcut
+
+| # | Özellik | Durum | Süre |
+|---|---------|-------|------|
+| 1 | **Round-trip** | ❌ Bekliyor | 3-4 gün |
+| 2 | **Multi-segment UI** | ⚠️ Kısmen | 2-3 gün |
+| 3 | **Passenger Cards** | ❌ Bekliyor | 3-4 gün |
+| 4 | **Exchange Flow** | ❌ Bekliyor | 4-5 gün |
+| 5 | **Refund Frontend** | ⚠️ Kısmen | 2-3 gün |
 
 ---
 
 ## 🎯 SONRAKİ ADIMLAR
 
-### Kısa Vadeli (Bu Hafta)
-- [ ] BetterUptime monitoring
-- [ ] Custom domain (eurotrain.net)
+### 🔴 Acil
+- [ ] Git commit & push (Google Sign-In değişiklikleri)
+- [ ] Vercel'e Google OAuth env variables ekle
+- [ ] Production'da Google Sign-In test et
 
-### Orta Vadeli
+### 🟡 Beklemede (Harici)
+- [ ] Payten destek - "99 Declined" hatası
+
+### 🟢 Hazır (Onay Sonrası)
+- [ ] UX önerileri (A1-A6, B1-B5)
 - [ ] Round-trip desteği (3-4 gün)
-- [ ] Passenger discount cards (3-4 gün)
-- [ ] My Trips Phase 2 (Wallet)
-- [ ] Mobile responsive (2-3 gün)
-- [ ] i18n (TR/EN)
+- [ ] Apple Sign-In ($99 Apple Developer gerekli)
 
-### Uzun Vadeli
-- [ ] Rail Europe sandbox credentials
-- [ ] Real API entegrasyonu
-- [ ] MCP Server (Agentic Commerce)
+---
+
+## 📁 BU OTURUMDA OLUŞTURULAN DOSYALAR
+
+### Frontend
+```
+frontend/
+├── app/api/auth/[...nextauth]/route.ts  # NextAuth API route
+├── components/AuthProvider.tsx           # Session provider
+├── components/GoogleSignInButton.tsx     # Google giriş butonu
+├── .env.local                            # Google OAuth env vars
+└── next.config.ts                        # Proxy ayarları güncellendi
+```
+
+### Backend
+```
+backend/
+└── credentials/google-oauth.json         # OAuth credentials (gitignore'da)
+```
+
+### Dokümanlar
+```
+docs/
+└── UX_CONVERSION_ROADMAP.md              # UX önerileri
+```
+
+---
+
+## 🔧 VERCEL'E EKLENECEKler (Production Deploy)
+
+```
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=182880856905-9koue8p410qicfhtis9hamjg9sutvu33.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=<Google Cloud Consel'dan al>
+NEXTAUTH_SECRET=eurotrain-nextauth-secret-2026-production
+NEXTAUTH_URL=https://eurotrain-b2c-app.vercel.app
+```
 
 ---
 
@@ -126,11 +146,13 @@ SENTRY_AUTH_TOKEN = sntrys_***
 
 | Panel | URL |
 |-------|-----|
+| Frontend | https://eurotrain-b2c-app.vercel.app |
+| Backend | https://eurotrain-b2c-app-production.up.railway.app |
+| **Google Cloud** | https://console.cloud.google.com/apis/credentials?project=eurotrain-b2c |
 | Vercel | https://vercel.com/odamigos-projects/eurotrain-b2c-app |
-| Railway | https://railway.app/project/6c5b6994-9f2f-4c85-a8c2-adfd9d9b0dae |
+| Railway | https://railway.app |
 | Neon | https://console.neon.tech |
 | Sentry | https://odamigo.sentry.io |
-| Resend | https://resend.com/api-keys |
 
 ---
 
@@ -146,19 +168,15 @@ open https://eurotrain-b2c-app.vercel.app
 
 ---
 
-## ⚠️ ÖNEMLİ NOTLAR
+## 📞 PAYTEN DESTEK İÇİN
 
-1. **Mock Mode** - ERA API mock modda, gerçek bilet kesmiyor
-2. **Payment** - MSU credentials eksik, mock modda
-3. **Sentry** - Hem frontend hem backend hataları izleniyor
+**Sorulacak:**
+> "Test ortamında SESSIONTOKEN isteği yapıyoruz, responseCode 99 - Declined alıyoruz.
+> - Return URL: `https://eurotrain-b2c-app-production.up.railway.app/payment/callback`
+> - Merchant: `eurotrain`
+> - Local (localhost:3001) çalışıyor, production URL reddediliyor
+> - IP whitelist veya domain kısıtlaması var mı?"
 
 ---
 
-## 🏆 BAŞARI!
-
-**EuroTrain production'da çalışıyor + Error monitoring aktif!** 🎉🚂
-
-- Frontend: Vercel ✅
-- Backend: Railway ✅  
-- Database: Neon ✅
-- Monitoring: Sentry ✅
+**Son Durum:** Google Sign-In ✅ | Production Deploy Bekliyor 🟡 | Payten Beklemede 🟡

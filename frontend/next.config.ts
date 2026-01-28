@@ -7,11 +7,44 @@ const nextConfig: NextConfig = {
   // ============================================
   async rewrites() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-    
     return [
       {
-        source: '/api/:path*',
-        destination: `${apiUrl}/:path*`,
+        // NextAuth HARİÇ - /api/auth/* frontend'de kalacak
+        // Sadece diğer backend API'leri proxy'le
+        source: '/era/:path*',
+        destination: `${apiUrl}/era/:path*`,
+      },
+      {
+        source: '/bookings/:path*',
+        destination: `${apiUrl}/bookings/:path*`,
+      },
+      {
+        source: '/payment/:path*',
+        destination: `${apiUrl}/payment/:path*`,
+      },
+      {
+        source: '/my-trips/:path*',
+        destination: `${apiUrl}/my-trips/:path*`,
+      },
+      {
+        source: '/pdf/:path*',
+        destination: `${apiUrl}/pdf/:path*`,
+      },
+      {
+        source: '/calendar/:path*',
+        destination: `${apiUrl}/calendar/:path*`,
+      },
+      {
+        source: '/share/:path*',
+        destination: `${apiUrl}/share/:path*`,
+      },
+      {
+        source: '/settings/:path*',
+        destination: `${apiUrl}/settings/:path*`,
+      },
+      {
+        source: '/health',
+        destination: `${apiUrl}/health`,
       },
     ];
   },
@@ -62,19 +95,23 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: '*.eurotrain.net',
       },
+      {
+        // Google profil resimleri için
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
     ],
   },
 
   // ============================================
   // PRODUCTION OPTİMİZASYONLARI
   // ============================================
-  
   // Powered by header'ı kaldır (güvenlik)
   poweredByHeader: false,
-  
+
   // Strict mode
   reactStrictMode: true,
-  
+
   // Output standalone (Docker için optimize)
   output: 'standalone',
 };
@@ -82,9 +119,7 @@ const nextConfig: NextConfig = {
 export default withSentryConfig(nextConfig, {
   // For all available options, see:
   // https://www.npmjs.com/package/@sentry/webpack-plugin#options
-
   org: "odamigo",
-
   project: "javascript-nextjs",
 
   // Only print logs for uploading source maps in CI
@@ -108,7 +143,6 @@ export default withSentryConfig(nextConfig, {
     // https://docs.sentry.io/product/crons/
     // https://vercel.com/docs/cron-jobs
     automaticVercelMonitors: true,
-
     // Tree-shaking options for reducing bundle size
     treeshake: {
       // Automatically tree-shake Sentry logger statements to reduce bundle size

@@ -9,7 +9,7 @@ import {
   ArrowRight, RotateCcw, Check
 } from 'lucide-react';
 import { searchPlaces, EraPlace } from '@/lib/api/era-client';
-
+import GoogleSignInButton from '@/components/GoogleSignInButton';
 // Station type for backward compatibility
 interface Station {
   code: string;
@@ -325,14 +325,12 @@ export default function HomePage() {
               <span className="text-2xl font-bold text-white">EuroTrain</span>
             </Link>
             
-            <nav className="flex items-center gap-6">
-              <Link href="/my-trips" className="text-white/80 hover:text-white transition-colors">
-                Biletlerim
-              </Link>
-              <Link href="/admin/login" className="text-white/80 hover:text-white transition-colors">
-                Admin
-              </Link>
-            </nav>
+            <nav className="flex items-center gap-4">
+  <Link href="/my-trips" className="text-white/80 hover:text-white transition-colors">
+    Biletlerim
+  </Link>
+  <GoogleSignInButton />
+</nav>
           </div>
         </div>
       </header>

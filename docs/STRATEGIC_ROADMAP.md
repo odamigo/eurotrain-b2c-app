@@ -1,7 +1,7 @@
-﻿# 🚀 EUROTRAIN STRATEGIC ROADMAP
+# 🚀 EUROTRAIN STRATEGIC ROADMAP
 
-**Son Güncelleme:** 24 Ocak 2026
-**Durum:** %95 Tamamlandı
+**Son Güncelleme:** 28 Ocak 2026  
+**Durum:** %96 Tamamlandı
 
 ---
 
@@ -9,57 +9,123 @@
 
 | Kategori | Durum | Not |
 |----------|-------|-----|
-| Backend API | %98 | Settings modülü eklendi |
-| Frontend | %92 | Admin settings sayfası bekliyor |
-| Database | %98 | Settings tablosu eklendi |
-| Payment | %90 | MSU credentials bekliyor |
-| TCMB Kur | ✅ | Efektif satış, %2.5 markup |
-| **TOPLAM** | **%95** | |
+| Backend API | %98 | Production'da çalışıyor |
+| Frontend | %94 | UX iyileştirmeleri planlandı |
+| Database | %100 | Neon - tüm tablolar güncel |
+| Payment | %90 | Payten local OK, production beklemede |
+| Monitoring | %100 | Sentry aktif |
+| **TOPLAM** | **%96** | |
 
 ---
 
-## ✅ TAMAMLANAN (24 Ocak)
+## 🏗️ PRODUCTION DURUMU
 
-### Settings Modülü
-- TCMB efektif satış kuru entegrasyonu
-- Saatlik cache + fallback kurlar
-- EUR orijinal fiyat (markup yok)
-- USD/TRY için %2.5 markup
-- Admin API (markup, terms, privacy)
-
-### Payment Sayfası
-- Gerçek TCMB kurları
-- Para birimi seçimi (EUR/USD/TRY)
-- Tooltip ile kur bilgisi
-- Temiz ve profesyonel UI
+| Bileşen | Platform | Durum |
+|---------|----------|-------|
+| Frontend | Vercel | ✅ LIVE |
+| Backend | Railway | ✅ LIVE |
+| Database | Neon (Frankfurt) | ✅ LIVE |
+| Monitoring | Sentry | ✅ LIVE |
+| Payment | Payten | 🟡 Local OK, Production beklemede |
 
 ---
 
 ## 📅 FAZ PLANI
 
-### FAZ 1: MVP (Bu Hafta) - %95 Tamamlandı
+### FAZ 1: MVP - ✅ %96 TAMAMLANDI
 | Görev | Durum |
 |-------|-------|
+| Core booking flow | ✅ |
 | Email servisi | ✅ |
 | QR kodlu PDF | ✅ |
-| Payment gateway | ✅ |
+| Payment gateway | ✅ (local) |
 | TCMB kur entegrasyonu | ✅ |
 | Settings modülü | ✅ |
-| Admin Settings sayfası | 🔜 Sırada |
-| Terms/Privacy sayfaları | 🔜 |
-| MSU credentials | ⏳ Payten |
+| Production deployment | ✅ |
+| Sentry monitoring | ✅ |
+| Payten production | 🟡 Destek bekliyor |
 
-### FAZ 2: Production (2 Hafta)
-- Çoklu dil (i18n)
-- Resend domain doğrulama
-- HTTPS sertifikası
-- Performance optimizasyonu
-- Real ERA API
+### FAZ 1.5: UX & Conversion (YENİ) - 📋 PLANLANMIŞ
+> ⚠️ Henüz netleştirilmedi - Detaylar: `docs/UX_CONVERSION_ROADMAP.md`
 
-### FAZ 3: AI Agent (1 Ay)
-- MCP Server
-- Direct Post API
-- Claude/ChatGPT entegrasyonu
+**Hızlı Kazanımlar (~1 gün):**
+| Öneri | Efor |
+|-------|------|
+| Mobile Sticky CTA | 2 saat |
+| Trust Badge ("230+ Carriers") | 30 dk |
+| Carrier Logoları | 1 saat |
+| CTA Text ("Secure My Seat") | 15 dk |
+| Input type düzeltmeleri | 1 saat |
+| Tren loading animasyonu | 2-3 saat |
+
+**Orta Efor (~2-3 gün):**
+| Öneri | Efor |
+|-------|------|
+| Date Pills | 3-4 saat |
+| Exchangeable Badge | 2 saat |
+| Highlights Tabs | 4-5 saat |
+| Accordion Checkout | 1 gün |
+
+### FAZ 2: Core Features (P0) - ⏳ SIRADA
+| Görev | Süre | Öncelik |
+|-------|------|---------|
+| Round-trip desteği | 3-4 gün | P0 |
+| Multi-segment UI | 2-3 gün | P0 |
+| Passenger Cards | 3-4 gün | P0 |
+| Exchange Flow | 4-5 gün | P0 |
+| Refund Frontend | 2-3 gün | P0 |
+
+**Toplam:** ~15-19 gün
+
+### FAZ 2.5: UX Improvements (P1)
+| Görev | Süre |
+|-------|------|
+| Seat Selection | 2-3 gün |
+| Ticketing Options | 1-2 gün |
+| Direct Only Filter | 0.5 gün |
+| Timezone Handling | 1-2 gün |
+| Conditions Modal | 1-2 gün |
+| Price Breakdown | 1 gün |
+
+**Toplam:** ~10-14 gün
+
+### FAZ 3: Production Polish
+| Görev | Durum |
+|-------|-------|
+| Custom domain (eurotrain.net) | ⏳ |
+| Çoklu dil (i18n) | ⏳ |
+| Mobile responsive | ⏳ |
+| BetterUptime monitoring | ⏳ |
+| Performance optimizasyonu | ⏳ |
+
+### FAZ 4: AI Agent (MCP)
+| Görev | Durum |
+|-------|-------|
+| MCP Server | ⏳ |
+| search-trains tool | ⏳ |
+| Claude/ChatGPT entegrasyonu | ⏳ |
+
+---
+
+## 🎯 ÖNCELİK MATRİSİ
+
+```
+                    ETKİ
+                    Yüksek
+                      │
+         UX Hızlı     │    Round-trip
+         Kazanımlar   │    Highlights
+              ●───────┼───────●
+                      │
+    ──────────────────┼────────────────── EFOR
+         Düşük        │           Yüksek
+                      │
+         Input Types  │    Accordion
+         CTA Text     │    Checkout
+              ●───────┼───────●
+                      │
+                    Düşük
+```
 
 ---
 
@@ -68,39 +134,52 @@
 ### Mevcut Yapı
 - Kaynak: TCMB Efektif Satış
 - Cache: 1 saat
-- Fallback: Son bilinen kur / sabit değer
+- Fallback: Son bilinen kur
 
-### Markup Stratejisi
-| Para Birimi | Markup | Not |
-|-------------|--------|-----|
-| EUR | %0 | Orijinal fiyat |
-| USD | %2.5 | Admin'den düzenlenebilir |
-| TRY | %2.5 | Admin'den düzenlenebilir |
-
-### API Endpoints
-- GET /settings/exchange-rates
-- GET /settings/convert?amount=100&from=EUR&to=TRY
-- PUT /settings/admin/markup (JWT)
-- POST /settings/admin/exchange-rates/refresh (JWT)
+### Markup
+| Para Birimi | Markup |
+|-------------|--------|
+| EUR | %0 (Orijinal) |
+| USD | %2.5 |
+| TRY | %2.5 |
 
 ---
 
-## 🎯 SONRAKİ ADIMLAR
+## 🔗 DOKÜMAN HARİTASI
 
-1. **Şimdi:** Admin Settings sayfası
-2. **Sonra:** Terms/Privacy sayfaları
-3. **Bu hafta:** MSU credentials test
-4. **Gelecek hafta:** i18n altyapısı
+| Doküman | Açıklama |
+|---------|----------|
+| `WHERE_WE_LEFT.md` | Günlük durum takibi |
+| `PROJECT_MAP.md` | Teknik yapı haritası |
+| `STRATEGIC_ROADMAP.md` | Bu dosya - Ana roadmap |
+| `MY_TRIPS_PHASE2_TODO.md` | Bilet yönetimi özellikleri |
+| `UX_CONVERSION_ROADMAP.md` | 🆕 UX önerileri detayları |
 
 ---
 
 ## 📞 İLETİŞİM
 
-### Payten
-- destek.gateway@payten.com
-- 0212 319 0 678
+### Payten Destek
+- Email: destek.gateway@payten.com
+- Tel: 0212 319 0 678
+- Sorun: "99 Declined" - Production URL reddediliyor
 
-### Linkler
-- Frontend: http://localhost:3000
-- Backend: http://localhost:3001
-- GitHub: https://github.com/odamigo/eurotrain-b2c-app
+### Production URLs
+- Frontend: https://eurotrain-b2c-app.vercel.app
+- Backend: https://eurotrain-b2c-app-production.up.railway.app
+- Health: https://eurotrain-b2c-app-production.up.railway.app/health
+
+---
+
+## ✏️ DEĞİŞİKLİK GEÇMİŞİ
+
+| Tarih | Değişiklik |
+|-------|------------|
+| 28 Ocak 2026 | UX Conversion Roadmap eklendi (Faz 1.5) |
+| 27 Ocak 2026 | My Trips Phase 2 tamamlandı |
+| 26 Ocak 2026 | Production deployment (Vercel + Railway) |
+| 24 Ocak 2026 | Settings modülü, TCMB entegrasyonu |
+
+---
+
+**Son Durum:** Production Live ✅ | UX Önerileri Planlandı 📋 | Payten Beklemede 🟡
